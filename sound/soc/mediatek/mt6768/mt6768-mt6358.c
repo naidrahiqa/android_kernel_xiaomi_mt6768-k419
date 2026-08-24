@@ -201,6 +201,108 @@ static int mt6768_spk_amp_mode_set(struct snd_kcontrol *kcontrol,
 #endif
 // ALPS05007528 end
 
+#if defined(CONFIG_SND_SOC_AW87559)
+static const char *const mode_function[] = { "Off", "Music", "Voice", "Fm", "Rcv" };
+static SOC_ENUM_SINGLE_EXT_DECL(aw87xxx_mode, mode_function);
+
+enum aw87xxx_scene_mode {
+	AW87XXX_OFF_MODE = 0,
+	AW87XXX_MUSIC_MODE = 1,
+	AW87XXX_VOICE_MODE = 2,
+	AW87XXX_FM_MODE = 3,
+	AW87XXX_RCV_MODE = 4,
+	AW87XXX_MODE_MAX = 5,
+};
+enum {
+	AW87XXX_LEFT_CHANNEL = 0,
+	AW87XXX_RIGHT_CHANNEL = 1,
+};
+
+extern unsigned char aw87xxx_show_current_mode(int32_t channel);
+extern int aw87xxx_audio_scene_load(uint8_t mode, int32_t channel);
+
+static int aw87559_mode_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned char current_mode;
+	current_mode = aw87xxx_show_current_mode(AW87XXX_LEFT_CHANNEL);
+	ucontrol->value.integer.value[0] = current_mode;
+	pr_info("%s: get mode:%d\n", __func__, current_mode);
+	return 0;
+}
+
+static int aw87559_mode_set(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	unsigned char set_mode;
+	set_mode = ucontrol->value.integer.value[0];
+	ret = aw87xxx_audio_scene_load(set_mode, AW87XXX_LEFT_CHANNEL);
+	if (ret < 0) {
+		pr_err("%s: mode:%d set failed\n", __func__, set_mode);
+		return -EPERM;
+	}
+	pr_info("%s: set mode:%d success", __func__, set_mode);
+	return 0;
+}
+
+static int aw87389_mode_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned char current_mode;
+	current_mode = aw87xxx_show_current_mode(AW87XXX_RIGHT_CHANNEL);
+	ucontrol->value.integer.value[0] = current_mode;
+	pr_info("%s: get mode:%d\n", __func__, current_mode);
+	return 0;
+}
+
+static int aw87389_mode_set(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	unsigned char set_mode;
+	set_mode = ucontrol->value.integer.value[0];
+	ret = aw87xxx_audio_scene_load(set_mode, AW87XXX_RIGHT_CHANNEL);
+	if (ret < 0) {
+		pr_err("%s: mode:%d set failed\n", __func__, set_mode);
+		return -EPERM;
+	}
+	pr_info("%s: set mode:%d success", __func__, set_mode);
+	return 0;
+}
+#endif
+
+// ALPS05007528 begin
+#if defined(CONFIG_TARGET_PRODUCT_SELENE) && \
+	defined(CONFIG_SND_SOC_DSPK_LOL_HP)
+static int rcv_amp_mode;
+static const char *rcv_amp_type_str[] = {"SPEAKER_MODE", "RECIEVER_MODE"};
+static const struct soc_enum rcv_amp_type_enum =
+	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(rcv_amp_type_str), rcv_amp_type_str);
+
+static int mt6768_rcv_amp_mode_get(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	pr_info("%s() = %d\n", __func__, rcv_amp_mode);
+	ucontrol->value.integer.value[0] = rcv_amp_mode;
+	return 0;
+}
+
+static int mt6768_rcv_amp_mode_set(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_value *ucontrol)
+{
+	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+
+	if (ucontrol->value.enumerated.item[0] >= e->items)
+		return -EINVAL;
+
+	rcv_amp_mode = ucontrol->value.integer.value[0];
+	pr_info("%s() = %d\n", __func__, rcv_amp_mode);
+	return 0;
+}
+#endif
+// ALPS05007528 end
+
 static int mt6768_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {

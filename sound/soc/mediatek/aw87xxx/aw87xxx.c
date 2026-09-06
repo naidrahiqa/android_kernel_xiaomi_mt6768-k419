@@ -297,8 +297,8 @@ int aw87xxx_set_profile(int dev_index, char *profile)
 		}
 	}
 
-	AW_LOGE("not found struct aw87xxx, dev_index = [%d]", dev_index);
-	return -EINVAL;
+	AW_LOGI("struct aw87xxx not found for dev_index = [%d]", dev_index);
+	return -ENODEV;
 }
 EXPORT_SYMBOL(aw87xxx_set_profile);
 

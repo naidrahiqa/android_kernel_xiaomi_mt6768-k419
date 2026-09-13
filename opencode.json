@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "selene-4.14": {
+      "path": "/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene",
+      "description": "Reference kernel 4.14 Selene yang sudah stabil. Gunakan untuk perbandingan driver, DTS, config, dan debugging porting issues. Branch: phrolova, Kernel: 4.14.357."
+    }
+  }
+}

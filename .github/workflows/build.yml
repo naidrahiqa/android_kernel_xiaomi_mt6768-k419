@@ -1,0 +1,230 @@
+name: Build MT6768 Kernel 4.19
+
+on:
+  push:
+    branches: [Mocchipyon23.2]
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - '.opencode/**'
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: 'Build variant'
+        required: true
+        default: 'nightly'
+        type: choice
+        options:
+          - 'nightly'
+          - 'test'
+
+env:
+  TOOLCHAIN_NAME: "Greenforce Clang 24.0.0 (20260901)"
+  KERNEL_VERSION: "4.19.325"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      status: ${{ steps.final-check.outputs.status }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Mocchipyon CI"
+          git config user.email "mocchipyon@users.noreply.github.com"
+
+      - name: Generate version tag
+        id: version
+        run: |
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          DATE_TAG=$(date +%Y%m%d)
+          VARIANT="${{ github.event.inputs.variant || 'nightly' }}"
+          TAG="Mocchipyon-${VARIANT}-${DATE_TAG}-${SHORT_HASH}"
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "SHORT_HASH=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_ENV
+
+      - name: Notify start (Telegram)
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="🔨 *Build Started*
+          *Kernel:* MT6768 4.19.325
+          *Branch:* ${{ github.ref_name }}
+          *Tag:* \`${{ steps.version.outputs.TAG }}\`
+          *Commit:* \`${{ steps.version.outputs.SHORT_HASH }}\`" || true
+        continue-on-error: true
+
+      - name: Cache Greenforce Clang
+        id: cache-clang
+        uses: actions/cache@v4
+        with:
+          path: greenforce-clang
+          key: greenforce-clang-24.0.0-20260901
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential flex \
+            libssl-dev libelf-dev zstd \
+            python3 \
+            binutils-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            zip
+          if [ "${{ steps.cache-clang.outputs.cache-hit }}" != "true" ]; then
+            wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh | bash
+          fi
+          echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
+
+      - name: Build kernel (mt6768_defconfig + selene.config)
+        id: build
+        env:
+          KBUILD_BUILD_USER: "naidrahiqa"
+          KBUILD_BUILD_HOST: "github-actions"
+        run: |
+          rm -rf out
+          make O=out ARCH=arm64 \
+            CC=clang HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 LLVM_IAS=1 \
+            mt6768_defconfig 2>&1 | tee build.log
+          
+          cat arch/arm64/configs/vendor/selene.config >> out/.config
+          make O=out ARCH=arm64 \
+            CC=clang HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 LLVM_IAS=1 \
+            olddefconfig 2>&1 | tee -a build.log
+          
+          set +e
+          make O=out ARCH=arm64 \
+            CC=clang HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 LLVM_IAS=1 \
+            -j$(nproc) 2>&1 | tee -a build.log
+          MAKE_EXIT=${PIPESTATUS[0]}
+          echo "MAKE_EXIT_CODE=${MAKE_EXIT}" >> $GITHUB_ENV
+          exit $MAKE_EXIT
+
+      - name: Verify critical configs
+        run: |
+          miss=0
+          for sym in \
+            CONFIG_ARCH_MTK_PROJECT \
+            CONFIG_TOUCHSCREEN_FTS_XIAOMI \
+            CONFIG_FPC_FINGERPRINT \
+            CONFIG_GOODIX_FINGERPRINT \
+            CONFIG_SND_SOC_AW87XXX \
+            CONFIG_BATTERY_BQ2589X; do
+            grep -q "${sym}=y" out/.config || {
+              echo "::warning::Config tidak ditemukan: ${sym}"
+            }
+          done
+
+      - name: Upload .config (debug artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-config-${{ steps.version.outputs.SHORT_HASH }}
+          path: out/.config
+
+      - name: Package AnyKernel3
+        if: success() && (hashFiles('out/arch/arm64/boot/Image*') != '')
+        run: |
+          git clone https://github.com/osm0sis/AnyKernel3 ak3 || { echo "::error::AnyKernel3 clone failed"; exit 1; }
+          cd ak3 && git checkout dca9dc3 && cd ..
+          
+          cat > ak3/anykernel.sh << 'EOF'
+          # AnyKernel3 Ramdisk Mod Script
+          # osm0sis @ xda-developers
+
+          ## AnyKernel setup
+          # shell variables
+          do.devicecheck=1
+          info.device=
+          is.slot_device=0
+          ramdisk.compression=auto
+          patch.vbmeta.device=auto
+
+          # shell functions
+          block=auto;
+          is_slot_device=0;
+          ramdisk_compression=auto;
+          patch_vbmeta_flag=auto;
+
+          # device info
+          boot.block=/dev/block/by-name/boot;
+          is_slot_device=0;
+          ramdisk_compression=auto;
+          patch_vbmeta_flag=auto;
+          EOF
+          
+          cp out/arch/arm64/boot/Image.gz-dtb ak3/ 2>/dev/null || \
+          cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
+          cp out/arch/arm64/boot/Image ak3/
+          
+          cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
+
+      - name: Final check
+        id: final-check
+        if: always()
+        run: |
+          HAS_ERROR=0
+          if [ -f build.log ] && grep -qiE "(\.c:[0-9]+:.*error:|clang: error:|error:.*failed)" build.log 2>/dev/null; then
+            echo "::error::Compilation error found"
+            HAS_ERROR=1
+          fi
+          if [ "${MAKE_EXIT_CODE:-0}" -ne 0 ]; then
+            echo "::error::make exited with code ${MAKE_EXIT_CODE}"
+            HAS_ERROR=1
+          fi
+          if [ ! -f out/arch/arm64/boot/Image.gz ] && [ ! -f out/arch/arm64/boot/Image ] && [ ! -f out/arch/arm64/boot/Image.gz-dtb ]; then
+            echo "::error::No kernel image found"
+            HAS_ERROR=1
+          fi
+          echo "status=$([ "$HAS_ERROR" -eq 1 ] && echo "failed" || echo "success")" >> $GITHUB_OUTPUT
+
+      - name: Upload build log (on failure)
+        if: steps.final-check.outputs.status == 'failed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ steps.version.outputs.SHORT_HASH }}
+          path: build.log
+
+      - name: Upload kernel artifact
+        if: steps.final-check.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mocchipyon-${{ steps.version.outputs.TAG }}
+          path: Mocchipyon-*.zip
+
+      - name: Notify result (Telegram)
+        if: always()
+        run: |
+          STATUS="${{ steps.final-check.outputs.status }}"
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            MSG="Build berhasil!"
+          else
+            EMOJI="❌"
+            MSG="Build gagal! Cek log."
+          fi
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="${EMOJI} *Build ${MSG}*
+          *Kernel:* MT6768 4.19.325
+          *Tag:* \`${{ steps.version.outputs.TAG }}\`
+          *Status:* ${STATUS}" || true
+        continue-on-error: true

@@ -158,36 +158,10 @@ jobs:
         run: |
           git clone https://github.com/osm0sis/AnyKernel3 ak3 || { echo "::error::AnyKernel3 clone failed"; exit 1; }
           cd ak3 && git checkout dca9dc3 && cd ..
-          
-          cat > ak3/anykernel.sh << 'EOF'
-          # AnyKernel3 Ramdisk Mod Script
-          # osm0sis @ xda-developers
-
-          ## AnyKernel setup
-          # shell variables
-          do.devicecheck=1
-          info.device=
-          is.slot_device=0
-          ramdisk.compression=auto
-          patch.vbmeta.device=auto
-
-          # shell functions
-          block=auto;
-          is_slot_device=0;
-          ramdisk_compression=auto;
-          patch_vbmeta_flag=auto;
-
-          # device info
-          boot.block=/dev/block/by-name/boot;
-          is_slot_device=0;
-          ramdisk_compression=auto;
-          patch_vbmeta_flag=auto;
-          EOF
-          
+          cp scripts/anykernel.sh ak3/anykernel.sh
           cp out/arch/arm64/boot/Image.gz-dtb ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image ak3/
-          
           cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Final check

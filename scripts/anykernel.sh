@@ -4,7 +4,7 @@
 ### AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Phrolova Kernel — by @Naidrahiqa
+kernel.string=Mocchipyon Kernel — by @Naidrahiqa
 do.devicecheck=0
 do.modules=0
 do.systemless=1

@@ -12,7 +12,7 @@ description: Use when working on the Xiaomi Selene (MT6768/Helio G85) Android ke
 - **Kernel**: Linux 4.19.325 (CIP stable backport) — **STATUS: UNSTABLE, MASIH PORTING**
 - **Branch**: `Mocchipyon23.2` (LineageOS 23.2 based)
 - **Architecture**: arm64
-- **Toolchain**: Clang/LLVM (clang-r383902)
+- **Toolchain**: [Greenforce Clang](https://github.com/greenforce-project/greenforce_clang) (LLVM/Clang, built with PGO+ThinLTO+O3+Polly)
 - **GPU**: Mali Valhall r32p1
 - **TEE**: Microtrust v400
 
@@ -86,20 +86,48 @@ description: Use when working on the Xiaomi Selene (MT6768/Helio G85) Android ke
 
 ## Build Commands
 
+### Setup Greenforce Clang (one-time)
 ```bash
-# Full build
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- mt6768_defconfig selene.config
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j$(nproc)
+# Install Greenforce Clang
+bash <(wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh)
+export PATH="$(pwd)/greenforce-clang/bin:$PATH"
 
-# Using GKI build system
-build/build.sh
-
-# Build specific module
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- M=drivers/input/touchscreen/mediatek/focaltech_touch_k19a
-
-# DTB only
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- dtbs
+# Install cross-compilers (Ubuntu/Debian)
+sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+                        gcc-arm-linux-gnueabi binutils-arm-linux-gnueabi
 ```
+
+### Full build
+```bash
+make O=out ARCH=arm64 \
+  CC=clang HOSTCC=gcc \
+  CROSS_COMPILE=aarch64-linux-gnu- \
+  CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+  LD=ld.lld AR=llvm-ar NM=llvm-nm \
+  OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
+  STRIP=llvm-strip READELF=llvm-readelf \
+  LLVM=1 LLVM_IAS=1 \
+  mt6768_defconfig
+
+cat arch/arm64/configs/vendor/selene.config >> out/.config
+make O=out ARCH=arm64 olddefconfig
+
+make O=out ARCH=arm64 \
+  CC=clang HOSTCC=gcc \
+  CROSS_COMPILE=aarch64-linux-gnu- \
+  CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+  LD=ld.lld AR=llvm-ar NM=llvm-nm \
+  OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
+  STRIP=llvm-strip READELF=llvm-readelf \
+  LLVM=1 LLVM_IAS=1 \
+  -j$(nproc)
+```
+
+> **PENTING untuk kernel 4.19:**
+> - `CROSS_COMPILE_ARM32=arm-linux-gnueabi-` wajib untuk vDSO32 (32-bit compat)
+> - `LLVM_IAS=1` harus di-pass explicit (belum default di kernel < 5.15)
+> - Greenforce Clang gak butuh `CLANG_TRIPLE` atau `LD_LIBRARY_PATH`
+> - Kalau error `.pad` atau `mov` di assembly, vdso32 sudah di-patch pakai `-fno-integrated-as`
 
 ## Common Development Tasks
 

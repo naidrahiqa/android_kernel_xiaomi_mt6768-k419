@@ -99,6 +99,12 @@ VDSO_CFLAGS += -Wno-int-to-pointer-cast
 VDSO_AFLAGS := $(VDSO_CAFLAGS)
 VDSO_AFLAGS += -D__ASSEMBLY__
 
+# Clang IAS does not support .pad with symbolic constants in ARM mode.
+# Use GAS for assembly files in vdso32.
+ifeq ($(CONFIG_CC_IS_CLANG), y)
+VDSO_AFLAGS += -fno-integrated-as
+endif
+
 # Check for binutils support for dmb ishld
 dmbinstr := $(call cc32-as-instr,dmb ishld,-DCONFIG_AS_DMB_ISHLD=1)
 

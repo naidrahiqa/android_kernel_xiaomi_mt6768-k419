@@ -12,6 +12,22 @@
 
 #include <asm/vdso/compat_barrier.h>
 
+/*
+ * Fallback definitions for vdso32 build.
+ * When compiling with --target=arm-linux-gnueabi, the ARM64 asm/unistd.h
+ * may not be found, so __NR_compat_* macros won't be defined.
+ * Provide them here using the standard ARM syscall numbers.
+ */
+#ifndef __NR_compat_gettimeofday
+#define __NR_compat_gettimeofday	78
+#endif
+#ifndef __NR_compat_clock_gettime
+#define __NR_compat_clock_gettime	263
+#endif
+#ifndef __NR_compat_clock_getres
+#define __NR_compat_clock_getres	264
+#endif
+
 #define __VDSO_USE_SYSCALL		ULLONG_MAX
 
 #define VDSO_HAS_CLOCK_GETRES		1

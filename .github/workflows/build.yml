@@ -58,7 +58,7 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
             -d parse_mode="Markdown" \
-            -d text="🔨 *Build Started*
+            --data-urlencode "text=🔨 *Build Started*
           *Kernel:* MT6768 4.19.325
           *Branch:* ${{ github.ref_name }}
           *Tag:* \`${{ steps.version.outputs.TAG }}\`
@@ -70,7 +70,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: greenforce-clang
-          key: greenforce-clang-20260912
+          key: greenforce-clang-${{ hashFiles('.github/workflows/build.yml') }}
 
       - name: Install build dependencies
         run: |
@@ -88,6 +88,11 @@ jobs:
             wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh | bash
           fi
           echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
+
+      - name: Setup ReSukiSU (KernelSU)
+        run: |
+          ln -sf "$(realpath resukisu/kernel)" drivers/kernelsu
+          test -L drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed"; exit 1; }
 
       - name: Build kernel (mt6768_defconfig + selene.config)
         id: build
@@ -137,14 +142,26 @@ jobs:
           for sym in \
             CONFIG_ARCH_MTK_PROJECT \
             CONFIG_TOUCHSCREEN_FTS_XIAOMI \
-            CONFIG_FPC_FINGERPRINT \
-            CONFIG_GOODIX_FINGERPRINT \
             CONFIG_SND_SOC_AW87XXX \
-            CONFIG_BATTERY_BQ2589X; do
+            CONFIG_KSU \
+            CONFIG_KSU_MANUAL_HOOK \
+            CONFIG_NOMOUNT; do
             grep -q "${sym}=y" out/.config || {
               echo "::warning::Config tidak ditemukan: ${sym}"
             }
           done
+          # Verify dangerous configs are disabled
+          for sym in \
+            CONFIG_SHADOW_CALL_STACK \
+            CONFIG_SLAB_FREELIST_HARDENED \
+            CONFIG_INIT_ON_ALLOC_DEFAULT_ON \
+            CONFIG_BUG_ON_DATA_CORRUPTION; do
+            grep -q "^${sym}=y" out/.config && {
+              echo "::error::Dangerous config enabled: ${sym}"
+              miss=1
+            }
+          done
+          exit $miss
 
       - name: Upload .config (debug artifact)
         if: always()
@@ -154,8 +171,13 @@ jobs:
           path: out/.config
 
       - name: Package AnyKernel3
-        if: success() && (hashFiles('out/arch/arm64/boot/Image*') != '')
+        if: success()
         run: |
+          test -f out/arch/arm64/boot/Image.gz || \
+          test -f out/arch/arm64/boot/Image || \
+          test -f out/arch/arm64/boot/Image.gz-dtb || \
+          { echo "::error::No kernel image found"; exit 1; }
+          
           git clone https://github.com/osm0sis/AnyKernel3 ak3 || { echo "::error::AnyKernel3 clone failed"; exit 1; }
           cd ak3 && git checkout dca9dc3 && cd ..
           cp scripts/anykernel.sh ak3/anykernel.sh
@@ -211,7 +233,7 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
             -d parse_mode="Markdown" \
-            -d text="${EMOJI} *Build ${MSG}*
+            --data-urlencode "text=${EMOJI} *Build ${MSG}*
           *Kernel:* MT6768 4.19.325
           *Tag:* \`${{ steps.version.outputs.TAG }}\`
           *Status:* ${STATUS}" || true

@@ -63,6 +63,20 @@ description: Use when working on the Xiaomi Selene (MT6768/Helio G85) Android ke
 - `sound/soc/mediatek/fs1815n/` — FS16XX audio amplifier
 - `drivers/misc/mediatek/` — MediaTek platform drivers (117 subdirs)
 
+### KernelSU (ReSukiSU)
+- `resukisu/` — ReSukiSU kernel driver (latest from GitHub)
+- **Source**: https://github.com/ReSukiSU/ReSukiSU
+- **Driver path**: `resukisu/kernel/` (copied from ReSukiSU repo)
+- **Kconfig**: `CONFIG_KSU=y`, `CONFIG_KSU_MANUAL_HOOK=y` (non-GKI 4.19)
+- **Compat layer**: `resukisu/kernel/compat/` — auto-detect API differences
+- **Build checks**: `resukisu/kernel/tools/kernel_compat.mk` — 30+ API checks
+
+### NoMount
+- `fs/nomount.c` + `fs/nomount.h` — Kernel module (systemless path redirection)
+- `tools/nomount/` — Userspace binary (arm64 static) + Magisk module
+- **Source**: https://github.com/maxsteeel/nomount
+- **Status**: v20, needs 4.19 API adaptation (iterate_shared, getattr 4-arg)
+
 ### Build Config
 - `build.config.mtk.aarch64` — Primary MTK build config
 - `build.config.mtk.aarch64.kasan` — KASAN debug variant
@@ -152,6 +166,31 @@ make ARCH=arm64 savedefconfig
 cp defconfig arch/arm64/configs/vendor/mt6768_defconfig
 ```
 
+### ReSukiSU Integration
+```bash
+# Symlink driver ke kernel source
+ln -sf "$(realpath resukisu/kernel)" drivers/kernelsu
+
+# Enable di defconfig
+CONFIG_KSU=y
+CONFIG_KSU_MANUAL_HOOK=y  # non-GKI 4.19 wajib
+
+# Verify hooks exist di build time
+make -C resukisu/kernel/tools manual_hook_check.mk
+```
+
+### NoMount Integration
+```bash
+# Copy ke fs/
+cp /path/to/nomount/kernel/src/nomount.c fs/
+cp /path/to/nomount/kernel/src/nomount.h fs/
+
+# Add ke Kconfig + Makefile di fs/
+# userspace binary
+aarch64-linux-gnu-gcc -static -O2 -nostdlib -nostartfiles \
+  -Itools/nomount -o nm tools/nomount/src/nm.c
+```
+
 ## Git Conventions
 
 - **Branch naming**: `Mocchipyon23.2` (main), `lineage-23.2-selene` (LineageOS)
@@ -164,6 +203,46 @@ cp defconfig arch/arm64/configs/vendor/mt6768_defconfig
 2. **Kernel 4.19 EOL** — CIP extends support, but evaluate for Android 15+ GKI 2.0
 3. **Multiple charger ICs in DTS** — Both BQ25890 and SMB1351 defined, verify which is active
 4. **Empty Android.mk** — Intentional from MTK, do not delete
+
+## Porting Gotchas (dari 4.14 experience)
+
+### Clang IAS Issues
+- **`.weak` → `.globl`**: Clang IAS reject changing binding from STB_WEAK to STB_GLOBAL. Fix: ganti `.weak memcpy` → `.globl memcpy` di `arch/arm64/lib/{memcpy,memmove,memset}.S`
+- **`stpcpy` undefined**: Clang 23+ optimize `strcpy` + pointer arithmetic jadi `stpcpy()`. Fix: tambah generic implementation di `lib/string.c` + declaration di `include/linux/string.h`
+- **Named macro args**: VDSO `gettimeofday.S` — `clock_gettime_return, shift=1` harus `clock_gettime_return 1` (positional args)
+- **68-bit literal**: `arch/arm64/crypto/aes-modes.S` — `0x30000000200000001` exceeds IAS range. Fix: explicit lane construction dengan `mov/dup`
+
+### LTO & Linker
+- **LTO mismatch**: `CONFIG_LTO_CLANG=y` — LLVM 23 bitcode gagal di-link oleh LLVM 16 system linker. Disable LTO atau gunakan LLVM yang match
+- **`GCC_TOOLCHAIN_DIR`**: Pakai `$(CROSS_COMPILE)as` bukan `$(CROSS_COMPILE)elfedit`
+
+### ZSTD
+- **`ZSTD_STATIC_ASSERT`**: `lib/zstd/zstd_internal.h` — enum pembagian nol ditolak Clang 23. Fix: ganti dengan C11 `_Static_assert((c), "ZSTD_STATIC_ASSERT")`
+
+### GCC
+- **GCC 13 `-Werror`**: Vendor driver warnings di-promote ke error. Fix: tambah `-Wno-error` di `scripts/Makefile.lib` `orig_c_flags`
+
+### UAPI Headers
+- **Missing headers**: `xt_connmark.h`, `xt_mark.h` harus dibuat manual di `include/uapi/linux/netfilter/`
+- **`xt_hl.c` deleted**: Diperlukan karena `IP_NF_MATCH_TTL` select `NETFILTER_XT_MATCH_HL`. Restore dari parent commit
+
+### FPSGO
+- **`CONFIG_TRACEPOINTS=y`**: FPSGO GPU driver butuh tracepoints. Tanpa ini, 60+ undefined reference errors
+
+### Security Hardening — JANGAN ENABLE
+| Config | Masalah |
+|--------|---------|
+| `BUG_ON_DATA_CORRUPTION` | Bootloop dari benign list corruption |
+| `INIT_ON_ALLOC_DEFAULT_ON` | Bootloop dari uninitialized memory dependencies |
+| `SHADOW_CALL_STACK` | Kernel panic ~2 jam (TrustZone clobber x18) |
+| `SLAB_FREELIST_HARDENED` | Kernel panic ~81 menit (use-after-free di CCCI/CLDMA) |
+
+### Fingerprint Prebuilt
+- **GOODIX**: Prebuilt `gf_spi_tee.o_shipped` depends on `__stack_chk_guard` → disable atau provide stubs
+- **FPC**: Depends on `spi_fingerprint` + `goodix_fp_exist` dari Goodix
+
+### /proc/config.gz Stale
+- `kernel/Makefile` line 125 — hardcoded `stock_defconfig`. Fix: ganti ke `$(KCONFIG_CONFIG)`
 
 ## Troubleshooting
 

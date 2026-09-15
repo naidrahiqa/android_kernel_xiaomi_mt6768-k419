@@ -119,14 +119,11 @@ endif
 
 ### `sigreturn.S` undefined `__NR_compat_*`
 vdso32 `sigreturn.S` pakai `__NR_compat_sigreturn` dan `__NR_compat_rt_sigreturn` dari `<asm/unistd.h>`, tapi preprocessor tidak expand saat compile dengan Clang IAS.
-- **Fix**: Tambah fallback defines di `sigreturn.S`:
+- **Fix**: Ganti `<asm/unistd.h>` ke `<asm/unistd32.h>` dan pakai `__NR_sigreturn`/`__NR_rt_sigreturn`:
 ```asm
-#ifndef __NR_compat_sigreturn
-#define __NR_compat_sigreturn 119
-#endif
-#ifndef __NR_compat_rt_sigreturn
-#define __NR_compat_rt_sigreturn 173
-#endif
+#include <asm/unistd32.h>
+mov r7, #__NR_sigreturn
+mov r7, #__NR_rt_sigreturn
 ```
 
 ## Anti-Patterns (JANGAN LAKUKAN)

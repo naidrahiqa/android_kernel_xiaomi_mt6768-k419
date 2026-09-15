@@ -104,18 +104,26 @@ tracepoint_probe_register
 ```
 
 ### `.pad` symbolic constants
-Clang IAS gak support `.pad #SYMBOLIC_CONSTANT` di ARM mode.
-- **Fix**: Disable IAS untuk vdso32 assembly:
+Clang IAS gak support `.pad #SYMBOLIC_CONSTANT` di ARM mode. `-fno-integrated-as` juga tidak dihargai Clang.
+- **Fix**: Force GAS untuk assembly files di vdso32 Makefile:
 ```makefile
 # arch/arm64/kernel/vdso32/Makefile
 ifeq ($(CONFIG_CC_IS_CLANG), y)
-VDSO_AFLAGS += -fno-integrated-as
+CC_COMPAT ?= $(CC)
+CC_COMPAT += --target=arm-linux-gnueabi
+CC_COMPAT_AS ?= $(CROSS_COMPILE_COMPAT)gcc
+else
+CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+CC_COMPAT_AS ?= $(CC_COMPAT)
 endif
+
+# Ganti cmd_vdsoas:
+cmd_vdsoas = $(CC_COMPAT_AS) -Wp,-MD,$(depfile) $(VDSO_AFLAGS) -c -o $@ $<
 ```
 
 ### `mov` immediate syntax
 `mov r7, #__NR_compat_sigreturn` — Clang IAS gak support `:` syntax.
-- **Fix**: Sama dengan `.pad` fix — disable IAS untuk vdso32
+- **Fix**: Sama dengan `.pad` fix — force GAS untuk vdso32 assembly
 
 ### `sigreturn.S` undefined `__NR_compat_*`
 vdso32 `sigreturn.S` pakai `__NR_compat_sigreturn` dan `__NR_compat_rt_sigreturn` dari `<asm/unistd.h>`, tapi preprocessor tidak expand saat compile dengan Clang IAS.

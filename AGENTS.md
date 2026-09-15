@@ -78,6 +78,9 @@ make O=out ARCH=arm64 \
 | `stpcpy` undefined | Tambah generic impl di `lib/string.c` | build-system-fixes |
 | ZSTD_STATIC_ASSERT | Ganti ke C11 `_Static_assert` | build-system-fixes |
 | vDSO32 `__NR_compat_*` | Tambah fallback defines | build-system-fixes |
+| vDSO32 `.pad` symbolic | Force GAS untuk assembly | build-system-fixes |
+| ReSukiSU symlink | Pakai relative path `../resukisu` | resukisu-integration |
+| Telegram topic IDs | Hardcode di workflow (jangan pakai secrets) | ci-cd-github-actions |
 | FPSGO 60+ undefined ref | `CONFIG_TRACEPOINTS=y` | defconfig-management |
 | SHADOW_CALL_STACK panic | Jangan enable | defconfig-management |
 | SLAB_FREELIST_HARDENED panic | Jangan enable | defconfig-management |

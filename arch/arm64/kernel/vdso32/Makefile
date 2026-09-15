@@ -12,8 +12,11 @@ include $(srctree)/lib/vdso/Makefile
 ifeq ($(CONFIG_CC_IS_CLANG), y)
 CC_COMPAT ?= $(CC)
 CC_COMPAT += --target=arm-linux-gnueabi
+# Force GAS for assembly files — Clang IAS doesn't support .pad #SYMBOLIC_CONSTANT
+CC_COMPAT_AS ?= $(CROSS_COMPILE_COMPAT)gcc
 else
 CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
+CC_COMPAT_AS ?= $(CC_COMPAT)
 endif
 
 ifeq ($(CONFIG_LD_IS_LLD), y)
@@ -182,7 +185,7 @@ quiet_cmd_vdsocc = CC32    $@
 quiet_cmd_vdsocc_gettimeofday = CC32    $@
       cmd_vdsocc_gettimeofday = $(CC_COMPAT) -Wp,-MD,$(depfile) $(VDSO_CFLAGS) $(VDSO_CFLAGS_gettimeofday_o) -c -o $@ $<
 quiet_cmd_vdsoas = AS32    $@
-      cmd_vdsoas = $(CC_COMPAT) -Wp,-MD,$(depfile) $(VDSO_AFLAGS) -c -o $@ $<
+      cmd_vdsoas = $(CC_COMPAT_AS) -Wp,-MD,$(depfile) $(VDSO_AFLAGS) -c -o $@ $<
 
 quiet_cmd_vdsomunge = MUNGE   $@
       cmd_vdsomunge = $(obj)/$(munge) $< $@

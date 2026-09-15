@@ -15,7 +15,9 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 | Secret | Description |
 |--------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token untuk notifikasi |
-| `TELEGRAM_CHANNEL_ID` | Telegram channel/group ID |
+| `TELEGRAM_CHANNEL_ID` | Telegram group ID (`Naidrahiqa Stuff`) |
+| `TELEGRAM_TOPIC_CI` | Thread ID untuk CI notifications (`47` — Selene CI topic) |
+| `TELEGRAM_TOPIC_LOG` | Thread ID untuk build logs (`8` — log topic) |
 | `PAT_TOKEN` | GitHub Personal Access Token (untuk release) |
 
 ### Workflow Structure
@@ -57,19 +59,30 @@ Example: Mocchipyon-nightly-20260914-a4e679c
 
 ## Telegram Notifications
 
+### Setup — Group with Topics
+- **Group**: "Naidrahiqa Stuff" (forum topics enabled)
+- **CI topic**: thread_id `47` (notifications: start, success, failure)
+- **Log topic**: thread_id `8` (build log upload)
+
 ### Format
 ```
 🔨 Build Started
 Kernel: MT6768 4.19.325
 Branch: Mocchipyon23.2
 Tag: Mocchipyon-nightly-20260914-a4e679c
+Commit: a4e679c
 
 ✅ Build berhasil! / ❌ Build gagal! Cek log.
 ```
 
-### Dual channel
-- Main channel: `TELEGRAM_CHANNEL_ID`
-- Error channel: `TELEGRAM_ERROR_CHANNEL_ID` (optional)
+### Workflow Secrets
+- `TELEGRAM_BOT_TOKEN` — bot token
+- `TELEGRAM_CHANNEL_ID` — group ID (`-1004414006944`)
+
+### Gotcha: Thread IDs Hardcoded
+**DO NOT** use `${{ secrets.TELEGRAM_TOPIC_CI }}` in curl — GitHub Actions silently strips the `-d message_thread_id` line from the log AND the actual command execution. Thread IDs are hardcoded directly in `build.yml`:
+- CI notifications: `message_thread_id=47`
+- Log topic: `message_thread_id=8`
 
 ## Debug Build Failures
 

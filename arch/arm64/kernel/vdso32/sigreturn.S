@@ -10,6 +10,13 @@
 #include <asm/asm-offsets.h>
 #include <asm/unistd.h>
 
+#ifndef __NR_compat_sigreturn
+#define __NR_compat_sigreturn 119
+#endif
+#ifndef __NR_compat_rt_sigreturn
+#define __NR_compat_rt_sigreturn 173
+#endif
+
 #define ARM_ENTRY(name)		\
 	ENTRY(name)
 

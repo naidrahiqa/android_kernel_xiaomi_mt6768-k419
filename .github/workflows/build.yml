@@ -57,6 +57,7 @@ jobs:
         run: |
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+            -d "message_thread_id=47" \
             -d parse_mode="Markdown" \
             --data-urlencode "text=🔨 *Build Started*
           *Kernel:* MT6768 4.19.325
@@ -212,6 +213,27 @@ jobs:
           name: build-log-${{ steps.version.outputs.SHORT_HASH }}
           path: build.log
 
+      - name: Send build log to Telegram (log topic)
+        if: always() && hashFiles('build.log') != ''
+        run: |
+          if [ -s build.log ]; then
+            LOG_HEAD=$(tail -c 3000 build.log | sed 's/"/\\"/g')
+            LOG_LINES=$(wc -l < build.log)
+            STATUS="${{ steps.final-check.outputs.status }}"
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+              -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+              -d "message_thread_id=8" \
+              -d parse_mode="Markdown" \
+              --data-urlencode "text=📋 *Build Log (${LOG_LINES} lines)*
+          *Tag:* \`${{ steps.version.outputs.TAG }}\`
+          *Status:* ${STATUS}
+
+          \`\`\`
+          ${LOG_HEAD}
+          \`\`\`" || true
+          fi
+        continue-on-error: true
+
       - name: Upload kernel artifact
         if: steps.final-check.outputs.status == 'success'
         uses: actions/upload-artifact@v4
@@ -232,6 +254,7 @@ jobs:
           fi
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+            -d "message_thread_id=47" \
             -d parse_mode="Markdown" \
             --data-urlencode "text=${EMOJI} *Build ${MSG}*
           *Kernel:* MT6768 4.19.325

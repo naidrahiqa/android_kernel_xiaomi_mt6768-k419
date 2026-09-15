@@ -34,7 +34,7 @@ CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
 
 ### Symlink driver
 ```bash
-ln -sf "$(realpath resukisu/kernel)" drivers/kernelsu
+ln -sf "$(realpath resukisu)" drivers/kernelsu
 ```
 
 ### Verify hooks exist

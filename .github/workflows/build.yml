@@ -92,7 +92,7 @@ jobs:
 
       - name: Setup ReSukiSU (KernelSU)
         run: |
-          ln -sf "$(realpath resukisu/kernel)" drivers/kernelsu
+          ln -sf "$(realpath resukisu)" drivers/kernelsu
           test -L drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed"; exit 1; }
 
       - name: Build kernel (mt6768_defconfig + selene.config)

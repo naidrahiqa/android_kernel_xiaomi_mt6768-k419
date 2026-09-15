@@ -8,14 +8,7 @@
 
 #include <linux/linkage.h>
 #include <asm/asm-offsets.h>
-#include <asm/unistd.h>
-
-#ifndef __NR_compat_sigreturn
-#define __NR_compat_sigreturn 119
-#endif
-#ifndef __NR_compat_rt_sigreturn
-#define __NR_compat_rt_sigreturn 173
-#endif
+#include <asm/unistd32.h>
 
 #define ARM_ENTRY(name)		\
 	ENTRY(name)
@@ -32,7 +25,7 @@
 	.pad #COMPAT_SIGFRAME_REGS_OFFSET
 	nop
 ARM_ENTRY(__kernel_sigreturn_arm)
-	mov r7, #__NR_compat_sigreturn
+	mov r7, #__NR_sigreturn
 	svc #0
 	.fnend
 ARM_ENDPROC(__kernel_sigreturn_arm)
@@ -42,7 +35,7 @@ ARM_ENDPROC(__kernel_sigreturn_arm)
 	.pad #COMPAT_RT_SIGFRAME_REGS_OFFSET
 	nop
 ARM_ENTRY(__kernel_rt_sigreturn_arm)
-	mov r7, #__NR_compat_rt_sigreturn
+	mov r7, #__NR_rt_sigreturn
 	svc #0
 	.fnend
 ARM_ENDPROC(__kernel_rt_sigreturn_arm)
@@ -53,7 +46,7 @@ ARM_ENDPROC(__kernel_rt_sigreturn_arm)
 	.pad #COMPAT_SIGFRAME_REGS_OFFSET
 	nop
 ARM_ENTRY(__kernel_sigreturn_thumb)
-	mov r7, #__NR_compat_sigreturn
+	mov r7, #__NR_sigreturn
 	svc #0
 	.fnend
 ARM_ENDPROC(__kernel_sigreturn_thumb)
@@ -63,7 +56,7 @@ ARM_ENDPROC(__kernel_sigreturn_thumb)
 	.pad #COMPAT_RT_SIGFRAME_REGS_OFFSET
 	nop
 ARM_ENTRY(__kernel_rt_sigreturn_thumb)
-	mov r7, #__NR_compat_rt_sigreturn
+	mov r7, #__NR_rt_sigreturn
 	svc #0
 	.fnend
 ARM_ENDPROC(__kernel_rt_sigreturn_thumb)

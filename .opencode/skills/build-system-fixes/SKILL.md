@@ -117,6 +117,18 @@ endif
 `mov r7, #__NR_compat_sigreturn` — Clang IAS gak support `:` syntax.
 - **Fix**: Sama dengan `.pad` fix — disable IAS untuk vdso32
 
+### `sigreturn.S` undefined `__NR_compat_*`
+vdso32 `sigreturn.S` pakai `__NR_compat_sigreturn` dan `__NR_compat_rt_sigreturn` dari `<asm/unistd.h>`, tapi preprocessor tidak expand saat compile dengan Clang IAS.
+- **Fix**: Tambah fallback defines di `sigreturn.S`:
+```asm
+#ifndef __NR_compat_sigreturn
+#define __NR_compat_sigreturn 119
+#endif
+#ifndef __NR_compat_rt_sigreturn
+#define __NR_compat_rt_sigreturn 173
+#endif
+```
+
 ## Anti-Patterns (JANGAN LAKUKAN)
 
 1. **Jangan enable `CONFIG_LTO_CLANG`** tanpa pastikan LLVM version match

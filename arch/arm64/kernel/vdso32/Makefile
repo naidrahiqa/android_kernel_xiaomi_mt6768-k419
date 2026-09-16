@@ -12,8 +12,9 @@ include $(srctree)/lib/vdso/Makefile
 ifeq ($(CONFIG_CC_IS_CLANG), y)
 CC_COMPAT ?= $(CC)
 CC_COMPAT += --target=arm-linux-gnueabi
-# Force GAS for assembly files — Clang IAS doesn't support .pad #SYMBOLIC_CONSTANT
-CC_COMPAT_AS ?= $(CROSS_COMPILE_COMPAT)gcc
+# Force GAS for assembly — Clang IAS doesn't support .pad #SYMBOLIC_CONSTANT
+# Note: CROSS_COMPILE_COMPAT is empty in CI, so hardcode ARM32 GCC
+CC_COMPAT_AS ?= arm-linux-gnueabi-gcc
 else
 CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
 CC_COMPAT_AS ?= $(CC_COMPAT)

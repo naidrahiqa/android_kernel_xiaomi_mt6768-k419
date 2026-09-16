@@ -93,7 +93,7 @@ jobs:
       - name: Setup ReSukiSU (KernelSU)
         run: |
           ln -sf "$(realpath resukisu)" drivers/kernelsu
-          test -L drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed"; exit 1; }
+          test -e drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed (dangling or missing)"; exit 1; }
 
       - name: Build kernel (mt6768_defconfig + selene.config)
         id: build
@@ -110,9 +110,10 @@ jobs:
             OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
             STRIP=llvm-strip READELF=llvm-readelf \
             LLVM=1 LLVM_IAS=1 \
-            mt6768_defconfig 2>&1 | tee build.log
+            vendor/mt6768_defconfig 2>&1 | tee build.log
           
-          cat arch/arm64/configs/vendor/selene.config >> out/.config
+          ARCH=arm64 scripts/kconfig/merge_config.sh -m -O out \
+            out/.config arch/arm64/configs/vendor/selene.config
           make O=out ARCH=arm64 \
             CC=clang HOSTCC=gcc \
             CROSS_COMPILE=aarch64-linux-gnu- \

@@ -12,9 +12,8 @@ include $(srctree)/lib/vdso/Makefile
 ifeq ($(CONFIG_CC_IS_CLANG), y)
 CC_COMPAT ?= $(CC)
 CC_COMPAT += --target=arm-linux-gnueabi
-# Force GAS for assembly — Clang IAS doesn't support .pad #SYMBOLIC_CONSTANT
-# Note: CROSS_COMPILE_COMPAT is empty in CI, so hardcode ARM32 GCC
-CC_COMPAT_AS ?= arm-linux-gnueabi-gcc
+# .pad symbolic constants were removed from sigreturn.S, so Clang IAS works
+CC_COMPAT_AS ?= $(CC_COMPAT)
 else
 CC_COMPAT ?= $(CROSS_COMPILE_COMPAT)gcc
 CC_COMPAT_AS ?= $(CC_COMPAT)
@@ -103,9 +102,8 @@ VDSO_CFLAGS += -Wno-int-to-pointer-cast
 VDSO_AFLAGS := $(VDSO_CAFLAGS)
 VDSO_AFLAGS += -D__ASSEMBLY__
 
-# Clang IAS does not support .pad with symbolic constants in ARM mode.
-# Assembly files are always compiled with CC_COMPAT_AS (GAS), so this flag
-# is not needed.
+# .pad symbolic constants were removed from sigreturn.S so both Clang IAS
+# and GAS can assemble it. CC_COMPAT_AS defaults to CC_COMPAT above.
 
 # Check for binutils support for dmb ishld
 dmbinstr := $(call cc32-as-instr,dmb ishld,-DCONFIG_AS_DMB_ISHLD=1)

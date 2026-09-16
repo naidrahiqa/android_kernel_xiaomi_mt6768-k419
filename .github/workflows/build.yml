@@ -171,6 +171,7 @@ jobs:
         with:
           name: kernel-config-${{ steps.version.outputs.SHORT_HASH }}
           path: out/.config
+          include-hidden-files: true
 
       - name: Package AnyKernel3
         if: success()
@@ -208,7 +209,7 @@ jobs:
           echo "status=$([ "$HAS_ERROR" -eq 1 ] && echo "failed" || echo "success")" >> $GITHUB_OUTPUT
 
       - name: Upload build log (on failure)
-        if: steps.final-check.outputs.status == 'failed'
+        if: always() && steps.final-check.outputs.status == 'failed'
         uses: actions/upload-artifact@v4
         with:
           name: build-log-${{ steps.version.outputs.SHORT_HASH }}

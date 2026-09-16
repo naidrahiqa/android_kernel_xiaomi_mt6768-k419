@@ -94,3 +94,9 @@ grep -r "ksu_handle_execveat\|ksu_handle_faccessat\|ksu_handle_stat" fs/ kernel/
 
 ### SELinux denials
 KernelSU butuh SELinux policy adjustments. Cek `resukisu/kernel/selinux/` untuk rules.
+
+### Static symbol export check failure
+`resukisu/tools/static_export_check.mk` gagal jika `CONFIG_KALLSYMS_ALL` tidak aktif dan simbol SELinux masih `static`.
+- **Fix 1**: Hapus `static` dari `sel_handle_status_ops` dan `write_op` di `security/selinux/selinuxfs.c`
+- **Fix 2**: Aktifkan `CONFIG_KALLSYMS_ALL=y` di `selene.config` agar runtime symbol lookup via kallsyms aktif
+- **UAPI**: Pastikan `resukisu/uapi/` ter-bundle dan symlink `resukisu/include/uapi` -> `../uapi` valid

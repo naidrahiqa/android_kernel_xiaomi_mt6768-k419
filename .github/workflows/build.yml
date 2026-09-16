@@ -95,7 +95,7 @@ jobs:
           ln -sf "$(realpath resukisu)" drivers/kernelsu
           test -e drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed (dangling or missing)"; exit 1; }
 
-      - name: Build kernel (mt6768_defconfig + selene.config)
+      - name: Build kernel (selene_defconfig)
         id: build
         env:
           KBUILD_BUILD_USER: "naidrahiqa"
@@ -110,20 +110,8 @@ jobs:
             OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
             STRIP=llvm-strip READELF=llvm-readelf \
             LLVM=1 LLVM_IAS=1 \
-            vendor/mt6768_defconfig 2>&1 | tee build.log
-          
-          ARCH=arm64 scripts/kconfig/merge_config.sh -m -O out \
-            out/.config arch/arm64/configs/vendor/selene.config
-          make O=out ARCH=arm64 \
-            CC=clang HOSTCC=gcc \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-            LD=ld.lld AR=llvm-ar NM=llvm-nm \
-            OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip READELF=llvm-readelf \
-            LLVM=1 LLVM_IAS=1 \
-            olddefconfig 2>&1 | tee -a build.log
-          
+            selene_defconfig 2>&1 | tee build.log
+
           set +e
           make O=out ARCH=arm64 \
             CC=clang HOSTCC=gcc \
@@ -141,8 +129,11 @@ jobs:
       - name: Verify critical configs
         run: |
           miss=0
+          grep -q 'CONFIG_ARCH_MTK_PROJECT="selene"' out/.config || {
+            echo "::warning::Config tidak ditemukan: CONFIG_ARCH_MTK_PROJECT"
+            miss=1
+          }
           for sym in \
-            CONFIG_ARCH_MTK_PROJECT \
             CONFIG_TOUCHSCREEN_FTS_XIAOMI \
             CONFIG_SND_SOC_AW87XXX \
             CONFIG_KSU \
@@ -150,6 +141,7 @@ jobs:
             CONFIG_NOMOUNT; do
             grep -q "${sym}=y" out/.config || {
               echo "::warning::Config tidak ditemukan: ${sym}"
+              miss=1
             }
           done
           # Verify dangerous configs are disabled

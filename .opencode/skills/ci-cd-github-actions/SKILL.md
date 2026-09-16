@@ -27,7 +27,7 @@ push to Mocchipyon23.2
   → Checkout
   → Generate version tag
   → Install build dependencies (Greenforce Clang + cross-compilers)
-  → Build kernel (mt6768_defconfig + selene.config)
+  → Build kernel (selene_defconfig)
   → Verify critical configs
   → Package AnyKernel3
   → Upload artifacts

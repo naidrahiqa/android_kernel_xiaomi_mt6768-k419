@@ -42,8 +42,9 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 ## Key File Locations
 
 ### Defconfig
-- `arch/arm64/configs/vendor/mt6768_defconfig` — Main SoC defconfig
-- `arch/arm64/configs/vendor/selene.config` — Device-specific overlay
+- `arch/arm64/configs/selene_defconfig` — Single unified device defconfig (recommended)
+- `arch/arm64/configs/vendor/mt6768_defconfig` — Base MTK SoC defconfig
+- `arch/arm64/configs/vendor/selene.config` — Device-specific overlay (legacy)
 - `arch/arm64/configs/vendor/lancelot.config` — Redmi 9 Power / Note 9 4G
 - `arch/arm64/configs/vendor/merlin.config` — Redmi 9T
 
@@ -113,10 +114,7 @@ make O=out ARCH=arm64 \
   OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
   STRIP=llvm-strip READELF=llvm-readelf \
   LLVM=1 LLVM_IAS=1 \
-  mt6768_defconfig
-
-cat arch/arm64/configs/vendor/selene.config >> out/.config
-make O=out ARCH=arm64 olddefconfig
+  selene_defconfig
 
 make O=out ARCH=arm64 \
   CC=clang HOSTCC=gcc \
@@ -140,7 +138,7 @@ make O=out ARCH=arm64 \
 1. Create directory in appropriate location
 2. Add Kconfig entry in parent `Kconfig` file
 3. Add obj-$(CONFIG_XXX) line in parent `Makefile`
-4. Add config to `mt6768_defconfig` or `selene.config`
+4. Add config to `selene_defconfig`
 
 ### Modifying device tree
 1. Edit `selene.dts` for device-specific changes
@@ -149,10 +147,10 @@ make O=out ARCH=arm64 \
 
 ### Modifying defconfig
 ```bash
-make ARCH=arm64 mt6768_defconfig selene.config
+make ARCH=arm64 selene_defconfig
 make ARCH=arm64 menuconfig
 make ARCH=arm64 savedefconfig
-cp defconfig arch/arm64/configs/vendor/mt6768_defconfig
+cp defconfig arch/arm64/configs/selene_defconfig
 ```
 
 ## Git Conventions

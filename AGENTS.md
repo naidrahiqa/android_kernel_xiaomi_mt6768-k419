@@ -56,10 +56,7 @@ make O=out ARCH=arm64 \
   CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
   LD=ld.lld AR=llvm-ar NM=llvm-nm \
   LLVM=1 LLVM_IAS=1 \
-  mt6768_defconfig
-
-cat arch/arm64/configs/vendor/selene.config >> out/.config
-make O=out ARCH=arm64 olddefconfig
+  selene_defconfig
 
 make O=out ARCH=arm64 \
   CC=clang HOSTCC=gcc \

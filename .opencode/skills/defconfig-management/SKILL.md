@@ -9,29 +9,24 @@ description: Defconfig management untuk MT6768 kernel. Config dependency chains,
 
 | File | Purpose |
 |------|---------|
-| `arch/arm64/configs/vendor/mt6768_defconfig` | Main SoC defconfig |
-| `arch/arm64/configs/vendor/selene.config` | Device overlay (merged on top) |
+| `arch/arm64/configs/selene_defconfig` | Unified device defconfig for Xiaomi Selene |
+| `arch/arm64/configs/vendor/mt6768_defconfig` | Base MTK SoC defconfig |
+| `arch/arm64/configs/vendor/selene.config` | Device overlay (legacy merged format) |
 | `arch/arm64/configs/vendor/lancelot.config` | Redmi 9 Power overlay |
 | `arch/arm64/configs/vendor/merlin.config` | Redmi 9T overlay |
 
 ## Build Workflow
 
 ```bash
-# 1. Generate base config
-make O=out ARCH=arm64 mt6768_defconfig
+# 1. Generate config from unified defconfig
+make O=out ARCH=arm64 selene_defconfig
 
-# 2. Apply device overlay
-cat arch/arm64/configs/vendor/selene.config >> out/.config
-
-# 3. Resolve dependencies
-make O=out ARCH=arm64 olddefconfig
-
-# 4. Edit (optional)
+# 2. Edit (optional)
 make O=out ARCH=arm64 menuconfig
 
-# 5. Save new defconfig
+# 3. Save new defconfig
 make O=out ARCH=arm64 savedefconfig
-cp out/defconfig arch/arm64/configs/vendor/mt6768_defconfig
+cp out/defconfig arch/arm64/configs/selene_defconfig
 ```
 
 ## Critical Configs (wajib ada)

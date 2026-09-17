@@ -255,3 +255,21 @@ jobs:
           *Tag:* \`${{ steps.version.outputs.TAG }}\`
           *Status:* ${STATUS}" || true
         continue-on-error: true
+
+      - name: Send kernel zip to Telegram
+        if: steps.final-check.outputs.status == 'success'
+        run: |
+          ZIP_FILE=$(ls Mocchipyon-*.zip 2>/dev/null | head -1)
+          if [ -n "$ZIP_FILE" ]; then
+            FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
+              -F chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
+              -F message_thread_id=47 \
+              -F document=@"$ZIP_FILE" \
+              -F caption="📦 *Mocchipyon Kernel*
+          *Tag:* \`${{ steps.version.outputs.TAG }}\`
+          *Size:* ${FILE_SIZE}
+          *Device:* Xiaomi Selene (MT6768)" \
+              -F parse_mode="Markdown" || true
+          fi
+        continue-on-error: true

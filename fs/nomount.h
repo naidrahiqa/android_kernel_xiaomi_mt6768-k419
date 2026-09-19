@@ -37,7 +37,7 @@ extern struct nm_uid_array __rcu *nomount_uids;
 extern struct list_head nomount_rules_list;
 extern struct list_head nomount_sb_list;
 extern struct rw_semaphore nomount_rwsem;
-extern struct srcu_struct nomount_srcu;
+/* nomount_srcu is static in nomount.c — only used within that translation unit */
 
 /* * Helpers to dynamically calculate the memory address of the strings / structs */
 #define nm_get_vpath(rule) ((rule)->paths)

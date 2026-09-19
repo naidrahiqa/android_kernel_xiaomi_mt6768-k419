@@ -7,6 +7,14 @@
 #include <linux/module.h>
 #include "nomount.h"
 
+/*** Global state ***/
+void *nomount_art_root = NULL;
+struct nm_uid_array __rcu *nomount_uids = NULL;
+LIST_HEAD(nomount_rules_list);
+LIST_HEAD(nomount_sb_list);
+DECLARE_RWSEM(nomount_rwsem);
+DEFINE_STATIC_SRCU(nomount_srcu);
+
 /*** Helpers ***/
 
 static __always_inline bool nomount_is_uid_blocked(uid_t target_uid)

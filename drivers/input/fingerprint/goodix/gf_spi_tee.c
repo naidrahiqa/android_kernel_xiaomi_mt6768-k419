@@ -1969,6 +1969,8 @@ static int gf_probe(struct spi_device *spi)
 		gf_hw_power_enable(gf_dev, 0);
 		gf_spi_clk_enable(gf_dev, 0);
 		kfree(gf_dev->spi_buffer);
+		regulator_disable(buck);
+		regulator_put(buck);
 		mutex_destroy(&gf_dev->buf_lock);
 		mutex_destroy(&gf_dev->release_lock);
 		spi_set_drvdata(spi, NULL);

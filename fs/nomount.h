@@ -31,12 +31,13 @@
 #define nm_warn(fmt, ...) printk(KERN_WARNING "NoMount: [WARN] " fmt, ##__VA_ARGS__)
 #define nm_err(fmt, ...)  printk(KERN_ERR "NoMount: [ERROR] " fmt, ##__VA_ARGS__)
 
-static void *nomount_art_root = NULL;
-static struct nm_uid_array __rcu *nomount_uids = NULL;
-static LIST_HEAD(nomount_rules_list);
-static LIST_HEAD(nomount_sb_list);
-static DECLARE_RWSEM(nomount_rwsem);
-DEFINE_STATIC_SRCU(nomount_srcu);
+/* global state — defined in nomount.c */
+extern void *nomount_art_root;
+extern struct nm_uid_array __rcu *nomount_uids;
+extern struct list_head nomount_rules_list;
+extern struct list_head nomount_sb_list;
+extern struct rw_semaphore nomount_rwsem;
+extern struct srcu_struct nomount_srcu;
 
 /* * Helpers to dynamically calculate the memory address of the strings / structs */
 #define nm_get_vpath(rule) ((rule)->paths)

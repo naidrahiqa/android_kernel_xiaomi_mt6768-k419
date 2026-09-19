@@ -7,16 +7,6 @@ on:
       - '*.md'
       - '**/*.md'
       - '.opencode/**'
-  workflow_dispatch:
-    inputs:
-      variant:
-        description: 'Build variant'
-        required: true
-        default: 'nightly'
-        type: choice
-        options:
-          - 'nightly'
-          - 'test'
 
 env:
   TOOLCHAIN_NAME: "Greenforce Clang"
@@ -48,7 +38,7 @@ jobs:
           SHORT_HASH=$(git rev-parse --short HEAD)
           FULL_HASH=$(git rev-parse HEAD)
           DATE_TAG=$(date +%Y%m%d)
-          VARIANT="${{ github.event.inputs.variant || 'nightly' }}"
+          VARIANT="nightly"
           TAG="Mocchipyon-${VARIANT}-${DATE_TAG}-${SHORT_HASH}"
           COMMIT_URL="https://github.com/${{ env.REPO }}/commit/${FULL_HASH}"
           echo "TAG=${TAG}" >> $GITHUB_OUTPUT

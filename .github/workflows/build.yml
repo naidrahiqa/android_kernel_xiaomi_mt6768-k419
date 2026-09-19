@@ -174,6 +174,9 @@ jobs:
           cp out/arch/arm64/boot/Image.gz-dtb ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image ak3/
+          # Bundle DTB and DTBO if available (for separate partition flashing)
+          cp out/arch/arm64/boot/dtb ak3/ 2>/dev/null || true
+          cp out/arch/arm64/boot/dtbo.img ak3/ 2>/dev/null || true
           cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Verify zip contents (no sensitive files)
@@ -184,7 +187,7 @@ jobs:
           unzip -l "$ZIP_FILE"
           echo "=== Checking for sensitive files ==="
           DANGEROUS=""
-          for pat in "*.lk" "*.LK" "lk*" "preloader*" "PRELOADER*" "dtbo*" "DTBO*" "tz*" "TZ*" "scp*" "SSPM*" "sspm*" "tee*" "TEE*" "vbmeta*" "VBMETA*"; do
+          for pat in "*.lk" "*.LK" "lk*" "preloader*" "PRELOADER*" "tz*" "TZ*" "scp*" "SSPM*" "sspm*" "tee*" "TEE*" "vbmeta*" "VBMETA*"; do
             MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -i "$pat" || true)
             if [ -n "$MATCHES" ]; then
               DANGEROUS="${DANGEROUS}${MATCHES}\n"
@@ -274,7 +277,7 @@ jobs:
           *Device:* Xiaomi Selene (MT6768)
           *Toolchain:* Greenforce Clang
 
-          ⚠️ _Flash hanya Image.gz-dtb via AnyKernel3. Jangan flash LK, preloader, atau dtbo!_" \
+          ⚠️ _Flash hanya Image.gz-dtb via AnyKernel3. Jangan flash LK atau preloader!_" \
                 -F parse_mode="Markdown" || true
             else
               curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \

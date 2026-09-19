@@ -12,10 +12,16 @@ do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=selene
-device.name2=merlin
-device.name3=lancelot
+device.name2=Selene
+device.name3=merlin
+device.name4=Merlin
+device.name5=merlinx
+device.name6=Merlinx
+device.name7=lancelot
+device.name8=Lancelot
 supported.versions=
 supported.patchlevels=
+supported.vendorpatchlevels=
 '; } # end properties
 
 ### AnyKernel install

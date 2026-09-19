@@ -175,8 +175,8 @@ jobs:
           cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image ak3/
           # Bundle DTB and DTBO if available (for separate partition flashing)
-          cp out/arch/arm64/boot/dtb ak3/ 2>/dev/null || true
-          cp out/arch/arm64/boot/dtbo.img ak3/ 2>/dev/null || true
+          cp out/arch/arm64/boot/dts/mediatek/mt6768.dtb ak3/dtb 2>/dev/null || true
+          cp out/arch/arm64/boot/dts/mediatek/selene.dtbo ak3/dtbo.img 2>/dev/null || true
           cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Verify zip contents (no sensitive files)

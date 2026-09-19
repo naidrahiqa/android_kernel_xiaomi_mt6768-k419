@@ -21,9 +21,10 @@ static __always_inline bool nomount_is_uid_blocked(uid_t target_uid)
 {
     struct nm_uid_array *arr;
     bool blocked = false;
+    int i;
     rcu_read_lock();
     if ((arr = rcu_dereference(nomount_uids))) {
-        for (int i = 0; i < arr->count; i++) {
+        for (i = 0; i < arr->count; i++) {
             if (arr->uids[i] == target_uid) {
                 blocked = true;
                 break;
@@ -871,6 +872,7 @@ static inline void nomount_hijack_superblock(struct super_block *sb)
 {
     struct nm_sop *nm_sop;
     int count = 0;
+    int i;
 
     if (unlikely(!sb || !sb->s_op || nm_get_nm_sop(smp_load_acquire(&sb->s_op)) ||
                  !(nm_sop = kmalloc(sizeof(*nm_sop), GFP_KERNEL)))) return;
@@ -891,7 +893,7 @@ static inline void nomount_hijack_superblock(struct super_block *sb)
         if ((new_array = kmalloc((count + 1) * sizeof(void *) + (count * sizeof(*proxies)), GFP_KERNEL))) {
             proxies = (void *)(new_array + count + 1);
             new_array[count] = NULL;
-            for (int i = 0; i < count; i++) {
+            for (i = 0; i < count; i++) {
                 proxies[i].orig = sb->s_xattr[i];
                 proxies[i].fake = *sb->s_xattr[i];
                 if (proxies[i].fake.get) proxies[i].fake.get = nm_xattr_get;
@@ -1026,6 +1028,7 @@ static int __nomount_inject_child_locked(struct nomount_dir_node *dir_node, stru
     struct nomount_rule **new_rules, **old_rules, *single;
     void *children;
     int old_count, capacity, new_cap, pos = 0;
+    int i;
     u32 target_hash, single_hash, *old_hashes;
 
     if (unlikely(!dir_node)) return -EINVAL;
@@ -1061,7 +1064,7 @@ static int __nomount_inject_child_locked(struct nomount_dir_node *dir_node, stru
     if (old_count < capacity) {
         write_seqcount_begin(&dir_node->seq);
         if (pos < old_count) {
-            for (int i = old_count; i > pos; i--) {
+            for (i = old_count; i > pos; i--) {
                 WRITE_ONCE(old_arr->hashes[i], READ_ONCE(old_arr->hashes[i - 1]));
                 WRITE_ONCE(old_rules[i], READ_ONCE(old_rules[i - 1]));
             }
@@ -1106,6 +1109,7 @@ static struct nomount_dir_node *__nomount_delete_child_locked(struct nomount_rul
     struct nomount_rule **rules, *single;
     void *children;
     int old_count, target_idx = -1;
+    int i;
     u64 mask = 0;
 
     if (unlikely(!dir_node || !(children = rcu_dereference_protected(dir_node->children, lockdep_is_held(&nomount_rwsem))))) return parent;
@@ -1114,7 +1118,7 @@ static struct nomount_dir_node *__nomount_delete_child_locked(struct nomount_rul
     rules = old_arr ? nm_get_child_rules(old_arr) : &single;
     old_count = old_arr ? old_arr->count : 1;
 
-    for (int i = 0; i < old_count; i++) {
+    for (i = 0; i < old_count; i++) {
         if (READ_ONCE(rules[i]) == rule) {
             target_idx = i;
             break;
@@ -1147,7 +1151,7 @@ static struct nomount_dir_node *__nomount_delete_child_locked(struct nomount_rul
     }
 
     if (target_idx < old_count - 1) {
-        for (int i = target_idx; i < old_count - 1; i++) {
+        for (i = target_idx; i < old_count - 1; i++) {
             WRITE_ONCE(old_arr->hashes[i], READ_ONCE(old_arr->hashes[i + 1]));
             WRITE_ONCE(rules[i], READ_ONCE(rules[i + 1]));
         }
@@ -1157,7 +1161,7 @@ static struct nomount_dir_node *__nomount_delete_child_locked(struct nomount_rul
     WRITE_ONCE(rules[old_count - 1], NULL);
     old_arr->count--;
 
-    for (int i = 0; i < old_arr->count; i++) mask |= (1ULL << (old_arr->hashes[i] & 63));
+    for (i = 0; i < old_arr->count; i++) mask |= (1ULL << (old_arr->hashes[i] & 63));
     dir_node->bloom_mask = mask;
     write_seqcount_end(&dir_node->seq);
     rcu_read_unlock();

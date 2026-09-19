@@ -1829,8 +1829,6 @@ int gf_spi_read_bytes(struct gf_device *gf_dev, u16 addr, u32 data_len, u8 *rx_b
 	}
 #endif
 	kfree(xfer);
-	if (xfer != NULL)
-		xfer = NULL;
 
 	return 0;
 }
@@ -1918,12 +1916,12 @@ static int gf_probe(struct spi_device *spi)
 	}
 	status = regulator_set_voltage(buck, 2800000, 2800000);
 	if (status < 0) {
-	    goto err_freqbuff;
+	    goto err_regulator;
 	}
 	status = regulator_enable(buck);
 	if (status < 0) {
 		gf_debug(ERR_LOG, "%s, regulator_enable fail!!\n" , __func__);
-		goto err_freqbuff;
+		goto err_regulator;
 	}
 
 
@@ -1977,7 +1975,7 @@ static int gf_probe(struct spi_device *spi)
 		gf_dev->spi = NULL;
 		kfree(gf_dev);
 		gf_dev = NULL;
-		return 0;
+		return -ENODEV;
 	} else {
 		goodix_fp_exist = true;
 		//set_fp_vendor(FP_VENDOR_GOODIX);
@@ -2165,6 +2163,8 @@ err_fw:
 	gf_hw_power_enable(gf_dev, 0);
 	gf_spi_clk_enable(gf_dev, 0);
 	kfree(gf_dev->spi_buffer);
+err_regulator:
+	regulator_put(buck);
 err_freqbuff:
 
 err_buf:
@@ -2204,8 +2204,9 @@ static int gf_remove(struct spi_device *spi)
 
 	mutex_lock(&gf_dev->release_lock);
 	if (gf_dev->input == NULL) {
+		struct mutex *lock = &gf_dev->release_lock;
 		kfree(gf_dev);
-		mutex_unlock(&gf_dev->release_lock);
+		mutex_unlock(lock);
 		FUNC_EXIT();
 		return 0;
 	}

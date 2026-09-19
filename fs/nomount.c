@@ -548,9 +548,12 @@ static int nm_fsync(struct file *file, loff_t start, loff_t end, int datasync)
 
 static ssize_t nm_listxattr(struct dentry *dentry, char *buffer, size_t size)
 {
-    struct nm_inode_info *info = d_backing_inode(dentry)->i_private;
+    struct inode *v_inode = d_backing_inode(dentry);
+    struct nm_inode_info *info;
     struct inode *r_inode;
 
+    if (unlikely(!v_inode)) return -EIO;
+    info = v_inode->i_private;
     if (unlikely(!info)) return -EIO;
     if (info->flags & NM_FLAG_VIRTUAL_DIR) return 0;
     if (!info->r_path.dentry) return -EOPNOTSUPP;
@@ -570,9 +573,11 @@ static int nm_getattr(IDMAP_ARG const struct path *path, struct kstat *stat, u32
     struct dentry *dentry = path->dentry;
 #endif
     struct inode *v_inode = d_backing_inode(dentry);
-    struct nm_inode_info *info = v_inode->i_private;
+    struct nm_inode_info *info;
     int res = 0;
 
+    if (unlikely(!v_inode)) return -EIO;
+    info = v_inode->i_private;
     if (unlikely(!info)) return -EIO;
     if (unlikely(info->flags & NM_FLAG_VIRTUAL_DIR))
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
@@ -606,6 +611,7 @@ static int nm_setattr(IDMAP_ARG struct dentry *dentry, struct iattr *attr)
     if (info->flags & NM_FLAG_VIRTUAL_DIR) return 0;
 
     r_inode = d_backing_inode(info->r_path.dentry);
+    if (unlikely(!r_inode)) return -EIO;
     inode_lock(r_inode);
     err = notify_change(IDMAP_CALL info->r_path.dentry, attr, NULL);
     inode_unlock(r_inode);
@@ -670,6 +676,7 @@ static struct dentry *nm_dir_lookup(struct inode *dir, struct dentry *dentry, un
     struct nm_inode_info *info = dir->i_private; 
     struct dentry *res;
 
+    if (unlikely(!info)) return ERR_PTR(-ENOENT);
     if (info->dir_node) {
         u32 v_hash = full_name_hash((const void *)(unsigned long)NOMOUNT_MAGIC_SIG, dentry->d_name.name, dentry->d_name.len);
         if (READ_ONCE(info->dir_node->bloom_mask) & (1ULL << (v_hash & 63)) &&
@@ -1300,7 +1307,11 @@ static struct nomount_rule *nm_alloc_rule(const char *v_path, const char *r_path
 
     if (kern_path(nm_get_vpath(rule), LOOKUP_FOLLOW, &v_path_struct) == 0) {
         struct dentry *target_dentry = v_path_struct.dentry;
-        rule->v_ino = d_backing_inode(target_dentry)->i_ino;
+        struct inode *target_inode = d_backing_inode(target_dentry);
+        if (likely(target_inode))
+            rule->v_ino = target_inode->i_ino;
+        else
+            rule->v_ino = (unsigned long)rule->v_hash;
         d_drop(target_dentry);
         path_put(&v_path_struct);
     } else {
@@ -1451,7 +1462,9 @@ static int nm_process_payload(unsigned long user_addr)
     unsigned long pg_off = offset_in_page(user_addr);
     char *buf_ptr, *buf_end;
 
-    if (pg_off + sizeof(*payload) > PAGE_SIZE || get_user_pages_fast(user_addr, 1, FOLL_WRITE, &page) != 1) 
+    if (user_addr >= TASK_SIZE || pg_off + sizeof(*payload) > PAGE_SIZE)
+        return -EFAULT;
+    if (get_user_pages_fast(user_addr, 1, FOLL_WRITE, &page) != 1) 
         return -EFAULT;
 
     if ((payload = (void *)((char *)kmap(page) + pg_off))->magic != NOMOUNT_MAGIC_SIG) {

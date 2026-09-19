@@ -1,6 +1,5 @@
 config MTK_CHARGER
 	bool "MediaTek Charging Driver"
-	depends on MEDIATEK_SOLUTION
 	default n
 	help
 	  Say yes here to enable MediaTek charging driver.

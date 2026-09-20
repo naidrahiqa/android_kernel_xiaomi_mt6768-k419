@@ -83,3 +83,39 @@ make O=out ARCH=arm64 \
 | SLAB_FREELIST_HARDENED panic | Jangan enable | defconfig-management |
 | /proc/config.gz stale | Fix `kernel/Makefile` line 125 | defconfig-management |
 | Goodix prebuilt stack protector | Disable atau provide stubs | defconfig-management |
+
+## CRITICAL: Charger DTS — JANGAN UBAH TANPA HARDWARE VALIDATION
+
+> **BRICK RISK** — Charger DTS changes menyebabkan phone brick (19 Sep 2026).
+
+### Root Cause
+```
+CONFIG_MTK_CHARGER depends on MEDIATEK_SOLUTION → ga ada → config di-drop
+→ Charger driver NEVER compiled → DTS values ga dibaca → Phone AMAN
+
+Fix dependency → Charger driver ENABLED → Baca DTS values yang salah
+→ PMIC overvoltage protection → HARDWARE BRICK
+```
+
+### Rules (WAJIB DIIKUTI)
+1. **JANGAN ubah `battery_cv`** — value ini adalah hardware-rated voltage (4.35V untuk Selene)
+2. **JANGAN enable `enable_sw_jeita`** tanpa testing di hardware nyata
+3. **JANGAN tambah `hvdcp_charger_current`** tanpa validasi charger IC
+4. **JANGAN ubah JEITA CV values** — sudah dioptimasi untuk hardware ini
+5. **JANGAN asumsi LineageOS values aman** — device kita punya charger IC berbeda
+6. **Kalau mau ubah charger config**, flash dulu ke hardware, test 24 jam, baru commit
+
+### Safe Charger Configs (boleh di-enable)
+| Config | Status | Catatan |
+|---|---|---|
+| `CONFIG_MTK_CHARGER` | ✅ enabled | Legitimate bug fix — charger driver seharusnya jalan |
+| `CONFIG_SMB1351_USB_CHARGER` | ✅ enabled | Charger IC yang dipakai selene |
+| `CONFIG_CHARGER_BQ2589X_CHARGER` | ✅ enabled | Charger IC alternatif |
+
+### Dangerous Charger Changes (JANGAN LAKUKAN)
+| Change | Bahaya | Brick Risk |
+|---|---|---|
+| `battery_cv > 4350000` | Overvoltage battery | 🔴 CRITICAL |
+| `enable_sw_jeita` tanpa testing | JEITA protection interference | 🔴 HIGH |
+| `hvdcp_charger_current > 2050000` | Overcurrent charging | 🟡 MEDIUM |
+| `pd_vbus_upper_bound > 5000000` | PD voltage too high | 🟡 MEDIUM |

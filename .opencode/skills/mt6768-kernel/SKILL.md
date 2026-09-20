@@ -85,13 +85,57 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 | Touch | FocalTech FTS (SPI), double-tap support |
 | Fingerprint | Goodix GF3208 (SPI2, GPIO8 IRQ, GPIO31 reset) |
 | NFC | NXP PN553 (I2C3, addr 0x28) |
-| Charger | BQ25890 + SMB1351, USB Type-C (FUSB302) |
+| Charger | BQ25890 + SMB1351, USB Type-C (FUSB302), 18W QC |
 | Audio PA | AW87559 (I2C6), FS16XX |
 | Backlight | KTD3137 + LM3697 |
 | LED | RGB (GPIO-based) |
 | Camera | OV50C40, S5KJN1, OV8856, GC02M1B, IMX355 |
 | GPS LNA | GPIO94 |
 | IR TX | PWM (GPIO12) |
+
+## CRITICAL: Charger DTS — BRICK WARNING (19 Sep 2026)
+
+> **PHONE BRICKED** gara-gara charger DTS + Kconfig fix. JANGAN ULANGI.
+
+### What Happened
+```
+CONFIG_MTK_CHARGER depends on MEDIATEK_SOLUTION (UNDEFINED)
+→ Charger driver SILENTLY DISABLED (ga compile)
+→ DTS values ga dibaca → Phone AMAN
+
+Kconfig fix (hapus dependency) → Charger driver ENABLED
+→ Baca DTS: battery_cv=4460000 (OVERVOLTAGE!)
+→ PMIC hardware protection → BRICK
+```
+
+### Safe Charger DTS Values for Selene (HARDWARE-RATED)
+```dts
+/* mt6768.dts — charger node */
+battery_cv = <4350000>;           /* 4.35V — JANGAN UBAH */
+max_charger_voltage = <15000000>;
+min_charger_voltage = <4600000>;
+non_std_ac_charger_current = <500000>;
+/* enable_sw_jeita; */             /* JANGAN ENABLE tanpa HW test */
+/* hvdcp_charger_current = <3000000>; */ /* JANGAN TAMBAH tanpa validasi */
+
+/* JEITA CV values — original hardware-rated */
+jeita_temp_above_t4_cv = <4240000>;
+jeita_temp_t3_to_t4_cv = <4240000>;
+jeita_temp_t2_to_t3_cv = <4340000>;
+jeita_temp_t1_to_t2_cv = <4240000>;
+jeita_temp_t0_to_t1_cv = <4040000>;
+jeita_temp_below_t0_cv = <4040000>;
+
+/* lk_charger node */
+temp_t4_threshold = <50>;          /* JANGAN UBAH ke 60 */
+```
+
+### Rules (WAJIB)
+1. **JANGAN ubah `battery_cv`** — 4.35V adalah hardware-rated
+2. **JANGAN enable `enable_sw_jeita`** tanpa flash + test 24 jam
+3. **JANGAN tambah `hvdcp_charger_current`** tanpa validasi charger IC
+4. **JANGAN asumsi LineageOS values aman** — device kita beda charger IC
+5. **Kalau mau ubah charger config**, flash dulu ke hardware, test, baru commit
 
 ## Build Commands
 

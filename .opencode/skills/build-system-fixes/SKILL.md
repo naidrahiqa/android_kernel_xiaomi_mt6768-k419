@@ -140,3 +140,40 @@ mov r7, #__NR_rt_sigreturn
 2. **Jangan pakai `-no-integrated-as`** di top-level Makefile — hanya per-file
 3. **Jangan pakai `HOSTCC=clang`** — host tools butuh real GCC
 4. **Jangan apply GKI 5.10+ patches** tanpa cek API compatibility
+
+## Charger Kconfig Gotcha (BRICK RISK — 19 Sep 2026)
+
+### The Silent Failure
+```kconfig
+config MTK_CHARGER
+    bool "MediaTek Charging Driver"
+    depends on MEDIATEK_SOLUTION    # ← ga ada di Kconfig manapun
+    default n
+```
+`MEDIATEK_SOLUTION` ga define → config SILENTLY DROPPED → charger driver ga compile.
+
+### The Dangerous Fix
+```kconfig
+# Remove the dependency
+config MTK_CHARGER
+    bool "MediaTek Charging Driver"
+    # depends on MEDIATEK_SOLUTION  ← REMOVED
+    default n
+```
+Sekarang charger driver ENABLED → baca DTS values →如果值 salah → BRICK.
+
+### Lesson
+```
+Kconfig fix benar, tapi TANPA hardware validation = brick.
+Charger driver yang disabled ada SEBAB (ga stabil).
+Enable tanpa verify = hardware damage.
+```
+
+### Safe Pattern
+```bash
+# 1. Fix Kconfig (remove bad dependency) — OK
+# 2. Verify DTS values match hardware ratings — CRITICAL
+# 3. Flash ke hardware — CRITICAL
+# 4. Monitor 24 jam — CRITICAL
+# 5. Kalau aman → commit
+```

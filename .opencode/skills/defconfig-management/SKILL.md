@@ -114,4 +114,59 @@ CONFIG_GOODIX_FINGERPRINT
 CONFIG_BATTERY_BQ2589X
   └── CONFIG_CHARGER_BQ2589X
        └── I2C bus config di DTS
+
+CONFIG_MTK_CHARGER
+  ├── depends on MTK_CHARGER (self)
+  ├── CHARGER_BQ2589X_CHARGER
+  ├── CHARGER_RT9458
+  ├── CHARGER_RT9466
+  └── CHARGER_RT9471
+```
+
+## CRITICAL: Charger Config Gotchas (BRICK RISK)
+
+### The Hidden Dependency Trap (19 Sep 2026)
+```
+CONFIG_MTK_CHARGER depends on MEDIATEK_SOLUTION
+→ MEDIATEK_SOLUTION ga ada di Kconfig manapun
+→ Config SILENTLY DROPPED saat make defconfig
+→ Charger driver ga compile → DTS values ga dibaca
+→ Phone AMAN (charger handled by LK bootloader)
+
+FIX: Remove depends on MEDIATEK_SOLUTION
+→ Charger driver ENABLED + compiles
+→ Baca DTS values →如果值 salah → BRICK
+```
+
+### Safe Charger Configs
+| Config | Status | Catatan |
+|---|---|---|
+| `CONFIG_MTK_CHARGER` | ✅ enabled | Legitimate fix — driver seharusnya jalan |
+| `CONFIG_CHARGER_BQ2589X_CHARGER` | ✅ enabled | Charger IC selene |
+| `CONFIG_SMB1351_USB_CHARGER` | ✅ enabled | Charger IC alt |
+
+### Dangerous Charger Configs (JANGAN UBAH)
+| Config | Masalah |
+|---|---|
+| `CONFIG_BATTERY_OCV_CAPACITY` | Salah capacity reading |
+| Custom charger algo tanpa HW test | Overcharge risk |
+
+### Charger DTS Values — Hardware-Rated
+```
+battery_cv = 4350000           → JANGAN UBAH (4.35V rated)
+enable_sw_jeita = disabled     → JANGAN ENABLE tanpa HW test
+hvdcp_charger_current = N/A    → JANGAN TAMBAH tanpa validasi
+pd_vbus_upper_bound = 5000000  → JANGAN UBAH ke 9000000
+temp_t4_threshold = 50         → JANGAN UBAH ke 60
+non_std_ac_charger_current = 500000 → JANGAN UBAH ke 1000000
+```
+
+### How to Safely Test Charger Changes
+```bash
+# 1. Build with changes
+# 2. Flash to hardware
+# 3. Monitor charging for 24 hours
+# 4. Check battery temp: cat /sys/class/power_supply/battery/temp
+# 5. Check charger current: cat /sys/class/power_supply/battery/current_now
+# 6. If stable → commit. If not → revert immediately
 ```

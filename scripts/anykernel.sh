@@ -12,13 +12,15 @@ do.systemless=1
 do.cleanup=1
 do.cleanuponabort=0
 device.name1=selene
-device.name2=Selene
-device.name3=merlin
-device.name4=Merlin
-device.name5=merlinx
-device.name6=Merlinx
-device.name7=lancelot
-device.name8=Lancelot
+device.name2=selenes
+device.name3=selene_global
+device.name4=selenes_global
+device.name5=merlin
+device.name6=Merlin
+device.name7=merlinx
+device.name8=Merlinx
+device.name9=lancelot
+device.name10=Lancelot
 supported.versions=
 supported.patchlevels=
 supported.vendorpatchlevels=
@@ -33,7 +35,7 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 
 ## boot shell variables
 block=auto;
-is_slot_device=auto;
+is_slot_device=1;
 ramdisk_compression=auto;
 # CRITICAL for MediaTek:
 # Do NOT patch vbmeta — HyperOS/MIUI validates boot chain.

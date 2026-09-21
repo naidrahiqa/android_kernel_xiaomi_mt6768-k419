@@ -19,7 +19,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 
 ## Konteks Project
 
-- **Device:** Xiaomi Selene (Redmi 9 / Redmi 9A), codename **selene**, MediaTek MT6768 (Helio G85).
+- **Device:** Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime), codename **selene**, MediaTek MT6768 / MT6769 (Helio G88).
 - **Kernel:** Linux 4.19.325 (CIP stable backport), **non-GKI**, **STATUS: UNSTABLE/PORTING**.
 - **Branch:** `Mocchipyon23.2`
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)

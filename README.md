@@ -1,6 +1,6 @@
 # Mocchipyon Kernel
 
-Custom kernel for **Xiaomi Redmi 9 / Redmi 9A (Selene)** — MediaTek MT6768 (Helio G85)
+Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT6768 (Helio G88)
 
 > ⚠️ **Status: Unstable / Porting** — Not yet ready for daily use.
 
@@ -42,9 +42,9 @@ Nightly builds are available as GitHub Actions artifacts (expires after 90 days)
 
 | Codename | Device | Status |
 |----------|--------|--------|
-| `selene` | Xiaomi Redmi 9 | Primary |
-| `merlin` | Xiaomi Redmi 9T | Untested |
-| `lancelot` | Xiaomi Redmi 9 Power / Note 9 4G | Untested |
+| `selene` | Xiaomi Redmi 10 / Redmi 10 2022 / Redmi 10 Prime (Helio G88) | Primary |
+| `lancelot` | Xiaomi Redmi 9 (Helio G80) | Untested |
+| `merlin` | Xiaomi Redmi Note 9 (Helio G85) | Untested |
 
 ## Build from Source
 

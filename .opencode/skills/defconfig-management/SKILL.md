@@ -9,11 +9,11 @@ description: Defconfig management untuk MT6768 kernel. Config dependency chains,
 
 | File | Purpose |
 |------|---------|
-| `arch/arm64/configs/selene_defconfig` | Unified device defconfig for Xiaomi Selene |
+| `arch/arm64/configs/selene_defconfig` | Unified device defconfig for Xiaomi Selene (Redmi 10 / Redmi 10 2022) |
 | `arch/arm64/configs/vendor/mt6768_defconfig` | Base MTK SoC defconfig |
-| `arch/arm64/configs/vendor/selene.config` | Device overlay (legacy merged format) |
-| `arch/arm64/configs/vendor/lancelot.config` | Redmi 9 Power overlay |
-| `arch/arm64/configs/vendor/merlin.config` | Redmi 9T overlay |
+| `arch/arm64/configs/vendor/selene.config` | Device overlay for Selene (legacy merged format) |
+| `arch/arm64/configs/vendor/lancelot.config` | Redmi 9 overlay |
+| `arch/arm64/configs/vendor/merlin.config` | Redmi Note 9 overlay |
 
 ## Build Workflow
 

@@ -7,8 +7,8 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 
 ## Project Overview
 
-- **Device**: Xiaomi Selene (Redmi 9 / Redmi 9A family)
-- **SoC**: MediaTek MT6768 (Helio G85), 8-core ARM Cortex-A75/A55
+- **Device**: Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime)
+- **SoC**: MediaTek MT6768 / MT6769 (Helio G88), 8-core ARM Cortex-A75/A55
 - **Kernel**: Linux 4.19.325 (CIP stable backport) — **STATUS: UNSTABLE, MASIH PORTING**
 - **Branch**: `Mocchipyon23.2` (LineageOS 23.2 based)
 - **Architecture**: arm64
@@ -48,8 +48,8 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - `arch/arm64/configs/selene_defconfig` — Single unified device defconfig (recommended)
 - `arch/arm64/configs/vendor/mt6768_defconfig` — Base MTK SoC defconfig
 - `arch/arm64/configs/vendor/selene.config` — Device-specific overlay (legacy)
-- `arch/arm64/configs/vendor/lancelot.config` — Redmi 9 Power / Note 9 4G
-- `arch/arm64/configs/vendor/merlin.config` — Redmi 9T
+- `arch/arm64/configs/vendor/lancelot.config` — Redmi 9 (Helio G80)
+- `arch/arm64/configs/vendor/merlin.config` — Redmi Note 9 (Helio G85)
 
 ### Device Tree
 - `arch/arm64/boot/dts/mediatek/mt6768.dts` — Base SoC DTS (4320 lines)

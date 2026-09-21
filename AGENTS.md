@@ -12,6 +12,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 | NoMount | `.opencode/skills/nomount/SKILL.md` | Systemless path redirection, VFS hooks, keyring control |
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation, build debugging |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas, debug workflow |
+| Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass, DRAM comm |
 
 **Cara pakai:** Saat dapat task, load skill yang sesuai dari tabel di atas.
 
@@ -23,6 +24,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
+- **Bootloader:** Kaeru LK (`R0rt1z2/kaeru`, lock state spoofing + cert bypass).
 - **Build variants:** Single universal kernel — works on MIUI/HyperOS and AOSP-based ROMs.
 - **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`)
 
@@ -83,6 +85,9 @@ make O=out ARCH=arm64 \
 | SLAB_FREELIST_HARDENED panic | Jangan enable | defconfig-management |
 | /proc/config.gz stale | Fix `kernel/Makefile` line 125 | defconfig-management |
 | Goodix prebuilt stack protector | Disable atau provide stubs | defconfig-management |
+| Kaeru `flash_block` undefined | Ganti dengan `dd if= of=/dev/block/by-name/lk${SLOT}` | kaeru-integration |
+| Kaeru DRAM comm tak terdeteksi | Pastikan `write_kaeru_comm()` di `board_late_init()` | kaeru-integration |
+| Kaeru offset salah | Extract dari binary dengan Ghidra, jangan copy lancelot mentah | kaeru-integration |
 
 ## CRITICAL: Charger DTS — JANGAN UBAH TANPA HARDWARE VALIDATION
 

@@ -17,6 +17,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **TEE**: Microtrust v400
 - **Root**: ReSukiSU (manual hook mode)
 - **Systemless**: NoMount v20
+- **Bootloader**: Kaeru LK (lock state spoofing + cert bypass)
 
 ## Reference Project (4.14 Stable)
 
@@ -36,6 +37,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 | NoMount | `.opencode/skills/nomount/SKILL.md` | Systemless path redirection, VFS hooks |
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas |
+| Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass |
 
 **Cara pakai:** Saat dapat task, baca skill yang sesuai. Untuk task umum, mulai dari skill ini.
 
@@ -76,6 +78,15 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 ### Build Config
 - `build.config.mtk.aarch64` — Primary MTK build config
 - `scripts/anykernel.sh` — AnyKernel3 packaging
+- `scripts/build-kaeru.sh` — Kaeru LK build/package script
+
+### Kaeru (Bootloader Spoofer)
+- `drivers/misc/kaeru_comm.c` — Kernel-side DRAM communication
+- `include/linux/kaeru_comm.h` — Header with inline fallbacks
+- `kaeru/selene-kaeru.bin` — Pre-built Kaeru LK binary
+- **Kaeru source**: `/home/naidra/Projects/kaeru-src/`
+- **Board file**: `kaeru-src/board/xiaomi/board-selene.c`
+- **Config**: `kaeru-src/configs/xiaomi/selene_defconfig`
 
 ## Hardware Configuration (from selene.dts)
 

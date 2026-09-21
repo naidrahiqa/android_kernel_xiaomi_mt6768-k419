@@ -43,9 +43,6 @@ struct kaeru_comm {
 static struct kaeru_comm __ro_after_init kaeru_data;
 static bool __ro_after_init kaeru_active;
 
-/* Export for other modules */
-EXPORT_SYMBOL_GPL(kaeru_active);
-
 static int __init kaeru_early_init(void)
 {
     struct device_node *np;
@@ -112,6 +109,12 @@ static int __init kaeru_early_init(void)
 }
 
 /* Export functions for other modules */
+bool kaeru_is_active(void)
+{
+    return kaeru_active;
+}
+EXPORT_SYMBOL_GPL(kaeru_is_active);
+
 bool kaeru_is_overclock(void)
 {
     return kaeru_active && (kaeru_data.flags & KAERU_FLAG_OVERCLOCK);

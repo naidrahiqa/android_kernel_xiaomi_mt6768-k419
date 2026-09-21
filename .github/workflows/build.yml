@@ -74,7 +74,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             bc bison build-essential flex \
             libssl-dev libelf-dev zstd \
-            python3 \
+            python3 ccache \
             binutils-aarch64-linux-gnu \
             gcc-aarch64-linux-gnu \
             binutils-arm-linux-gnueabi \
@@ -84,6 +84,22 @@ jobs:
             wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh | bash
           fi
           echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ hashFiles('arch/arm64/configs/selene_defconfig') }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ hashFiles('arch/arm64/configs/selene_defconfig') }}-
+            ccache-
+
+      - name: Configure ccache
+        run: |
+          ccache -M 4G
+          ccache -o compression=true
+          ccache -z
+          echo "$(ccache -sv 2>/dev/null | head -5)"
 
       - name: Setup ReSukiSU (KernelSU)
         run: |
@@ -95,10 +111,12 @@ jobs:
         env:
           KBUILD_BUILD_USER: "naidrahiqa"
           KBUILD_BUILD_HOST: "github-actions"
+          CCACHE_DIR: /home/runner/.ccache
         run: |
+          BUILD_START=$(date +%s)
           rm -rf out
           make O=out ARCH=arm64 \
-            CC=clang HOSTCC=gcc \
+            CC="ccache clang" HOSTCC="ccache gcc" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             LD=ld.lld AR=llvm-ar NM=llvm-nm \
@@ -109,7 +127,7 @@ jobs:
 
           set +e
           make O=out ARCH=arm64 \
-            CC=clang HOSTCC=gcc \
+            CC="ccache clang" HOSTCC="ccache gcc" \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             LD=ld.lld AR=llvm-ar NM=llvm-nm \
@@ -118,7 +136,13 @@ jobs:
             LLVM=1 LLVM_IAS=1 \
             -j$(nproc) 2>&1 | tee -a build.log
           MAKE_EXIT=${PIPESTATUS[0]}
+          BUILD_END=$(date +%s)
+          BUILD_TIME=$((BUILD_END - BUILD_START))
+          echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
+          echo "::notice::Build time: $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s"
           echo "MAKE_EXIT_CODE=${MAKE_EXIT}" >> $GITHUB_ENV
+          echo "=== ccache stats ==="
+          ccache -sv 2>/dev/null || true
           exit $MAKE_EXIT
 
       - name: Verify critical configs
@@ -185,12 +209,12 @@ jobs:
             # Enable LK flashing in anykernel.sh
             sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
           fi
-          cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
+          cd ak3 && zip -r9 ../${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Verify zip contents (no sensitive files)
         if: success()
         run: |
-          ZIP_FILE="Mocchipyon-${{ steps.version.outputs.TAG }}.zip"
+          ZIP_FILE="${{ steps.version.outputs.TAG }}.zip"
           echo "=== ZIP contents ==="
           unzip -l "$ZIP_FILE"
           echo "=== Checking for sensitive files ==="
@@ -284,6 +308,7 @@ jobs:
           *Tag:* \`${TAG}\`
           *Commit:* [\`${SHORT}\`](${URL})
           *Size:* ${FILE_SIZE}
+          *Build:* $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s
           *Device:* Xiaomi Selene (MT6768)
           *Toolchain:* Greenforce Clang
           *Kaeru LK:* ${HAS_KAERU}

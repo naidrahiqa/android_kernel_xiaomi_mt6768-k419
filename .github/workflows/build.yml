@@ -187,8 +187,8 @@ jobs:
           unzip -l "$ZIP_FILE"
           echo "=== Checking for sensitive files ==="
           DANGEROUS=""
-          for pat in "*.lk" "*.LK" "lk*" "preloader*" "PRELOADER*" "tz*" "TZ*" "scp*" "SSPM*" "sspm*" "tee*" "TEE*" "vbmeta*" "VBMETA*"; do
-            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -i "$pat" || true)
+          for pat in '\.lk$' '\.LK$' '^.*\/lk' 'preloader' 'PRELOADER' '\/tz' '\/TZ' '\/scp' 'SSPM' 'sspm' '\/tee' '\/TEE' 'vbmeta' 'VBMETA'; do
+            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" || true)
             if [ -n "$MATCHES" ]; then
               DANGEROUS="${DANGEROUS}${MATCHES}\n"
             fi

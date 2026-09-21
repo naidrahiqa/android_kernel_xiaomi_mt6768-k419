@@ -146,3 +146,5 @@ static inline bool is_local_mountpoint(struct dentry *dentry)
 
 	return __is_local_mountpoint(dentry);
 }
+
+extern int path_umount(struct path *path, int flags);

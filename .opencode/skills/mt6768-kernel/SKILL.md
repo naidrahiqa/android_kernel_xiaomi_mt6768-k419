@@ -83,7 +83,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 ### Kaeru (Bootloader Spoofer)
 - `drivers/misc/kaeru_comm.c` — Kernel-side DRAM communication
 - `include/linux/kaeru_comm.h` — Header with inline fallbacks
-- `kaeru/selene-kaeru.bin` — Pre-built Kaeru LK binary
+- `kaeru/kaeru_selene.bin` — Pre-built Kaeru LK binary
 - **Kaeru source**: `/home/naidra/Projects/kaeru-src/`
 - **Board file**: `kaeru-src/board/xiaomi/board-selene.c`
 - **Config**: `kaeru-src/configs/xiaomi/selene_defconfig`

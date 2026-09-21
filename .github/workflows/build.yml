@@ -179,9 +179,9 @@ jobs:
           cp out/arch/arm64/boot/dts/mediatek/mt6768.dtb ak3/dtb 2>/dev/null || true
           cp out/arch/arm64/boot/dts/mediatek/selene.dtbo ak3/dtbo.img 2>/dev/null || true
           # Bundle Kaeru LK if available
-          if [ -f kaeru/selene-kaeru.bin ]; then
+          if [ -f kaeru/kaeru_selene.bin ]; then
             echo "Bundling Kaeru LK binary..."
-            cp kaeru/selene-kaeru.bin ak3/lk_a.img
+            cp kaeru/kaeru_selene.bin ak3/lk_a.img
             # Enable LK flashing in anykernel.sh
             sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
           fi

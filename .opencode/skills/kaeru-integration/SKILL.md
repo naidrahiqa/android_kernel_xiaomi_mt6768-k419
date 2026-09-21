@@ -44,12 +44,12 @@ Kaeru adalah custom LK (Little Kernel) bootloader untuk MediaTek MT6768 yang mem
 ### Kaeru LK Side
 - `/home/naidra/Projects/kaeru-src/board/xiaomi/board-selene.c` — Board file
 - `/home/naidra/Projects/kaeru-src/configs/xiaomi/selene_defconfig` — Config
-- `/home/naidra/Projects/kaeru/selene-kaeru.bin` — Pre-built binary
+- `/home/naidra/Projects/kaeru/kaeru_selene.bin` — Pre-built binary
 
 ### Packaging
 - `scripts/anykernel.sh` — Flash LK via `dd` in recovery
 - `scripts/build-kaeru.sh` — Build/package script
-- `kaeru/selene-kaeru.bin` — Binary in repo for CI bundling
+- `kaeru/kaeru_selene.bin` — Binary in repo for CI bundling
 - `.github/workflows/build.yml` — CI bundles LK in ZIP
 
 ## DRAM Communication Protocol
@@ -92,13 +92,13 @@ CONFIG_KAERU_COMM_BASE=0x4C500000
 ```bash
 cd /home/naidra/Projects/kaeru-src
 ./build.sh selene lk_stock.img
-# Output: selene-kaeru.bin
+# Output: kaeru_selene.bin
 ```
 
 ### Package kernel + Kaeru
 ```bash
 # Copy LK to AK3 directory
-cp kaeru/selene-kaeru.bin ak3/lk_a.img
+cp kaeru/kaeru_selene.bin ak3/lk_a.img
 sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
 ```
 
@@ -115,7 +115,7 @@ adb push Mocchipyon-*.zip /sdcard/
 ### Via Fastboot (manual)
 ```bash
 fastboot flash boot_a Image.gz-dtb
-fastboot flash lk_a selene-kaeru.bin
+fastboot flash lk_a kaeru_selene.bin
 fastboot reboot
 ```
 

@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KERNEL_DIR="$SCRIPT_DIR/.."
 KAERU_DIR="${KAERU_DIR:-/home/naidra/Projects/kaeru-src}"
-LK_IMAGE="${LK_IMAGE:-/home/naidra/Projects/kaeru/selene-kaeru.bin}"
+LK_IMAGE="${LK_IMAGE:-/home/naidra/Projects/kaeru/kaeru_selene.bin}"
 
 # Colors
 RED='\033[0;31m'
@@ -76,7 +76,7 @@ if [ "$BUILD_KAERU" = "1" ]; then
     (
         cd "$KAERU_DIR"
         ./build.sh selene "$STOCK_LK"
-        cp selene-kaeru.bin "$KERNEL_DIR/lk_a.img"
+        cp kaeru_selene.bin "$KERNEL_DIR/lk_a.img"
     )
     
     echo -e "${GREEN}Kaeru LK built successfully${NC}"
@@ -85,7 +85,7 @@ fi
 # Check if we have the LK image
 if [ ! -f "$LK_IMAGE" ]; then
     echo -e "${RED}Error: LK image not found: $LK_IMAGE${NC}"
-    echo "Please provide LK_IMAGE=/path/to/selene-kaeru.bin"
+    echo "Please provide LK_IMAGE=/path/to/kaeru_selene.bin"
     exit 1
 fi
 

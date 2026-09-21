@@ -21,17 +21,9 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/printk.h>
+#include <linux/kaeru_comm.h>
 
-#define KAERU_MAGIC     0x4B414552  /* "KAER" */
-#define KAERU_VERSION   0x00020000  /* v2.0.0 */
-
-/* Kaeru flags (written to DRAM by LK) */
-#define KAERU_FLAG_OVERCLOCK    (1 << 0)
-#define KAERU_FLAG_SPOOF_LOCK   (1 << 1)
-#define KAERU_FLAG_RECOVERY     (1 << 2)
-#define KAERU_FLAG_DOWNLOAD     (1 << 3)
-
-/* Communication structure in DRAM */
+/* Communication structure in DRAM — matches LK layout */
 struct kaeru_comm {
     u32 magic;          /* KAERU_MAGIC when Kaeru is active */
     u32 version;        /* Kaeru version */
@@ -46,22 +38,24 @@ static bool __ro_after_init kaeru_active;
 static int __init kaeru_early_init(void)
 {
     struct device_node *np;
+    struct resource res;
     void __iomem *base;
     phys_addr_t phys_base;
     struct kaeru_comm __iomem *comm;
 
     /* Try to find Kaeru communication region from device tree */
     np = of_find_compatible_node(NULL, NULL, "kaeru,comm");
-    if (!np) {
-        /* Fallback to hardcoded address */
-        phys_base = CONFIG_KAERU_COMM_BASE;
-    } else {
-        if (of_address_to_resource(np, 0, NULL) < 0) {
+    if (np) {
+        if (of_address_to_resource(np, 0, &res) < 0) {
             pr_err("kaeru: failed to get base address from DT\n");
+            of_node_put(np);
             return -ENODEV;
         }
-        phys_base = of_translate_address(np, of_get_address(np, 0, NULL, NULL));
+        phys_base = res.start;
         of_node_put(np);
+    } else {
+        /* Fallback to hardcoded address */
+        phys_base = CONFIG_KAERU_COMM_BASE;
     }
 
     /* Map the communication region */
@@ -132,6 +126,12 @@ bool kaeru_is_recovery(void)
     return kaeru_active && (kaeru_data.flags & KAERU_FLAG_RECOVERY);
 }
 EXPORT_SYMBOL_GPL(kaeru_is_recovery);
+
+bool kaeru_is_download(void)
+{
+    return kaeru_active && (kaeru_data.flags & KAERU_FLAG_DOWNLOAD);
+}
+EXPORT_SYMBOL_GPL(kaeru_is_download);
 
 /* Module info */
 MODULE_LICENSE("GPL v2");

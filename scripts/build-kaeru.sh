@@ -73,12 +73,11 @@ if [ "$BUILD_KAERU" = "1" ]; then
         exit 1
     fi
     
-    cd "$KAERU_DIR"
-    ./build.sh selene "$STOCK_LK"
-    
-    # Copy the built LK to our location
-    cp selene-kaeru.bin "$KERNEL_DIR/lk_a.img"
-    cd "$KERNEL_DIR"
+    (
+        cd "$KAERU_DIR"
+        ./build.sh selene "$STOCK_LK"
+        cp selene-kaeru.bin "$KERNEL_DIR/lk_a.img"
+    )
     
     echo -e "${GREEN}Kaeru LK built successfully${NC}"
 fi
@@ -90,9 +89,10 @@ if [ ! -f "$LK_IMAGE" ]; then
     exit 1
 fi
 
-# Copy LK to anykernel directory
+# Copy LK to AnyKernel3 build directory
 echo -e "${YELLOW}Copying LK image to AnyKernel3...${NC}"
-cp "$LK_IMAGE" "$KERNEL_DIR/anykernel/lk_a.img"
+mkdir -p "$KERNEL_DIR/ak3"
+cp "$LK_IMAGE" "$KERNEL_DIR/ak3/lk_a.img"
 
 echo -e "${GREEN}=== Build Complete ===${NC}"
-echo "LK image ready for packaging: anykernel/lk_a.img"
+echo "LK image ready for packaging: ak3/lk_a.img"

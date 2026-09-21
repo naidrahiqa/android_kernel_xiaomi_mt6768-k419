@@ -62,7 +62,17 @@ write_boot;
 # Flash Kaeru LK if available
 if [ "$do_kaeru" = "1" ] && [ -f "$kaeru_lk" ]; then
     ui_print "- Flashing Kaeru LK to lk_a partition..."
-    flash_block lk_a "$kaeru_lk"
-    ui_print "- Kaeru LK flash complete"
+    # Determine slot suffix for A/B devices
+    SLOT=""
+    if [ "$is_slot_device" = "1" ]; then
+        SLOT=$(getprop ro.boot.slot_suffix 2>/dev/null || echo "_a")
+    fi
+    LK_DEV="/dev/block/by-name/lk${SLOT}"
+    if [ -e "$LK_DEV" ]; then
+        dd if="$kaeru_lk" of="$LK_DEV" bs=4096
+        ui_print "- Kaeru LK flashed to $LK_DEV"
+    else
+        ui_print "- Warning: $LK_DEV not found, skipping LK flash"
+    fi
 fi;
 ## end boot install

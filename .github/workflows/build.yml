@@ -133,7 +133,8 @@ jobs:
             CONFIG_SND_SOC_AW87XXX \
             CONFIG_KSU \
             CONFIG_KSU_MANUAL_HOOK \
-            CONFIG_NOMOUNT; do
+            CONFIG_NOMOUNT \
+            CONFIG_KAERU_COMM; do
             grep -q "${sym}=y" out/.config || {
               echo "::warning::Config tidak ditemukan: ${sym}"
               miss=1
@@ -207,7 +208,6 @@ jobs:
             exit 1
           fi
           echo "OK - no dangerous partition files in zip (Kaeru LK allowed)"
-        continue-on-error: true
 
       - name: Final check
         id: final-check

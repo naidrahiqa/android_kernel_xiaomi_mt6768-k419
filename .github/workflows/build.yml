@@ -120,7 +120,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             bc bison build-essential flex \
             libssl-dev libelf-dev zstd \
-            python3 ccache \
+            python3 \
             binutils-aarch64-linux-gnu \
             gcc-aarch64-linux-gnu \
             binutils-arm-linux-gnueabi \
@@ -130,22 +130,6 @@ jobs:
             wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh | bash
           fi
           echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
-
-      - name: Setup ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ hashFiles('arch/arm64/configs/selene_defconfig') }}-${{ github.sha }}
-          restore-keys: |
-            ccache-${{ hashFiles('arch/arm64/configs/selene_defconfig') }}-
-            ccache-
-
-      - name: Configure ccache
-        run: |
-          ccache -M 4G
-          ccache -o compression=true
-          ccache -z
-          echo "$(ccache -sv 2>/dev/null | head -5)"
 
       - name: Setup ReSukiSU (KernelSU)
         run: |
@@ -157,12 +141,11 @@ jobs:
         env:
           KBUILD_BUILD_USER: "naidrahiqa"
           KBUILD_BUILD_HOST: "github-actions"
-          CCACHE_DIR: /home/runner/.ccache
         run: |
           BUILD_START=$(date +%s)
           rm -rf out
           make O=out ARCH=arm64 \
-            CC="ccache clang" HOSTCC="ccache gcc" \
+            CC=clang HOSTCC=gcc \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             LD=ld.lld AR=llvm-ar NM=llvm-nm \
@@ -173,7 +156,7 @@ jobs:
 
           set +e
           make O=out ARCH=arm64 \
-            CC="ccache clang" HOSTCC="ccache gcc" \
+            CC=clang HOSTCC=gcc \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             LD=ld.lld AR=llvm-ar NM=llvm-nm \
@@ -187,8 +170,6 @@ jobs:
           echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
           echo "::notice::Build time: $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s"
           echo "MAKE_EXIT_CODE=${MAKE_EXIT}" >> $GITHUB_ENV
-          echo "=== ccache stats ==="
-          ccache -sv 2>/dev/null || true
           exit $MAKE_EXIT
 
       - name: Verify critical configs

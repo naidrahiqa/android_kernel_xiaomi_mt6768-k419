@@ -28,9 +28,9 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 Trigger (Push / Dispatch / Tag)
   → Checkout (fetch-depth: 0)
   → Read VERSION & Determine Channel (nightly / beta / stable)
-  → Setup ccache (~25m → ~8m rebuilds)
-  → Install Clang & cross-compilers
-  → Build kernel (selene_defconfig)
+  → Cache Greenforce Clang (hindari download ulang ~1.5GB)
+  → Install build dependencies & cross-compilers
+  → Build kernel clean from scratch (selene_defconfig)
   → Verify critical configs & dangerous partitions
   → Package AnyKernel3 (embed Kaeru LK if present)
   → Upload artifacts
@@ -46,11 +46,10 @@ Trigger (Push / Dispatch / Tag)
 | **beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}.zip` | ✅ Pre-release + changelog |
 | **stable** | Git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}.zip` | ✅ Full release + changelog |
 
-## Build Performance (ccache)
+## Toolchain Caching (Greenforce Clang)
 
-- `ccache` diaktifkan di CI menggunakan GitHub Actions cache (`~/.cache/ccache`).
-- Durasi clean build: ~25-30 menit.
-- Durasi rebuild dengan ccache hit: ~6-8 menit.
+- GitHub Actions cache (`actions/cache@v4`) digunakan **eksklusif** untuk toolchain Greenforce Clang (`greenforce-clang/`, ~1.5GB) agar runner tidak perlu mendownload ulang setiap kali build.
+- **Kernel objek (`.o`) TIDAK di-cache** (tanpa ccache) sehingga setiap build kernel selalu 100% bersih dari awal (*clean build from scratch*), menjamin tidak ada artefak usang (*stale objects*) atau bug kompilasi yang terlewat selama fase porting.
 - Waktu build dilaporkan di notifikasi Telegram (`*Build:* Xm Ys`).
 
 ## AnyKernel3 Packaging

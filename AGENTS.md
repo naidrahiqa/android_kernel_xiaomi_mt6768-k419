@@ -13,6 +13,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation, build debugging |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas, debug workflow |
 | Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass, DRAM comm |
+| Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
 
 **Cara pakai:** Saat dapat task, load skill yang sesuai dari tabel di atas.
 
@@ -26,6 +27,8 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
 - **Bootloader:** Kaeru LK (`R0rt1z2/kaeru`, lock state spoofing + cert bypass).
 - **Build variants:** Single universal kernel — works on MIUI/HyperOS and AOSP-based ROMs.
+- **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-Mocchipyon-cip136-st20`).
+- **Release channels:** Nightly (auto push), Beta (workflow_dispatch pre-release), Stable (git tag `v*`).
 - **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`)
 
 ## Commit Style

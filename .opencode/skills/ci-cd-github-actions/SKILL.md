@@ -1,6 +1,6 @@
 ---
 name: ci-cd-github-actions
-description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram notifications, AnyKernel3 packaging, release automation. Trigger: ci, cd, github actions, workflow, build, release, telegram.
+description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram notifications, AnyKernel3 packaging, ccache acceleration, release automation. Trigger: ci, cd, github actions, workflow, build, release, telegram.
 ---
 
 # CI/CD — GitHub Actions
@@ -18,91 +18,66 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 | `TELEGRAM_CHANNEL_ID` | Telegram group ID (`Naidrahiqa Stuff`) |
 | `TELEGRAM_TOPIC_CI` | Thread ID untuk CI notifications (`47` — Selene CI topic) |
 | `TELEGRAM_TOPIC_LOG` | Thread ID untuk build logs (`8` — log topic) |
-| `PAT_TOKEN` | GitHub Personal Access Token (untuk release) |
 
-### Workflow Structure
+> [!NOTE]
+> GitHub Releases menggunakan default token `${{ secrets.GITHUB_TOKEN }}` dengan permission `contents: write`.
+
+### Workflow Pipeline
 
 ```
-push to Mocchipyon23.2
-  → Checkout
-  → Generate version tag
-  → Install build dependencies (Greenforce Clang + cross-compilers)
+Trigger (Push / Dispatch / Tag)
+  → Checkout (fetch-depth: 0)
+  → Read VERSION & Determine Channel (nightly / beta / stable)
+  → Setup ccache (~25m → ~8m rebuilds)
+  → Install Clang & cross-compilers
   → Build kernel (selene_defconfig)
-  → Verify critical configs
-  → Package AnyKernel3
+  → Verify critical configs & dangerous partitions
+  → Package AnyKernel3 (embed Kaeru LK if present)
   → Upload artifacts
-  → Create GitHub Release (optional)
-  → Notify Telegram
+  → Generate changelog & GitHub Release (beta/stable only)
+  → Notify Telegram (with build time & file attachment)
 ```
 
-## Build Triggers
+## Build Triggers & Release Channels
 
-### Auto trigger
-- Push ke branch `Mocchipyon23.2`
-- Path filter: ignore `*.md`, `.opencode/**`
+| Channel | Trigger | Output | GitHub Release? |
+|---|---|---|---|
+| **nightly** | Push ke `Mocchipyon23.2` (ignore `*.md`, `.opencode/**`, `VERSION`) | `Mocchipyon-v{ver}-nightly-{date}-{hash}.zip` | ❌ Artifact only (90d) |
+| **beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}.zip` | ✅ Pre-release + changelog |
+| **stable** | Git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}.zip` | ✅ Full release + changelog |
 
-### Manual trigger
-- Workflow dispatch dengan variant selection (nightly/test)
+## Build Performance (ccache)
 
-## Version Tag Format
-
-```
-Mocchipyon-{variant}-{date}-{short_hash}
-Example: Mocchipyon-nightly-20260914-a4e679c
-```
+- `ccache` diaktifkan di CI menggunakan GitHub Actions cache (`~/.cache/ccache`).
+- Durasi clean build: ~25-30 menit.
+- Durasi rebuild dengan ccache hit: ~6-8 menit.
+- Waktu build dilaporkan di notifikasi Telegram (`*Build:* Xm Ys`).
 
 ## AnyKernel3 Packaging
 
-- Source: `scripts/anykernel.sh` (dari project 4.14)
+- Source: `scripts/anykernel.sh`
 - AK3 repo: `osm0sis/AnyKernel3` pinned ke commit `dca9dc3`
-- Output: `Mocchipyon-{tag}.zip`
+- Includes: `Image.gz-dtb` (atau `Image.gz`), `dtb`, `dtbo.img`, dan opsional `lk_a.img` jika Kaeru LK tersedia di `kaeru/kaeru_selene.bin`.
+- Keamanan: Ada automated check yang memblokir file partisi sensitif (`preloader`, `tee`, `sspm`, `vbmeta`, dll).
 
 ## Telegram Notifications
 
 ### Setup — Group with Topics
 - **Group**: "Naidrahiqa Stuff" (forum topics enabled)
-- **CI topic**: thread_id `47` (notifications: start, success, failure)
-- **Log topic**: thread_id `8` (build log upload)
-
-### Format
-```
-🔨 Build Started
-Kernel: MT6768 4.19.325
-Branch: Mocchipyon23.2
-Tag: Mocchipyon-nightly-20260914-a4e679c
-Commit: a4e679c
-
-✅ Build berhasil! / ❌ Build gagal! Cek log.
-```
-
-### Workflow Secrets
-- `TELEGRAM_BOT_TOKEN` — bot token
-- `TELEGRAM_CHANNEL_ID` — group ID (`-1004414006944`)
+- **CI topic**: thread_id `47` (notifikasi start, build success dengan file attachment zip, build failed)
+- **Log topic**: thread_id `8` (upload log saat build error)
 
 ### Gotcha: Thread IDs Hardcoded
-**DO NOT** use `${{ secrets.TELEGRAM_TOPIC_CI }}` in curl — GitHub Actions silently strips the `-d message_thread_id` line from the log AND the actual command execution. Thread IDs are hardcoded directly in `build.yml`:
+**DO NOT** use `${{ secrets.TELEGRAM_TOPIC_CI }}` in curl — GitHub Actions silently strips `-d message_thread_id` jika variable kosong atau tersembunyi. Thread IDs di-hardcode langsung di `build.yml`:
 - CI notifications: `message_thread_id=47`
 - Log topic: `message_thread_id=8`
 
 ## Debug Build Failures
 
 1. Check GitHub Actions logs
-2. Download `build-log-{hash}` artifact
+2. Download `build-log-{hash}` artifact dari Actions run
 3. Search for `error:` patterns
 4. Common errors:
    - Clang IAS → check `build-system-fixes` skill
    - Missing config → check `defconfig-management` skill
    - Link error → check `resukisu-integration` skill
-
-## Release Workflow
-
-```bash
-# Manual release
-gh workflow run build.yml -f variant=nightly
-
-# Check status
-gh run list --limit 5
-
-# Download artifact
-gh run download {run_id} -n {artifact_name}
-```

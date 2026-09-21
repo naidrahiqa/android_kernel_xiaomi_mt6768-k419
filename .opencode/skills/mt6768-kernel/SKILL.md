@@ -38,6 +38,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas |
 | Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass |
+| Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
 
 **Cara pakai:** Saat dapat task, baca skill yang sesuai. Untuk task umum, mulai dari skill ini.
 

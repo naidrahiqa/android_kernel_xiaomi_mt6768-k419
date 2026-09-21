@@ -42,6 +42,10 @@ ramdisk_compression=auto;
 # Patching vbmeta can cause verification failure → brick.
 patch_vbmeta_flag=0;
 
+# Kaeru LK support
+do_kaeru=0;
+kaeru_lk="lk_a.img";
+
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
@@ -53,4 +57,12 @@ dump_boot;
 # write_boot: repacks $KERNEL + $RAMDISK into boot image and flashes
 # Ramdisk is completely untouched — only kernel is replaced
 write_boot;
+
+## Kaeru LK install
+# Flash Kaeru LK if available
+if [ "$do_kaeru" = "1" ] && [ -f "$kaeru_lk" ]; then
+    ui_print "- Flashing Kaeru LK to lk_a partition..."
+    flash_block lk_a "$kaeru_lk"
+    ui_print "- Kaeru LK flash complete"
+fi;
 ## end boot install

@@ -177,6 +177,13 @@ jobs:
           # Bundle DTB and DTBO if available (for separate partition flashing)
           cp out/arch/arm64/boot/dts/mediatek/mt6768.dtb ak3/dtb 2>/dev/null || true
           cp out/arch/arm64/boot/dts/mediatek/selene.dtbo ak3/dtbo.img 2>/dev/null || true
+          # Bundle Kaeru LK if available
+          if [ -f kaeru/selene-kaeru.bin ]; then
+            echo "Bundling Kaeru LK binary..."
+            cp kaeru/selene-kaeru.bin ak3/lk_a.img
+            # Enable LK flashing in anykernel.sh
+            sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
+          fi
           cd ak3 && zip -r9 ../Mocchipyon-${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Verify zip contents (no sensitive files)
@@ -187,8 +194,9 @@ jobs:
           unzip -l "$ZIP_FILE"
           echo "=== Checking for sensitive files ==="
           DANGEROUS=""
+          # Check for dangerous files but allow our Kaeru LK
           for pat in '\.lk$' '\.LK$' '^.*\/lk' 'preloader' 'PRELOADER' '\/tz' '\/TZ' '\/scp' 'SSPM' 'sspm' '\/tee' '\/TEE' 'vbmeta' 'VBMETA'; do
-            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" || true)
+            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" | grep -v "lk_a.img" || true)
             if [ -n "$MATCHES" ]; then
               DANGEROUS="${DANGEROUS}${MATCHES}\n"
             fi
@@ -198,7 +206,7 @@ jobs:
             printf "$DANGEROUS"
             exit 1
           fi
-          echo "OK - no sensitive partition files in zip"
+          echo "OK - no dangerous partition files in zip (Kaeru LK allowed)"
         continue-on-error: true
 
       - name: Final check
@@ -266,6 +274,8 @@ jobs:
             ZIP_FILE=$(ls Mocchipyon-*.zip 2>/dev/null | head -1)
             if [ -n "$ZIP_FILE" ]; then
               FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
+              # Check if Kaeru LK is bundled
+              HAS_KAERU=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -q "lk_a.img" && echo "Yes" || echo "No")
               curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
                 -F chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
                 -F message_thread_id=47 \
@@ -276,8 +286,9 @@ jobs:
           *Size:* ${FILE_SIZE}
           *Device:* Xiaomi Selene (MT6768)
           *Toolchain:* Greenforce Clang
+          *Kaeru LK:* ${HAS_KAERU}
 
-          ⚠️ _Flash hanya Image.gz-dtb via AnyKernel3. Jangan flash LK atau preloader!_" \
+          ⚠️ _Flash via AnyKernel3 recovery._" \
                 -F parse_mode="Markdown" || true
             else
               curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \

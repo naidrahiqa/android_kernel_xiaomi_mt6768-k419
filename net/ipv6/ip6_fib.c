@@ -580,9 +580,9 @@ static int fib6_dump_table(struct fib6_table *table, struct sk_buff *skb,
 
 static int inet6_dump_fib(struct sk_buff *skb, struct netlink_callback *cb)
 {
-	const struct nlmsghdr *nlh = cb->nlh;
 	struct net *net = sock_net(skb->sk);
 	unsigned int h, s_h;
+	struct rt6_rtnl_dump_arg arg;
 	struct fib6_walker *w;
 	struct fib6_table *tb;
 	struct hlist_head *head;
@@ -616,20 +616,6 @@ static int inet6_dump_fib(struct sk_buff *skb, struct netlink_callback *cb)
 	arg.net = net;
 	w->args = &arg;
 
-	if (arg.filter.table_id) {
-		tb = fib6_get_table(net, arg.filter.table_id);
-		if (!tb) {
-			NL_SET_ERR_MSG_MOD(cb->extack, "FIB table does not exist");
-			return -ENOENT;
-		}
-
-		res = fib6_dump_table(tb, skb, cb);
-		goto out;
-	}
-
-	s_h = cb->args[0];
-	s_e = cb->args[1];
-
 	rcu_read_lock();
 	for (h = s_h; h < FIB6_TABLE_HASHSZ; h++, s_id = 0) {
 		head = &net->ipv6.fib_table_hash[h];
@@ -644,10 +630,10 @@ static int inet6_dump_fib(struct sk_buff *skb, struct netlink_callback *cb)
 				goto out;
 		}
 	}
-out_unlock:
+out:
 	rcu_read_unlock();
 	cb->args[0] = h;
-out:
+
 	res = res < 0 ? res : skb->len;
 	if (res <= 0)
 		fib6_dump_end(cb);

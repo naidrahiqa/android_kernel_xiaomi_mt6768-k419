@@ -74,6 +74,11 @@ modules.builtin
 /snap/
 
 #
+# Build output directory
+#
+/out/
+
+#
 # tar directory (make tar*-pkg)
 #
 /tar-install/
@@ -85,6 +90,8 @@ modules.builtin
 !.mailmap
 !.cocciconfig
 !.clang-format
+!.github
+!.opencode
 
 #
 # Generated include files

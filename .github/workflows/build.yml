@@ -3,10 +3,22 @@ name: Build MT6768 Kernel 4.19
 on:
   push:
     branches: [Mocchipyon23.2]
+    tags: ['v*']
     paths-ignore:
       - '*.md'
       - '**/*.md'
       - '.opencode/**'
+      - 'VERSION'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        type: choice
+        options:
+          - beta
+          - stable
+        default: beta
 
 env:
   TOOLCHAIN_NAME: "Greenforce Clang"
@@ -38,15 +50,49 @@ jobs:
           SHORT_HASH=$(git rev-parse --short HEAD)
           FULL_HASH=$(git rev-parse HEAD)
           DATE_TAG=$(date +%Y%m%d)
-          VARIANT="nightly"
-          TAG="Mocchipyon-${VARIANT}-${DATE_TAG}-${SHORT_HASH}"
           COMMIT_URL="https://github.com/${{ env.REPO }}/commit/${FULL_HASH}"
+
+          # Read VERSION file
+          if [ -f VERSION ]; then
+            source VERSION
+          else
+            MOCCHIPYON_VERSION="0.0.0"
+            MOCCHIPYON_CODENAME="Unknown"
+          fi
+
+          # Determine channel
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            CHANNEL="stable"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHANNEL="${{ github.event.inputs.channel }}"
+          else
+            CHANNEL="nightly"
+          fi
+
+          # Build tag based on channel
+          case "$CHANNEL" in
+            stable)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}"
+              ;;
+            beta)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-beta.${DATE_TAG}"
+              ;;
+            nightly)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
+              ;;
+          esac
+
           echo "TAG=${TAG}" >> $GITHUB_OUTPUT
           echo "SHORT_HASH=${SHORT_HASH}" >> $GITHUB_OUTPUT
           echo "FULL_HASH=${FULL_HASH}" >> $GITHUB_OUTPUT
           echo "COMMIT_URL=${COMMIT_URL}" >> $GITHUB_OUTPUT
           echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
+          echo "CHANNEL=${CHANNEL}" >> $GITHUB_OUTPUT
+          echo "VERSION=${MOCCHIPYON_VERSION}" >> $GITHUB_OUTPUT
+          echo "CODENAME=${MOCCHIPYON_CODENAME}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_ENV
+          echo "CHANNEL=${CHANNEL}" >> $GITHUB_ENV
+          echo "::notice::Channel: ${CHANNEL} | Tag: ${TAG} | Version: v${MOCCHIPYON_VERSION}"
 
       - name: Notify start (Telegram)
         run: |
@@ -282,8 +328,49 @@ jobs:
         if: steps.final-check.outputs.status == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: Mocchipyon-${{ steps.version.outputs.TAG }}
-          path: Mocchipyon-*.zip
+          name: ${{ steps.version.outputs.TAG }}
+          path: ${{ steps.version.outputs.TAG }}.zip
+
+      - name: Generate changelog
+        id: changelog
+        if: steps.final-check.outputs.status == 'success' && env.CHANNEL != 'nightly'
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            RANGE="HEAD~20..HEAD"
+          fi
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          # Categorize commits by conventional commit prefix
+          echo "### ✨ Features" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- (feat|add)" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 🐛 Fixes" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- fix" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### ⚡ CI/CD" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- ci" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 📋 Other" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -viE "^- (feat|add|fix|ci)" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "**Build Info:** Kernel ${{ env.KERNEL_VERSION }} | Toolchain: Greenforce Clang | Device: Xiaomi Selene (MT6768)" >> CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        if: steps.final-check.outputs.status == 'success' && env.CHANNEL != 'nightly'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: "Mocchipyon v${{ steps.version.outputs.VERSION }} — ${{ steps.version.outputs.CODENAME }}"
+          body_path: CHANGELOG.md
+          prerelease: ${{ env.CHANNEL == 'beta' }}
+          files: ${{ steps.version.outputs.TAG }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify result (Telegram)
         if: always()
@@ -293,9 +380,11 @@ jobs:
           SHORT="${{ steps.version.outputs.SHORT_HASH }}"
           FULL="${{ steps.version.outputs.FULL_HASH }}"
           URL="${{ steps.version.outputs.COMMIT_URL }}"
+          CHANNEL="${{ steps.version.outputs.CHANNEL }}"
+          VERSION="${{ steps.version.outputs.VERSION }}"
 
           if [ "$STATUS" = "success" ]; then
-            ZIP_FILE=$(ls Mocchipyon-*.zip 2>/dev/null | head -1)
+            ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip 2>/dev/null | head -1)
             if [ -n "$ZIP_FILE" ]; then
               FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
               # Check if Kaeru LK is bundled
@@ -304,7 +393,8 @@ jobs:
                 -F chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
                 -F message_thread_id=47 \
                 -F document=@"$ZIP_FILE" \
-                -F caption="✅ *Mocchipyon Kernel — Build Berhasil*
+                -F caption="✅ *Mocchipyon v${VERSION} — Build Berhasil*
+          *Channel:* \`${CHANNEL}\`
           *Tag:* \`${TAG}\`
           *Commit:* [\`${SHORT}\`](${URL})
           *Size:* ${FILE_SIZE}

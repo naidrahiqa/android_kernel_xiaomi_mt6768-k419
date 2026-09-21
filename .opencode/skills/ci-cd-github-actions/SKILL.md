@@ -12,12 +12,22 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 ## Setup Requirements
 
 ### Repository Secrets
-| Secret | Description |
-|--------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token untuk notifikasi |
-| `TELEGRAM_CHANNEL_ID` | Telegram group ID (`Naidrahiqa Stuff`) |
-| `TELEGRAM_TOPIC_CI` | Thread ID untuk CI notifications (`47` — Selene CI topic) |
-| `TELEGRAM_TOPIC_LOG` | Thread ID untuk build logs (`8` — log topic) |
+| Secret | Description | Target |
+|--------|-------------|--------|
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token (`@naidradev_bot`) | Bot API |
+| `TELEGRAM_GROUP_ID` | Telegram Supergroup ID (`-1004414006944` — Naidrahiqa Stuff) | Gambar Kiri |
+| `TELEGRAM_TOPIC_CI` | Thread ID untuk CI notifications (`47` — Selene CI topic) [HANYA NOTIF, NO ZIP] | Gambar Kiri |
+| `TELEGRAM_TOPIC_LOG` | Thread ID untuk build logs (`8` — log topic) [Cuplikan log error] | Gambar Kiri |
+| `TELEGRAM_CHANNEL_ID` | Telegram Private Channel ID (`-1003752197403` — Nai project update) | Gambar Kanan (Kirim File .ZIP) |
+| `TELEGRAM_ERROR_CHANNEL_ID` | Telegram Private Channel ID (`-1003945405514` — Nai Error Dump) | Gambar Kanan (Error Dump) |
+
+### Notification & Artifact Routing
+1. **Gambar Kiri — Supergroup Naidrahiqa Stuff (`-1004414006944`)**:
+   - **Topic `⁉️ Selene CI` (#47)**: HANYA menerima teks notifikasi Build Start dan Build Success. **TIDAK dikirimi file .zip**.
+   - **Topic `🔍 log` (#8)**: Menerima potongan 3000 karakter terakhir `build.log` jika build gagal.
+2. **Gambar Kanan — Private Channels**:
+   - **Channel `Nai project update` (`-1003752197403`)**: Menerima file kernel `.zip` AnyKernel3 via `sendDocument` lengkap dengan caption spesifikasi & commit.
+   - **Channel `Nai Error Dump` (`-1003945405514`)**: Menerima error dump saat kompilasi gagal.
 
 > [!NOTE]
 > GitHub Releases menggunakan default token `${{ secrets.GITHUB_TOKEN }}` dengan permission `contents: write`.

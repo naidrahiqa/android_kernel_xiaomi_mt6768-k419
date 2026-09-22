@@ -96,15 +96,16 @@ jobs:
 
       - name: Notify start (Telegram)
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_GROUP_ID || secrets.TELEGRAM_CHANNEL_ID }}" \
-            -d "message_thread_id=47" \
-            -d parse_mode="Markdown" \
-            --data-urlencode "text=🔨 *Build Started*
-          *Kernel:* MT6768 ${{ env.KERNEL_VERSION }}
-          *Branch:* \`${{ github.ref_name }}\`
-          *Tag:* \`${{ steps.version.outputs.TAG }}\`
-          *Commit:* \`${{ steps.version.outputs.SHORT_HASH }}\`" || true
+          bash .github/scripts/notify-telegram.sh \
+            start \
+            "${{ steps.version.outputs.VERSION }}" \
+            "${{ steps.version.outputs.TAG }}"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
+          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
         continue-on-error: true
 
       - name: Cache Greenforce Clang
@@ -286,24 +287,6 @@ jobs:
           name: build-log-${{ steps.version.outputs.SHORT_HASH }}
           path: build.log
 
-      - name: Send build log to Telegram (log topic)
-        if: always() && steps.final-check.outputs.status == 'failed'
-        run: |
-          if [ -s build.log ]; then
-            LOG_HEAD=$(tail -c 3000 build.log | sed 's/"/\\"/g')
-            LOG_LINES=$(wc -l < build.log)
-            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d chat_id="${{ secrets.TELEGRAM_GROUP_ID || secrets.TELEGRAM_CHANNEL_ID }}" \
-              -d "message_thread_id=8" \
-              -d parse_mode="Markdown" \
-              --data-urlencode "text=📋 *Build Log (${LOG_LINES} lines)*
-          *Tag:* \`${{ steps.version.outputs.TAG }}\`
-
-          \`\`\`
-          ${LOG_HEAD}
-          \`\`\`" || true
-          fi
-        continue-on-error: true
 
       - name: Upload kernel artifact
         if: steps.final-check.outputs.status == 'success'
@@ -357,79 +340,26 @@ jobs:
         if: always()
         run: |
           STATUS="${{ steps.final-check.outputs.status }}"
-          TAG="${{ steps.version.outputs.TAG }}"
-          SHORT="${{ steps.version.outputs.SHORT_HASH }}"
-          FULL="${{ steps.version.outputs.FULL_HASH }}"
-          URL="${{ steps.version.outputs.COMMIT_URL }}"
-          CHANNEL="${{ steps.version.outputs.CHANNEL }}"
-          VERSION="${{ steps.version.outputs.VERSION }}"
-
+          ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip Mocchipyon-*.zip 2>/dev/null | head -1)
           if [ "$STATUS" = "success" ]; then
-            ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip 2>/dev/null | head -1)
-            if [ -n "$ZIP_FILE" ]; then
-              FILE_SIZE=$(du -h "$ZIP_FILE" | cut -f1)
-              # Check if Kaeru LK is bundled
-              HAS_KAERU=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -q "lk_a.img" && echo "Yes" || echo "No")
-              # 1. NOTIFIKASI KE GAMBAR KIRI (Topic 47 Selene CI) - HANYA NOTIF, TANPA FILE ZIP
-              curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-                -d chat_id="${{ secrets.TELEGRAM_GROUP_ID || secrets.TELEGRAM_CHANNEL_ID }}" \
-                -d "message_thread_id=47" \
-                -d parse_mode="Markdown" \
-                --data-urlencode "text=✅ *Mocchipyon v${VERSION} — Build Berhasil*
-          *Channel:* `${CHANNEL}`
-          *Tag:* `${TAG}`
-          *Commit:* [`${SHORT}`](${URL})
-          *Size:* ${FILE_SIZE}
-          *Build:* $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s
-          *Device:* Xiaomi Selene (MT6768)
-          *Toolchain:* Greenforce Clang
-          *Kaeru LK:* ${HAS_KAERU}
-
-          📦 _File kernel telah dikirim ke channel rilis._" || true
-
-              # 2. KIRIM FILE ZIP KE GAMBAR KANAN (Channel Nai project update)
-              if [ -n "$ZIP_FILE" ] && [ -n "${{ secrets.TELEGRAM_CHANNEL_ID }}" ]; then
-                curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument" \
-                  -F chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
-                  -F document=@"$ZIP_FILE" \
-                  -F caption="✅ *Mocchipyon v${VERSION}*
-          *Channel:* `${CHANNEL}`
-          *Tag:* `${TAG}`
-          *Commit:* [`${SHORT}`](${URL})
-          *Size:* ${FILE_SIZE}
-          *Device:* Xiaomi Selene (MT6768 4.19)
-          *Kaeru LK:* ${HAS_KAERU}
-
-          ⚠️ _Flash via AnyKernel3 recovery._" \
-                  -F parse_mode="Markdown" || true
-              fi
-            else
-              curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-                -d chat_id="${{ secrets.TELEGRAM_CHANNEL_ID }}" \
-                -d "message_thread_id=47" \
-                -d parse_mode="Markdown" \
-                --data-urlencode "text=✅ *Build Berhasil*
-          *Tag:* \`${TAG}\`
-          *Commit:* [\`${SHORT}\`](${URL})
-          ⚠️ _Zip file tidak ditemukan_" || true
-            fi
+            bash .github/scripts/notify-telegram.sh \
+              success \
+              "${{ steps.version.outputs.VERSION }}" \
+              "${{ steps.version.outputs.TAG }}" \
+              "CHANGELOG.md" \
+              "$ZIP_FILE"
           else
-            LOG_TAIL=""
-            if [ -s build.log ]; then
-              LOG_TAIL=$(tail -c 1000 build.log | sed 's/"/\\"/g')
-              LOG_TAIL="
-
-          \`\`\`
-          ${LOG_TAIL}
-          \`\`\`"
-            fi
-            curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d chat_id="${{ secrets.TELEGRAM_GROUP_ID || secrets.TELEGRAM_CHANNEL_ID }}" \
-              -d "message_thread_id=47" \
-              -d parse_mode="Markdown" \
-              --data-urlencode "text=❌ *Build Gagal!*
-          *Tag:* \`${TAG}\`
-          *Commit:* [\`${SHORT}\`](${URL})
-          Cek log untuk detail.${LOG_TAIL}" || true
+            bash .github/scripts/notify-telegram.sh \
+              failed \
+              "${{ steps.version.outputs.VERSION }}" \
+              "${{ steps.version.outputs.TAG }}" \
+              "build.log"
           fi
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
+          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_ERROR_CHANNEL_ID: ${{ secrets.TELEGRAM_ERROR_CHANNEL_ID }}
         continue-on-error: true

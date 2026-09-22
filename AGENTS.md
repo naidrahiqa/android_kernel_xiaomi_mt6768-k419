@@ -9,6 +9,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 | **MT6768 Kernel** | `.opencode/skills/mt6768-kernel/SKILL.md` | **Master skill** — overview, hardware, build commands, file locations |
 | Build System Fixes | `.opencode/skills/build-system-fixes/SKILL.md` | Clang IAS, stpcpy, LTO, ZSTD, UAPI headers, vDSO32, assembly errors |
 | ReSukiSU Integration | `.opencode/skills/resukisu-integration/SKILL.md` | KernelSU driver, manual hooks, KSU_VERSION, manager APK |
+| KSU Version Management | `.opencode/skills/ksu-version-management/SKILL.md` | Version pin, upstream sync, notes generator (generate-ksu-notes.sh) |
 | NoMount | `.opencode/skills/nomount/SKILL.md` | Systemless path redirection, VFS hooks, keyring control |
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation, build debugging |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas, debug workflow |

@@ -36,11 +36,18 @@ BUILD_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-naidrah
 REPO_URL="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-naidrahiqa/android_kernel_xiaomi_mt6768-k419}"
 DATE=$(date +%d/%m/%y 2>/dev/null || echo "??/??/??")
 
-# KSU tag extraction
+# KSU tag extraction — supports both pinned (:= v4.2.0-rc2) and dynamic ($(shell ...)) formats
 KSU_VER_TAG="v4.1.0"
+KSU_VER_CODE=""
 if [ -f resukisu/Kbuild ]; then
-	KSU_TAG_VAL=$(grep '^KSU_TAG_NAME' resukisu/Kbuild | head -1 | grep -o 'echo "[^"]*"' | cut -d'"' -f2)
+	# Try pinned format first: KSU_TAG_NAME    := v4.2.0-rc2
+	KSU_TAG_VAL=$(grep '^KSU_TAG_NAME' resukisu/Kbuild | head -1 | sed 's/.*:= *//')
+	# Strip any $(shell ...) wrapper if present
+	KSU_TAG_VAL=$(echo "$KSU_TAG_VAL" | sed 's/\$(shell .*)//; s/^ *//; s/ *$//')
 	[ -n "$KSU_TAG_VAL" ] && KSU_VER_TAG="$KSU_TAG_VAL"
+	# Extract KSU_VERSION (computed: 30000 + local + 700)
+	KSU_LOCAL=$(grep '^KSU_LOCAL_VERSION' resukisu/Kbuild | head -1 | sed 's/.*:= *//')
+	[ -n "$KSU_LOCAL" ] && KSU_VER_CODE=$((30000 + KSU_LOCAL + 700))
 fi
 
 function html_escape() {
@@ -161,7 +168,7 @@ function build_success() {
 	local notif_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
-⚠️ ReSukiSU <code>${KSU_VER_TAG}</code> · NoMount v20
+⚠️ ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})} · NoMount v20
 Kaeru LK: <b>${HAS_KAERU}</b>
 
 Changelog:
@@ -184,7 +191,7 @@ ${changelog_items:-<i>No changes recorded</i>}
 		local doc_caption="🍡 <b>Mocchipyon Kernel</b> · <code>${VERSION}</code>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
-<b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>
+<b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
 <b>Redirection:</b> NoMount v20
 <b>Kaeru LK:</b> ${HAS_KAERU}
 <b>Size:</b> ${file_size}

@@ -703,6 +703,16 @@ static int __init upower_get_tbl_ref(void)
 				(unsigned long long)upower_data_phy_addr,
 				(unsigned long long)upower_data_virt_addr);
 
+	/* If SSPM reserved memory is not present, virt_addr returns 0.
+	 * Continuing without table reference is safe as upower is only used for EAS power estimation.
+	 */
+	if (!upower_data_virt_addr || !upower_data_size) {
+		upower_error("sspm reserved memory not found (virt=0x%llx size=%d)\n",
+			(unsigned long long)upower_data_virt_addr,
+			(int)upower_data_size);
+		return 0;
+	}
+
 	/* clear */
 	ptr = (unsigned char *)(uintptr_t)upower_data_virt_addr;
 	for (i = 0; i < upower_data_size; i++)

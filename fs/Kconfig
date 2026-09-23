@@ -328,5 +328,12 @@ source "fs/nls/Kconfig"
 source "fs/dlm/Kconfig"
 source "fs/unicode/Kconfig"
 
-source "fs/nomount/Kconfig"
+config NOMOUNT
+	bool "NoMount systemless path redirection"
+	select KEYS
+	default y
+	help
+	  Virtual file injection and path redirection without mounting.
+	  Used for systemless root and moduleless modifications.
+
 endmenu

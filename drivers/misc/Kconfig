@@ -545,4 +545,28 @@ source "drivers/misc/cardreader/Kconfig"
 source "drivers/misc/mediatek/Kconfig"
 source "drivers/misc/hqsysfs/Kconfig"
 
+config KAERU_COMM
+	bool "Kaeru bootloader communication"
+	depends on ARM || ARM64
+	help
+	  Enable communication with the Kaeru bootloader.
+	  Kaeru writes flags to a specific DRAM address before
+	  booting the kernel. This module reads those flags.
+
+	  Flags include:
+	  - Overclock mode
+	  - Lock state spoofing
+	  - Recovery mode
+	  - Download mode
+
+	  If unsure, say N.
+
+config KAERU_COMM_BASE
+	hex "Kaeru communication base address"
+	depends on KAERU_COMM
+	default 0x4C500000 if MEDIATEK_MT6768
+	help
+	  Base address of the Kaeru communication region in DRAM.
+	  This must match the address used by the Kaeru bootloader.
+
 endmenu

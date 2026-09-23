@@ -134,3 +134,9 @@ all.config
 
 *.orig
 *.rej
+
+# Build directories
+out/
+ak3/
+*.zip
+*.log

@@ -314,6 +314,11 @@ int spislv_init(void)
 	struct spi_message msg;
 	int ret = 0;
 
+	if (!slv_data.spi) {
+		pr_notice("%s: no spi slave device\n", __func__);
+		return -ENODEV;
+	}
+
 	spislv_chip_info.tick_delay = slv_data.low_speed_tick_delay;
 	slv_data.tx_speed_hz = SPI_TX_LOW_SPEED_HZ;
 	slv_data.rx_speed_hz = SPI_RX_LOW_SPEED_HZ;

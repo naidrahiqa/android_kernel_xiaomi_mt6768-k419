@@ -1,0 +1,365 @@
+name: Build MT6768 Kernel 4.19
+
+on:
+  push:
+    branches: [Mocchipyon23.2]
+    tags: ['v*']
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - '.opencode/**'
+      - 'VERSION'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release channel'
+        required: true
+        type: choice
+        options:
+          - beta
+          - stable
+        default: beta
+
+env:
+  TOOLCHAIN_NAME: "Greenforce Clang"
+  KERNEL_VERSION: "4.19.325"
+  REPO: "naidrahiqa/android_kernel_xiaomi_mt6768-k419"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    outputs:
+      status: ${{ steps.final-check.outputs.status }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Mocchipyon CI"
+          git config user.email "mocchipyon@users.noreply.github.com"
+
+      - name: Generate version tag
+        id: version
+        run: |
+          SHORT_HASH=$(git rev-parse --short HEAD)
+          FULL_HASH=$(git rev-parse HEAD)
+          DATE_TAG=$(date +%Y%m%d)
+          COMMIT_URL="https://github.com/${{ env.REPO }}/commit/${FULL_HASH}"
+
+          # Read VERSION file
+          if [ -f VERSION ]; then
+            source VERSION
+          else
+            MOCCHIPYON_VERSION="0.0.0"
+            MOCCHIPYON_CODENAME="Unknown"
+          fi
+
+          # Determine channel
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            CHANNEL="stable"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHANNEL="${{ github.event.inputs.channel }}"
+          else
+            CHANNEL="nightly"
+          fi
+
+          # Build tag based on channel
+          case "$CHANNEL" in
+            stable)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}"
+              ;;
+            beta)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-beta.${DATE_TAG}"
+              ;;
+            nightly)
+              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
+              ;;
+          esac
+
+          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
+          echo "SHORT_HASH=${SHORT_HASH}" >> $GITHUB_OUTPUT
+          echo "FULL_HASH=${FULL_HASH}" >> $GITHUB_OUTPUT
+          echo "COMMIT_URL=${COMMIT_URL}" >> $GITHUB_OUTPUT
+          echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
+          echo "CHANNEL=${CHANNEL}" >> $GITHUB_OUTPUT
+          echo "VERSION=${MOCCHIPYON_VERSION}" >> $GITHUB_OUTPUT
+          echo "CODENAME=${MOCCHIPYON_CODENAME}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_ENV
+          echo "CHANNEL=${CHANNEL}" >> $GITHUB_ENV
+          echo "::notice::Channel: ${CHANNEL} | Tag: ${TAG} | Version: v${MOCCHIPYON_VERSION}"
+
+      - name: Notify start (Telegram)
+        run: |
+          bash .github/scripts/notify-telegram.sh \
+            start \
+            "${{ steps.version.outputs.VERSION }}" \
+            "${{ steps.version.outputs.TAG }}"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
+          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+        continue-on-error: true
+
+      - name: Cache Greenforce Clang
+        id: cache-clang
+        uses: actions/cache@v4
+        with:
+          path: greenforce-clang
+          key: greenforce-clang-${{ hashFiles('.github/workflows/build.yml') }}
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential flex \
+            libssl-dev libelf-dev zstd \
+            python3 \
+            binutils-aarch64-linux-gnu \
+            gcc-aarch64-linux-gnu \
+            binutils-arm-linux-gnueabi \
+            gcc-arm-linux-gnueabi \
+            zip
+          if [ "${{ steps.cache-clang.outputs.cache-hit }}" != "true" ]; then
+            wget -qO- https://raw.githubusercontent.com/greenforce-project/greenforce_clang/refs/heads/main/get_clang.sh | bash
+          fi
+          echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
+
+      - name: Setup ReSukiSU (KernelSU)
+        run: |
+          ln -sf "$(realpath resukisu)" drivers/kernelsu
+          test -e drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed (dangling or missing)"; exit 1; }
+
+      - name: Build kernel (selene_defconfig)
+        id: build
+        env:
+          KBUILD_BUILD_USER: "naidrahiqa"
+          KBUILD_BUILD_HOST: "github-actions"
+        run: |
+          BUILD_START=$(date +%s)
+          rm -rf out
+          make O=out ARCH=arm64 \
+            CC=clang HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            LD=ld.lld AR=llvm-ar NM=llvm-nm \
+            OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip READELF=llvm-readelf \
+            LLVM=1 LLVM_IAS=1 \
+            selene_defconfig 2>&1 | tee build.log
+
+          set +e
+          make O=out ARCH=arm64 \
+            CC=clang HOSTCC=gcc \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            LD=ld.lld AR=llvm-ar NM=llvm-nm \
+            OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip READELF=llvm-readelf \
+            LLVM=1 LLVM_IAS=1 \
+            -j$(nproc) 2>&1 | tee -a build.log
+          MAKE_EXIT=${PIPESTATUS[0]}
+          BUILD_END=$(date +%s)
+          BUILD_TIME=$((BUILD_END - BUILD_START))
+          echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
+          echo "::notice::Build time: $((BUILD_TIME / 60))m $((BUILD_TIME % 60))s"
+          echo "MAKE_EXIT_CODE=${MAKE_EXIT}" >> $GITHUB_ENV
+          exit $MAKE_EXIT
+
+      - name: Verify critical configs
+        run: |
+          miss=0
+          grep -q 'CONFIG_ARCH_MTK_PROJECT="selene"' out/.config || {
+            echo "::warning::Config tidak ditemukan: CONFIG_ARCH_MTK_PROJECT"
+            miss=1
+          }
+          for sym in \
+            CONFIG_TOUCHSCREEN_FTS_XIAOMI \
+            CONFIG_SND_SOC_AW87XXX \
+            CONFIG_KSU \
+            CONFIG_KSU_MANUAL_HOOK \
+            CONFIG_NOMOUNT \
+            CONFIG_KAERU_COMM; do
+            grep -q "${sym}=y" out/.config || {
+              echo "::warning::Config tidak ditemukan: ${sym}"
+              miss=1
+            }
+          done
+          # Verify dangerous configs are disabled
+          for sym in \
+            CONFIG_SHADOW_CALL_STACK \
+            CONFIG_SLAB_FREELIST_HARDENED \
+            CONFIG_INIT_ON_ALLOC_DEFAULT_ON \
+            CONFIG_BUG_ON_DATA_CORRUPTION; do
+            grep -q "^${sym}=y" out/.config && {
+              echo "::error::Dangerous config enabled: ${sym}"
+              miss=1
+            }
+          done
+          exit $miss
+
+      - name: Upload .config (debug artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-config-${{ steps.version.outputs.SHORT_HASH }}
+          path: out/.config
+          include-hidden-files: true
+
+      - name: Package AnyKernel3
+        if: success()
+        run: |
+          test -f out/arch/arm64/boot/Image.gz || \
+          test -f out/arch/arm64/boot/Image || \
+          test -f out/arch/arm64/boot/Image.gz-dtb || \
+          { echo "::error::No kernel image found"; exit 1; }
+          
+          git clone https://github.com/osm0sis/AnyKernel3 ak3 || { echo "::error::AnyKernel3 clone failed"; exit 1; }
+          cd ak3 && git checkout dca9dc3 && cd ..
+          cp scripts/anykernel.sh ak3/anykernel.sh
+          cp out/arch/arm64/boot/Image.gz-dtb ak3/ 2>/dev/null || \
+          cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
+          cp out/arch/arm64/boot/Image ak3/
+          # Bundle DTB and DTBO if available (for separate partition flashing)
+          cp out/arch/arm64/boot/dts/mediatek/mt6768.dtb ak3/dtb 2>/dev/null || true
+          cp out/arch/arm64/boot/dts/mediatek/selene.dtbo ak3/dtbo.img 2>/dev/null || true
+          # Bundle Kaeru LK if available
+          if [ -f kaeru/kaeru_selene.bin ]; then
+            echo "Bundling Kaeru LK binary..."
+            cp kaeru/kaeru_selene.bin ak3/lk_a.img
+            # Enable LK flashing in anykernel.sh
+            sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
+          fi
+          cd ak3 && zip -r9 ../${{ steps.version.outputs.TAG }}.zip . -x .git/\*
+
+      - name: Verify zip contents (no sensitive files)
+        if: success()
+        run: |
+          ZIP_FILE="${{ steps.version.outputs.TAG }}.zip"
+          echo "=== ZIP contents ==="
+          unzip -l "$ZIP_FILE"
+          echo "=== Checking for sensitive files ==="
+          DANGEROUS=""
+          # Check for dangerous files but allow our Kaeru LK
+          for pat in '\.lk$' '\.LK$' '^.*\/lk' 'preloader' 'PRELOADER' '\/tz' '\/TZ' '\/scp' 'SSPM' 'sspm' '\/tee' '\/TEE' 'vbmeta' 'VBMETA'; do
+            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" | grep -v "lk_a.img" || true)
+            if [ -n "$MATCHES" ]; then
+              DANGEROUS="${DANGEROUS}${MATCHES}\n"
+            fi
+          done
+          if [ -n "$DANGEROUS" ]; then
+            echo "::error::Sensitive files found in zip!"
+            printf "$DANGEROUS"
+            exit 1
+          fi
+          echo "OK - no dangerous partition files in zip (Kaeru LK allowed)"
+
+      - name: Final check
+        id: final-check
+        if: always()
+        run: |
+          HAS_ERROR=0
+          if [ -f build.log ] && grep -qiE "(\.c:[0-9]+:.*error:|clang: error:|error:.*failed)" build.log 2>/dev/null; then
+            echo "::error::Compilation error found"
+            HAS_ERROR=1
+          fi
+          if [ "${MAKE_EXIT_CODE:-0}" -ne 0 ]; then
+            echo "::error::make exited with code ${MAKE_EXIT_CODE}"
+            HAS_ERROR=1
+          fi
+          if [ ! -f out/arch/arm64/boot/Image.gz ] && [ ! -f out/arch/arm64/boot/Image ] && [ ! -f out/arch/arm64/boot/Image.gz-dtb ]; then
+            echo "::error::No kernel image found"
+            HAS_ERROR=1
+          fi
+          echo "status=$([ "$HAS_ERROR" -eq 1 ] && echo "failed" || echo "success")" >> $GITHUB_OUTPUT
+
+      - name: Upload build log (on failure)
+        if: always() && steps.final-check.outputs.status == 'failed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ steps.version.outputs.SHORT_HASH }}
+          path: build.log
+
+
+      - name: Upload kernel artifact
+        if: steps.final-check.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.TAG }}
+          path: ${{ steps.version.outputs.TAG }}.zip
+
+      - name: Generate changelog
+        id: changelog
+        if: steps.final-check.outputs.status == 'success' && env.CHANNEL != 'nightly'
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..HEAD"
+          else
+            RANGE="HEAD~20..HEAD"
+          fi
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          # Categorize commits by conventional commit prefix
+          echo "### ✨ Features" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- (feat|add)" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 🐛 Fixes" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- fix" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### ⚡ CI/CD" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -iE "^- ci" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 📋 Other" >> CHANGELOG.md
+          git log --pretty="- %s (%h)" "$RANGE" -- | grep -viE "^- (feat|add|fix|ci)" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "**Build Info:** Kernel ${{ env.KERNEL_VERSION }} | Toolchain: Greenforce Clang | Device: Xiaomi Selene (MT6768)" >> CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        if: steps.final-check.outputs.status == 'success' && env.CHANNEL != 'nightly'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.TAG }}
+          name: "Mocchipyon v${{ steps.version.outputs.VERSION }} — ${{ steps.version.outputs.CODENAME }}"
+          body_path: CHANGELOG.md
+          prerelease: ${{ env.CHANNEL == 'beta' }}
+          files: ${{ steps.version.outputs.TAG }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify result (Telegram)
+        if: always()
+        run: |
+          STATUS="${{ steps.final-check.outputs.status }}"
+          ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip Mocchipyon-*.zip 2>/dev/null | head -1)
+          if [ "$STATUS" = "success" ]; then
+            bash .github/scripts/notify-telegram.sh \
+              success \
+              "${{ steps.version.outputs.VERSION }}" \
+              "${{ steps.version.outputs.TAG }}" \
+              "CHANGELOG.md" \
+              "$ZIP_FILE"
+          else
+            bash .github/scripts/notify-telegram.sh \
+              failed \
+              "${{ steps.version.outputs.VERSION }}" \
+              "${{ steps.version.outputs.TAG }}" \
+              "build.log"
+          fi
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
+          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_ERROR_CHANNEL_ID: ${{ secrets.TELEGRAM_ERROR_CHANNEL_ID }}
+        continue-on-error: true

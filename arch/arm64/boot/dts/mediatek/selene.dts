@@ -446,14 +446,14 @@
 	usb_charger_current = <500000>;
 	ac_charger_current = <2050000>;
 	ac_charger_input_current = <2050000>;
-	non_std_ac_charger_current = <1000000>;
+	non_std_ac_charger_current = <500000>;
 	charging_host_charger_current = <1500000>;
 	apple_1_0a_charger_current = <650000>;
 	apple_2_1a_charger_current = <800000>;
 	ta_ac_charger_current = <2050000>;
 	/* hvdcp_charger_current = <3000000>; */  /* REMOVED — not validated for this charger IC */
 
-	pd_vbus_upper_bound = <9000000>;
+	pd_vbus_upper_bound = <5000000>;
 
 	/* sw jeita */
 	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/6/1 start*/

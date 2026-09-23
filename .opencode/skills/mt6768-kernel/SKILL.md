@@ -10,7 +10,14 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **Device**: Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime)
 - **SoC**: MediaTek MT6768 / MT6769 (Helio G88), 8-core ARM Cortex-A75/A55
 - **Kernel**: Linux 4.19.325 (CIP stable backport) — **STATUS: UNSTABLE, MASIH PORTING**
-- **Branch**: `Mocchipyon23.2` (LineageOS 23.2 based)
+- **Branches**:
+  - `Mocchipyon23.2`: Primary development branch (LineageOS 23.2 / Android 15 & CIP 4.19.325 porting)
+  - `Mocchipyon24.0`: Development branch untuk LineageOS 24.0
+  - `lineage-24.0`: Clean tracking branch dari upstream `mt6768-S`
+- **Remotes**:
+  - `origin`: `https://github.com/naidrahiqa/android_kernel_xiaomi_mt6768-k419` (fork)
+  - `upstream`: `https://github.com/mt6768-S/android_kernel_xiaomi_mt6768` (MT6768 unified base)
+  - `cip`: `https://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git` (CIP upstream)
 - **Architecture**: arm64
 - **Toolchain**: [Greenforce Clang](https://github.com/greenforce-project/greenforce_clang) (LLVM/Clang, built with PGO+ThinLTO+O3+Polly)
 - **GPU**: Mali Valhall r32p1
@@ -19,13 +26,22 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **Systemless**: NoMount v20
 - **Bootloader**: Kaeru LK (lock state spoofing + cert bypass)
 
-## Reference Project (4.14 Stable)
+## ROM & Android Compatibility
+
+- **AOSP / Custom ROM (Android 13+)**:
+  - ✅ **LineageOS 20 (A13)**, **LineageOS 21 (A14)**, **LineageOS 23.2 (A15)**, **LineageOS 24.0**: Sangat didukung karena Custom ROM MT6768 menggunakan unified device/vendor tree berbasis kernel 4.19.
+- **Stock MIUI 13 (Android 12) & MIUI 14 (Android 13)**:
+  - ⚠️ **Stock Xiaomi ROM untuk Selene berjalan di atas Kernel 4.14**. Stock proprietary vendor blobs (Camera ISP, Mali DDK, Display, Audio) di-compile terhadap ABI kernel 4.14.
+  - Flashing kernel 4.19 ini ke Stock MIUI resmi berpotensi **bootloop** atau kamera/sensor mati karena ketidakcocokan HAL blob 4.14 dengan kernel 4.19.
+  - **Untuk Stock MIUI 12.5/13/14**, gunakan kernel **4.14** (lihat Reference Project di bawah).
+
+## Reference Project (4.14 Stable for Stock MIUI)
 
 - **Path**: `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene`
 - **Branch**: `phrolova`
 - **Kernel**: Linux 4.14.357
 - **GitHub**: `naidrahiqa/android_kernel_xiaomi_selene`
-- **Status**: Production-ready
+- **Status**: Production-ready untuk Stock MIUI 12.5 / 13 / 14 dan ROM berbasis kernel 4.14
 
 ## Skill Index
 
@@ -210,8 +226,30 @@ make ARCH=arm64 savedefconfig
 cp defconfig arch/arm64/configs/selene_defconfig
 ```
 
-## Git Conventions
+## Git Conventions & Branch Workflow
 
-- **Branch**: `Mocchipyon23.2` (main)
+### Remotes
+- `origin`: `https://github.com/naidrahiqa/android_kernel_xiaomi_mt6768-k419`
+- `upstream`: `https://github.com/mt6768-S/android_kernel_xiaomi_mt6768`
+- `cip`: `https://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git`
+
+### Active Branches
+- `Mocchipyon23.2`: Primary development branch (Lineage 23.2 & 4.19 CIP porting)
+- `Mocchipyon24.0`: Development branch untuk Lineage 24.0
+- `lineage-24.0`: Pristine tracking branch dari upstream `mt6768-S`
+
+### Syncing Upstream Branches
+```bash
+# Sync branch lineage-24.0 dari upstream
+git checkout lineage-24.0
+git pull upstream lineage-24.0
+git push origin lineage-24.0
+
+# Rebase / update branch dev Mocchipyon24.0 dari upstream lineage-24.0
+git checkout Mocchipyon24.0
+git rebase lineage-24.0
+git push origin Mocchipyon24.0 --force-with-lease
+```
+
 - **Commit format**: `<subsystem>: <description>`
-- **Push**: `git push origin Mocchipyon23.2 --force-with-lease`
+- **Push**: `git push origin <branch> --force-with-lease`

@@ -22,15 +22,16 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 
 - **Device:** Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime), codename **selene**, MediaTek MT6768 / MT6769 (Helio G88).
 - **Kernel:** Linux 4.19.325 (CIP stable backport), **non-GKI**, **STATUS: UNSTABLE/PORTING**.
-- **Branch:** `Mocchipyon23.2`
+- **Branch:** `Mocchipyon23.2` (primary / 4.19 porting), `Mocchipyon24.0` (Lineage 24.0 dev), `lineage-24.0` (upstream tracking)
+- **Remotes:** `origin` (naidrahiqa fork), `upstream` (`mt6768-S/android_kernel_xiaomi_mt6768`), `cip` (linux-cip)
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
 - **Bootloader:** Kaeru LK (`R0rt1z2/kaeru`, lock state spoofing + cert bypass).
-- **Build variants:** Single universal kernel — works on MIUI/HyperOS and AOSP-based ROMs.
+- **Build variants:** Single universal kernel — targeted for AOSP/LineageOS 20+ (Android 13+ up to 16) and 4.19-based HyperOS/MIUI ports. (Catatan: Stock official MIUI 13/14 menggunakan kernel 4.14 di reference project).
 - **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-Mocchipyon-cip136-st20`).
 - **Release channels:** Nightly (auto push), Beta (workflow_dispatch pre-release), Stable (git tag `v*`).
-- **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`)
+- **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`, untuk stock MIUI 12.5/13/14)
 
 ## Commit Style
 

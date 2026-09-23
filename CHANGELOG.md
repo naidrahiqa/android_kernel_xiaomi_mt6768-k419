@@ -23,8 +23,12 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
 - **Clang CFI Hardening:**
   - Fixed backlight callback pointer signature mismatch in `mtk_leds`.
   - Fixed `rdma_ioctl` function pointer signature mismatch in DDP video dispatch.
-- **Defconfig:**
-  - Explicitly set `CONFIG_TOUCHSCREEN_COMMON=y` in `arch/arm64/configs/selene_defconfig` for userspace double-tap node exposure.
+- **Defconfig & Architecture Hardening:**
+  - Added `CONFIG_COMPAT=y` in `arch/arm64/configs/selene_defconfig` to enable 32-bit EL0 userspace support (required for 32-bit Android applications and proprietary 32-bit vendor HALs).
+  - Explicitly set `CONFIG_KSU_MULTI_MANAGER_SUPPORT=y` to support alternate KernelSU managers.
+  - Explicitly set `CONFIG_TOUCHSCREEN_COMMON=y` for userspace double-tap node exposure.
+- **Charger DTS Hardware Safety:** `arch/arm64/boot/dts/mediatek/selene.dts`
+  - Restored `pd_vbus_upper_bound` to `<5000000>` (5V) and `non_std_ac_charger_current` to `<500000>` (500mA) to eliminate overvoltage brick risks identified during hardware safety audit.
 
 ## 2026-09-22 — ReSukiSU v4.2.0-rc2 Upstream (KSU_VERSION 35160)
 

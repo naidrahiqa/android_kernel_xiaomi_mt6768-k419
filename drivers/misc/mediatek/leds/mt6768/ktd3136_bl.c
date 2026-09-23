@@ -1013,6 +1013,7 @@ struct device *ktd3137_device_create(void *drvdata, const char *fmt)
 	struct device *dev;
 	if (IS_ERR(ktd3137_class)) {
 		pr_err("Failed to create class %ld\n", PTR_ERR(ktd3137_class));
+		return ERR_CAST(ktd3137_class);
 	}
 
 	dev = device_create(ktd3137_class, NULL, atomic_inc_return(&ktd_dev), drvdata, fmt);
@@ -1074,13 +1075,11 @@ static int ktd3137_probe(struct i2c_client *client,
 
 	ktd3137_dev = ktd3137_device_create(chip, "ktd");
 	if (IS_ERR(ktd3137_dev)) {
-		dev_err(&client->dev, "failed_to create device for ktd");
-	}
-
-	err = sysfs_create_group(&ktd3137_dev->kobj, &ktd3137_bl_attr_group);
-	if (err) {
-		dev_err(&client->dev, "failed to create sysfs group\n");
-
+		dev_err(&client->dev, "failed_to create device for ktd\n");
+	} else {
+		err = sysfs_create_group(&ktd3137_dev->kobj, &ktd3137_bl_attr_group);
+		if (err)
+			dev_err(&client->dev, "failed to create sysfs group\n");
 	}
 
 	i2c_set_clientdata(client, chip);

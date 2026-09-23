@@ -98,6 +98,13 @@ void pmic_enable_interrupt(enum PMIC_IRQ_ENUM intNo, unsigned int en, char *str)
 			__func__, intNo);
 		return;
 	}
+
+	if (!pmic_dev) {
+		pr_notice(PMICTAG "[%s] PMIC not ready yet, intNo=%d\n",
+			__func__, intNo);
+		return;
+	}
+
 	irq = mt6358_irq_get_virq(pmic_dev->parent, intNo);
 	if (!irq) {
 		pr_notice(PMICTAG "[%s] fail intNo=%d\n", __func__, intNo);

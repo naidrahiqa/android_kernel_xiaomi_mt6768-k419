@@ -131,3 +131,9 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+# Build directories
+out/
+ak3/
+*.zip
+*.log

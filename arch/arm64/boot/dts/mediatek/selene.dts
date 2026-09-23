@@ -438,31 +438,31 @@
 	algorithm_name = "SwitchCharging";
 
 	set_cap_delay = <10>;
-	enable_sw_jeita;
-	battery_cv = <4460000>;
+	/* enable_sw_jeita; */  /* DISABLED — brick risk without HW validation (19 Sep 2026 incident) */
+	battery_cv = <4350000>;  /* 4.35V — hardware-rated, DO NOT EXCEED */
 	usb_charger_current_suspend = <0>;
 	usb_charger_current_unconfigured = <70000>;
 	usb_charger_current_configured = <500000>;
 	usb_charger_current = <500000>;
 	ac_charger_current = <2050000>;
 	ac_charger_input_current = <2050000>;
-	non_std_ac_charger_current = <1000000>;
+	non_std_ac_charger_current = <500000>;
 	charging_host_charger_current = <1500000>;
 	apple_1_0a_charger_current = <650000>;
 	apple_2_1a_charger_current = <800000>;
 	ta_ac_charger_current = <2050000>;
-	hvdcp_charger_current = <3000000>;
+	/* hvdcp_charger_current = <3000000>; */  /* REMOVED — not validated for this charger IC */
 
-	pd_vbus_upper_bound = <9000000>;
+	pd_vbus_upper_bound = <5000000>;
 
 	/* sw jeita */
 	/*K19A HQ-124114 K19A charger of jeita by wangqi at 2021/6/1 start*/
 	jeita_temp_above_t4_cv = <4100000>;
 	jeita_temp_t3_to_t4_cv = <4100000>;
-	jeita_temp_t2_to_t3_cv = <4450000>;
-	jeita_temp_t1_to_t2_cv = <4450000>;
-	jeita_temp_t0_to_t1_cv = <4450000>;
-	jeita_temp_below_t0_cv = <4450000>;
+	jeita_temp_t2_to_t3_cv = <4340000>;  /* was 4450000 — reduced to hw-rated */
+	jeita_temp_t1_to_t2_cv = <4240000>;  /* was 4450000 — reduced to hw-rated */
+	jeita_temp_t0_to_t1_cv = <4040000>;  /* was 4450000 — reduced to hw-rated */
+	jeita_temp_below_t0_cv = <4040000>;  /* was 4450000 — reduced to hw-rated */
 
 	/*K19A HQHW-1022 K19A for JEITA by langjunjun at 2021/7/15 start*/
 	jeita_temp_t3_to_t4_cc = <2368000>;

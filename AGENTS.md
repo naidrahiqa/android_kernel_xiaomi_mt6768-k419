@@ -28,7 +28,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
 - **Bootloader:** Kaeru LK (`R0rt1z2/kaeru`, lock state spoofing + cert bypass).
-- **Build variants:** Single universal kernel — targeted for AOSP/LineageOS 20+ (Android 13+ up to 16) and 4.19-based HyperOS/MIUI ports. (Catatan: Stock official MIUI 13/14 menggunakan kernel 4.14 di reference project).
+- **Build variants:** Single universal kernel — targeted for AOSP/LineageOS 20+ (Android 13+ up to 17: Lineage 20 = A13, Lineage 21 = A14, Lineage 22 = A15, Lineage 23.2 = A16, Lineage 24.0 = A17) and 4.19-based HyperOS/MIUI ports. (Catatan: Stock official MIUI 13/14 menggunakan kernel 4.14 di reference project).
 - **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-Mocchipyon-cip136-st20`).
 - **Release channels:** Nightly (auto push), Beta (workflow_dispatch pre-release), Stable (git tag `v*`).
 - **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`, untuk stock MIUI 12.5/13/14)

@@ -28,8 +28,13 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 
 ## ROM & Android Compatibility
 
-- **AOSP / Custom ROM (Android 13+)**:
-  - ✅ **LineageOS 20 (A13)**, **LineageOS 21 (A14)**, **LineageOS 23.2 (A15)**, **LineageOS 24.0**: Sangat didukung karena Custom ROM MT6768 menggunakan unified device/vendor tree berbasis kernel 4.19.
+- **AOSP / Custom ROM (Android 13+ up to 17)**:
+  - **LineageOS 20**: Android 13
+  - **LineageOS 21**: Android 14
+  - **LineageOS 22**: Android 15
+  - **LineageOS 23 / 23.2**: Android 16 (aktif di device test via ADB)
+  - **LineageOS 24 / 24.0**: Android 17 (target pengembangan branch `Mocchipyon24.0`)
+  - Seluruh varian Custom ROM MT6768 di atas menggunakan unified device/vendor tree berbasis kernel 4.19.
 - **Stock MIUI 13 (Android 12) & MIUI 14 (Android 13)**:
   - ⚠️ **Stock Xiaomi ROM untuk Selene berjalan di atas Kernel 4.14**. Stock proprietary vendor blobs (Camera ISP, Mali DDK, Display, Audio) di-compile terhadap ABI kernel 4.14.
   - Flashing kernel 4.19 ini ke Stock MIUI resmi berpotensi **bootloop** atau kamera/sensor mati karena ketidakcocokan HAL blob 4.14 dengan kernel 4.19.

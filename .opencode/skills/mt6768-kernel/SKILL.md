@@ -127,6 +127,7 @@ battery_cv = <4350000>;           /* 4.35V — JANGAN UBAH */
 max_charger_voltage = <15000000>;
 min_charger_voltage = <4600000>;
 non_std_ac_charger_current = <500000>;
+pd_vbus_upper_bound = <5000000>;         /* 5V max — JANGAN UBAH ke 9V */
 /* enable_sw_jeita; */             /* JANGAN ENABLE tanpa HW test */
 /* hvdcp_charger_current = <3000000>; */ /* JANGAN TAMBAH tanpa validasi */
 

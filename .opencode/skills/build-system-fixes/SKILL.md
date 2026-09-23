@@ -56,6 +56,68 @@ enum { ZSTD_STATIC_ASSERT CONDITION = 1 / (int)(!!(CONDITION)) - 1 };
 _Static_assert((CONDITION), "ZSTD_STATIC_ASSERT");
 ```
 
+## Clang CFI (Control Flow Integrity) Fixes
+
+Forward-edge CFI checks indirect function pointer signatures at runtime. Signature mismatches cause instant kernel panics (CFI trap).
+
+### Backlight callback signature mismatch
+`drivers/misc/mediatek/leds/mt6768/ktd3136_bl.c`:
+- Function pointer callback expected `(int, int)` signature: `int (*set_level)(int level, int div)`.
+- Target function defined as `int (*set_level)(int level)`.
+- **Fix**: Samakan signature parameter ke `(int brightness, int div)` atau `(int brightness)` di seluruh caller dan callee.
+
+### RDMA ioctl callback mismatch
+`drivers/misc/mediatek/video/mt6768/dispsys/ddp_rdma.c`:
+- `rdma_ioctl` menggunakan tipe enum lokal/inkomplit yang tidak cocok dengan struct dispatch `.ioctl`.
+- **Fix**: Gunakan tipe enum global `DDP_IOCTL_NAME` agar signature function pointer match saat didaftarkan ke tabel dispatch.
+
+## Clone3 & Modern Bionic Compatibility
+
+Modern Android Bionic libc menggunakan `clone3()` system call untuk thread creation.
+1. **`copy_thread_tls` ARM64:** Diperlukan implementasi `copy_thread_tls` di `arch/arm64/kernel/process.c` karena TLS diteruskan melalui struct, bukan register `x3`.
+2. **Stack Argument Validation:** Validasi arah pertumbuhan stack (`stack_size` dan `stack`) sebelum memanggil `_do_fork()`.
+3. **`copy_struct_from_user`:** Menggunakan helper `copy_struct_from_user()` untuk menangani argumen `struct clone_args` yang extensible secara aman dari userspace.
+
+## Early Boot Stability & Panic Guards
+
+Sebelum driver probe atau `timer_probe()` selesai, timer dan scheduler belum sepenuhnya aktif.
+
+### 1. MTCMOS Infinite Spin (CCF Clock)
+`drivers/clk/mediatek/clk-mt6768-pg.c`:
+- 73 loop `while ((spm_read(...) & MASK) != MASK) ram_console_update();` berjalan sebelum `timer_probe()`.
+- Jika register ACK SPM tidak merespons, CPU terjebak dalam loop tanpa henti (silent boot hang tanpa output serial).
+- **Fix**: Ganti ke makro bounded `spm_wait_ack()` dengan limit `SPM_ACK_MAX_SPINS = 1000000u`. Jika timeout tercapai, log error dan lanjutkan proses boot.
+
+### 2. SSPM Reserved Memory Missing
+`drivers/misc/mediatek/base/power/upower_v2/mtk_unified_power.c`:
+- Jika reserved memory SSPM tidak dialokasikan, `upower_data_virt_addr` bernilai `0`. Loop `memset` menulis ke pointer `0` (NULL dereference panic).
+- **Fix**: Guard `if (!upower_data_virt_addr || !upower_data_size) return 0;`.
+
+### 3. Early CMDQ Slot Allocation
+`drivers/misc/mediatek/cmdq/v3/cmdq_helper_ext.c`:
+- Display probe (`disp_probe_1`) dapat memanggil `mdp_pool_alloc_impl()` sebelum `mdp_rb_pool` dibuat via `dma_pool_create()`.
+- **Fix**: Check `if (!pool) return NULL;` agar caller fallback ke standard DMA allocation.
+
+### 4. PMIC Interrupt Initialization Order
+`drivers/misc/mediatek/pmic/mt6358/v1/pmic_irq.c`:
+- Jika subsistem lain (misal accdet) memanggil `pmic_enable_interrupt()` sebelum probe PMIC selesai, `pmic_dev` masih NULL.
+- **Fix**: Check `if (!pmic_dev) return;`.
+
+### 5. SCP IPI Deadlock
+`drivers/misc/mediatek/scp/cm4/v01/scp_ipi.c`:
+- `scp_ipi_send()` memegang `scp_ipi_mutex` sembari menunggu ACK register SCP. Jika SCP firmware macet, loop berputar selamanya sambil menahan mutex (deadlock seluruh sistem).
+- **Fix**: Tambahkan `SCP_IPI_WAIT_MAX_SPINS`, panggil `cpu_relax()`, dan lepaskan mutex `mutex_unlock(&scp_ipi_mutex[scp_id])` lalu return `SCP_IPI_BUSY` saat timeout.
+
+### 6. SPI Slave / Display Bridge
+`drivers/misc/mediatek/spi_slave_drv/spi_slave.c` & `ddp_disp_bdg.c`:
+- Jika chip bridge SPI tidak terdeteksi, `slv_data.spi` adalah NULL. Memanggil `spi_sync(NULL)` memicu panic.
+- **Fix**: Guard `if (!slv_data.spi) return -ENODEV;` dan cek return value di `bdg_is_bdg_connected()`.
+
+### 7. Backlight Class Error & Sysfs Crash
+`drivers/misc/mediatek/leds/mt6768/ktd3136_bl.c`:
+- `ktd3137_device_create()` mengabaikan error class. Jika gagal, `ktd3137_probe()` mendereference pointer error di `sysfs_create_group()`.
+- **Fix**: Return `ERR_CAST(ktd3137_class)` dan hanya buat sysfs group jika `!IS_ERR(ktd3137_dev)`.
+
 ## GCC Compatibility
 
 ### GCC 13 `-Werror` promotions

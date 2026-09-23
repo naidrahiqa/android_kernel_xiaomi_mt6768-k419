@@ -92,6 +92,11 @@ make O=out ARCH=arm64 \
 | Kaeru `flash_block` undefined | Ganti dengan `dd if= of=/dev/block/by-name/lk${SLOT}` | kaeru-integration |
 | Kaeru DRAM comm tak terdeteksi | Pastikan `write_kaeru_comm()` di `board_late_init()` | kaeru-integration |
 | Kaeru offset salah | Extract dari binary dengan Ghidra, jangan copy lancelot mentah | kaeru-integration |
+| MTCMOS silent boot hang | Bounded `spm_wait_ack` di `clk-mt6768-pg.c` | build-system-fixes |
+| Clang CFI callback trap | Match function pointer signatures (`ktd3136_bl` & `rdma_ioctl`) | build-system-fixes |
+| 32-bit apps / HAL failure | `CONFIG_COMPAT=y` di `selene_defconfig` | defconfig-management |
+| Touchscreen double-tap wake | `CONFIG_TOUCHSCREEN_COMMON=y` di `selene_defconfig` | defconfig-management |
+| SCP IPI system deadlock | Bounded loop + mutex unlock saat timeout di `scp_ipi.c` | build-system-fixes |
 
 ## CRITICAL: Charger DTS — JANGAN UBAH TANPA HARDWARE VALIDATION
 

@@ -34,7 +34,9 @@ cp out/defconfig arch/arm64/configs/selene_defconfig
 | Config | Value | Reason |
 |--------|-------|--------|
 | `CONFIG_ARCH_MTK_PROJECT` | `"selene"` | Device identification |
+| `CONFIG_COMPAT` | `y` | 32-bit EL0 userspace (apps & proprietary 32-bit vendor HALs) |
 | `CONFIG_TOUCHSCREEN_FTS_XIAOMI` | `y` | FocalTech touch |
+| `CONFIG_TOUCHSCREEN_COMMON` | `y` | Exposing double-tap sysfs node (`/sys/touchpanel`) |
 | `CONFIG_FPC_FINGERPRINT` | `y` | FPC fingerprint |
 | `CONFIG_GOODIX_FINGERPRINT` | `y` | Goodix fingerprint |
 | `CONFIG_SND_SOC_AW87XXX` | `y` | Audio amplifier |
@@ -42,6 +44,7 @@ cp out/defconfig arch/arm64/configs/selene_defconfig
 | `CONFIG_TRACEPOINTS` | `y` | FPSGO tracepoints |
 | `CONFIG_KSU` | `y` | KernelSU |
 | `CONFIG_KSU_MANUAL_HOOK` | `y` | Manual hook (non-GKI) |
+| `CONFIG_KSU_MULTI_MANAGER_SUPPORT` | `y` | Multi-manager support (MKSU, RKSU, ReSukiSU) |
 
 ## Security Configs — JANGAN ENABLE
 

@@ -14,6 +14,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 | CI/CD (GitHub Actions) | `.opencode/skills/ci-cd-github-actions/SKILL.md` | Workflow, Telegram notif, release automation, build debugging |
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas, debug workflow |
 | Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass, DRAM comm |
+| Unbrick (BROM) | `.opencode/skills/unbrick-brom/SKILL.md` | Brick, unbrick, brom, mtkclient, device mati total, flash LK/boot |
 | Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
 
 **Cara pakai:** Saat dapat task, load skill yang sesuai dari tabel di atas.

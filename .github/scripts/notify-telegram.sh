@@ -50,6 +50,26 @@ if [ -f resukisu/Kbuild ]; then
 	[ -n "$KSU_LOCAL" ] && KSU_VER_CODE=$((30000 + KSU_LOCAL + 700))
 fi
 
+BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")}"
+ANDROID_TARGET="AOSP"
+case "$BRANCH" in
+	*24.0*|*lineage-24*)
+		ANDROID_TARGET="Android 17 / Lineage 24.0"
+		;;
+	*23.2*|*lineage-23*)
+		ANDROID_TARGET="Android 16 / Lineage 23.2"
+		;;
+	*22*|*lineage-22*)
+		ANDROID_TARGET="Android 15 / Lineage 22"
+		;;
+	*21*|*lineage-21*)
+		ANDROID_TARGET="Android 14 / Lineage 21"
+		;;
+	*20*|*lineage-20*)
+		ANDROID_TARGET="Android 13 / Lineage 20"
+		;;
+esac
+
 function html_escape() {
 	if [ -n "$1" ]; then
 		echo "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'
@@ -127,9 +147,10 @@ function tg_document() {
 function build_start() {
 	local safe_commit_msg
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
-	local msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code>
+	local msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 🔨 <b>Building...</b>
+🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 <code>${SHA}</code> ${safe_commit_msg}
 <a href='${BUILD_URL}'>Build Log</a>"
 
@@ -160,16 +181,18 @@ function build_success() {
 
 	# 1. KIRIM NOTIFIKASI KE GAMBAR KIRI (Supergroup Naidrahiqa Stuff -> Topic ⁉️ Selene CI)
 	# HANYA NOTIFIKASI - SAMA SEKALI TIDAK MENGIRIM FILE ZIP KE SINI
-	local notif_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code>
+	local notif_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
+🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+📦 <b>File:</b> <code>$(basename "$zip_file")</code>
 ⚠️ ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})} · NoMount v20
 
 Changelog:
 ${changelog_items:-<i>No changes recorded</i>}
 
 📦 <i>File kernel telah dikirim ke channel rilis.</i>
-<a href='${REPO_URL}/blob/Mocchipyon23.2/CHANGELOG.md'>Full Changelog</a>"
+<a href='${REPO_URL}/blob/${BRANCH}/CHANGELOG.md'>Full Changelog</a>"
 
 	local BUTTONS='{"inline_keyboard":[[{"text":"📱 ReSukiSU APK","url":"https://github.com/ReSukiSU/ReSukiSU/releases/tag/'"${KSU_VER_TAG}"'"}],[{"text":"⬇ GitHub Release","url":"'"${REPO_URL}/releases/tag/${TAG}"'"}],[{"text":"📦 NoMount","url":"https://github.com/maxsteeel/nomount/releases"}]]}'
 
@@ -182,9 +205,11 @@ ${changelog_items:-<i>No changes recorded</i>}
 	if [ -n "$CHANNEL_ID" ] && [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
 		local file_size
 		file_size=$(du -h "$zip_file" | cut -f1)
-		local doc_caption="🍡 <b>Mocchipyon Kernel</b> · <code>${VERSION}</code>
+		local doc_caption="🍡 <b>Mocchipyon Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
+🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+📦 <b>File:</b> <code>$(basename "$zip_file")</code>
 <b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
 <b>Redirection:</b> NoMount v20
 <b>Size:</b> ${file_size}
@@ -233,8 +258,9 @@ function build_failed() {
 	safe_failed_step=$(html_escape "$failed_step")
 	safe_error_context=$(html_escape "$error_context")
 
-	local simple_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code>
+	local simple_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
+🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 ❌ <b>${safe_error_type}</b>
 <a href='${BUILD_URL}'>Check Log</a>"
 
@@ -251,6 +277,7 @@ function build_failed() {
 			log_tail=$(tail -c 3000 "$error_log" 2>/dev/null | html_escape)
 			local topic_log_msg="📋 <b>Build Log (${log_lines} lines)</b>
 <b>Tag:</b> <code>${TAG}</code>
+<b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 <b>Step:</b> ${safe_failed_step}
 
 <pre><code>${log_tail}</code></pre>"
@@ -260,7 +287,8 @@ function build_failed() {
 
 	# Kirim ke Gambar Kanan (Private Channel 'Nai Error Dump')
 	if [ -n "$ERROR_CHANNEL_ID" ]; then
-		local detail_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code>
+		local detail_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 <b>${safe_error_type}</b> · ${safe_failed_step}
 
 <pre><code>${safe_error_context}</code></pre>

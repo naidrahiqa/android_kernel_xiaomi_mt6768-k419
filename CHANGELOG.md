@@ -28,6 +28,8 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
   - Expanded log buffer to 2MB (`CONFIG_LOG_BUF_SHIFT=21`).
 - **CI / Build Workflow Fix:**
   - Updated `.github/workflows/build.yml` config verification to support both `CONFIG_SND_SOC_AW87XXX` and `CONFIG_SND_SOC_AW87559` across branches.
+  - Removed forced selection of `INIT_ON_ALLOC_DEFAULT_ON` and `BUG_ON_DATA_CORRUPTION` from `drivers/misc/mediatek/Kconfig.default`, resolving CI build failure on dangerous config check.
+  - Hardcoded fallback Telegram channel IDs (`CHANNEL_ID=-1003752197403`) in `build.yml` and `notify-telegram.sh` to guarantee kernel zip delivery to Nai project update channel.
 
 ## 2026-09-23 — Boot Stability, Panic Guards & Subsystem Hardening
 

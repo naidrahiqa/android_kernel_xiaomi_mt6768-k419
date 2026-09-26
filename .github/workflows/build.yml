@@ -102,10 +102,10 @@ jobs:
             "${{ steps.version.outputs.TAG }}"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
-          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
-          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}
+          TELEGRAM_TOPIC_CI: "47"
+          TELEGRAM_TOPIC_LOG: "8"
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID || '-1003752197403' }}
         continue-on-error: true
 
       - name: Cache Greenforce Clang
@@ -360,9 +360,9 @@ jobs:
           fi
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
-          TELEGRAM_TOPIC_CI: ${{ secrets.TELEGRAM_TOPIC_CI }}
-          TELEGRAM_TOPIC_LOG: ${{ secrets.TELEGRAM_TOPIC_LOG }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TELEGRAM_ERROR_CHANNEL_ID: ${{ secrets.TELEGRAM_ERROR_CHANNEL_ID }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}
+          TELEGRAM_TOPIC_CI: "47"
+          TELEGRAM_TOPIC_LOG: "8"
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID || '-1003752197403' }}
+          TELEGRAM_ERROR_CHANNEL_ID: ${{ secrets.TELEGRAM_ERROR_CHANNEL_ID || '-1003945405514' }}
         continue-on-error: true

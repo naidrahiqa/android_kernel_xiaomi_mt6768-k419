@@ -2,6 +2,21 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
 
+## 2026-09-26 — Fix Brick Risk: Remove LK & DTBO Flashing from AnyKernel3
+
+- **AnyKernel3 Boot-Only Flashing Restored:** `scripts/anykernel.sh`
+  - Completely removed Kaeru LK flashing logic (`dd if=lk_a.img of=/dev/block/by-name/lk*`).
+  - Restored standard AnyKernel3 boot-only install (`dump_boot; write_boot;`), only modifying the boot image ramdisk.
+  - Set `is_slot_device=auto;` for reliable automatic slot detection.
+- **CI / Build Workflow Safety Fixes:** `.github/workflows/build.yml`
+  - Removed bundling of `mt6768.dtb`, `selene.dtbo` (`dtbo.img`), and `kaeru_selene.bin` (`lk_a.img`) into the AnyKernel3 zip.
+  - Hardened zip verification check to strictly reject `lk`, `dtbo`, and `dtb` files to prevent foreign partition overwriting.
+  - Removed `CONFIG_KAERU_COMM` from required CI check.
+- **Defconfig & Artifacts Cleanup:**
+  - Disabled `CONFIG_KAERU_COMM` in `arch/arm64/configs/selene_defconfig`.
+  - Deleted dangerous prebuilt `kaeru/kaeru_selene.bin` binary from repository.
+  - Updated Telegram notifications and documentation to reflect stock LK and boot-only flashing.
+
 ## 2026-09-26 — ReSukiSU v4.2.0-rc3, NoMount & DroidSpaces Container Support
 
 - **ReSukiSU v4.2.0-rc3 (`0e469895`, KSU_VERSION 35179):** `resukisu/`

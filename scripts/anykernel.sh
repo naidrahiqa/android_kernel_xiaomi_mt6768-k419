@@ -35,16 +35,12 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 
 ## boot shell variables
 block=auto;
-is_slot_device=1;
+is_slot_device=auto;
 ramdisk_compression=auto;
 # CRITICAL for MediaTek:
 # Do NOT patch vbmeta — HyperOS/MIUI validates boot chain.
 # Patching vbmeta can cause verification failure → brick.
 patch_vbmeta_flag=0;
-
-# Kaeru LK support
-do_kaeru=0;
-kaeru_lk="lk_a.img";
 
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
@@ -57,22 +53,4 @@ dump_boot;
 # write_boot: repacks $KERNEL + $RAMDISK into boot image and flashes
 # Ramdisk is completely untouched — only kernel is replaced
 write_boot;
-
-## Kaeru LK install
-# Flash Kaeru LK if available
-if [ "$do_kaeru" = "1" ] && [ -f "$kaeru_lk" ]; then
-    ui_print "- Flashing Kaeru LK to lk_a partition..."
-    # Determine slot suffix for A/B devices
-    SLOT=""
-    if [ "$is_slot_device" = "1" ]; then
-        SLOT=$(getprop ro.boot.slot_suffix 2>/dev/null || echo "_a")
-    fi
-    LK_DEV="/dev/block/by-name/lk${SLOT}"
-    if [ -e "$LK_DEV" ]; then
-        dd if="$kaeru_lk" of="$LK_DEV" bs=4096
-        ui_print "- Kaeru LK flashed to $LK_DEV"
-    else
-        ui_print "- Warning: $LK_DEV not found, skipping LK flash"
-    fi
-fi;
 ## end boot install

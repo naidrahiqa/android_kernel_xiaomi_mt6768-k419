@@ -69,16 +69,32 @@ jobs:
             CHANNEL="nightly"
           fi
 
+          BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD)}"
+          case "$BRANCH" in
+            *24.0*|*lineage-24*)
+              BRANCH_TAG="24.0"
+              ANDROID_TARGET="Android 17 / Lineage 24.0"
+              ;;
+            *23.2*|*lineage-23*)
+              BRANCH_TAG="23.2"
+              ANDROID_TARGET="Android 16 / Lineage 23.2"
+              ;;
+            *)
+              BRANCH_TAG="${BRANCH}"
+              ANDROID_TARGET="AOSP"
+              ;;
+          esac
+
           # Build tag based on channel
           case "$CHANNEL" in
             stable)
-              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}"
+              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}"
               ;;
             beta)
-              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-beta.${DATE_TAG}"
+              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}-beta.${DATE_TAG}"
               ;;
             nightly)
-              TAG="Mocchipyon-v${MOCCHIPYON_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
+              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
               ;;
           esac
 
@@ -90,9 +106,12 @@ jobs:
           echo "CHANNEL=${CHANNEL}" >> $GITHUB_OUTPUT
           echo "VERSION=${MOCCHIPYON_VERSION}" >> $GITHUB_OUTPUT
           echo "CODENAME=${MOCCHIPYON_CODENAME}" >> $GITHUB_OUTPUT
+          echo "BRANCH=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "BRANCH_TAG=${BRANCH_TAG}" >> $GITHUB_OUTPUT
+          echo "ANDROID_TARGET=${ANDROID_TARGET}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_ENV
           echo "CHANNEL=${CHANNEL}" >> $GITHUB_ENV
-          echo "::notice::Channel: ${CHANNEL} | Tag: ${TAG} | Version: v${MOCCHIPYON_VERSION}"
+          echo "::notice::Channel: ${CHANNEL} | Branch: ${BRANCH} (${ANDROID_TARGET}) | Tag: ${TAG} | Version: v${MOCCHIPYON_VERSION}"
 
       - name: Notify start (Telegram)
         run: |
@@ -313,7 +332,7 @@ jobs:
           git log --pretty="- %s (%h)" "$RANGE" -- | grep -viE "^- (feat|add|fix|ci)" >> CHANGELOG.md 2>/dev/null || echo "_None_" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "---" >> CHANGELOG.md
-          echo "**Build Info:** Kernel ${{ env.KERNEL_VERSION }} | Toolchain: Greenforce Clang | Device: Xiaomi Selene (MT6768)" >> CHANGELOG.md
+          echo "**Build Info:** Kernel ${{ env.KERNEL_VERSION }} | Branch: ${{ steps.version.outputs.BRANCH }} (${{ steps.version.outputs.ANDROID_TARGET }}) | Toolchain: Greenforce Clang | Device: Xiaomi Selene (MT6768)" >> CHANGELOG.md
           cat CHANGELOG.md
 
       - name: Create GitHub Release
@@ -321,7 +340,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.TAG }}
-          name: "Mocchipyon v${{ steps.version.outputs.VERSION }} — ${{ steps.version.outputs.CODENAME }}"
+          name: "Mocchipyon v${{ steps.version.outputs.VERSION }} (${{ steps.version.outputs.BRANCH_TAG }}) — ${{ steps.version.outputs.CODENAME }}"
           body_path: CHANGELOG.md
           prerelease: ${{ env.CHANNEL == 'beta' }}
           files: ${{ steps.version.outputs.TAG }}.zip

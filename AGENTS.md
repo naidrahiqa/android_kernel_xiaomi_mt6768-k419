@@ -27,7 +27,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
-- **Bootloader:** Kaeru LK (`R0rt1z2/kaeru`, lock state spoofing + cert bypass).
+- **Bootloader:** Stock Little Kernel (LK). **JANGAN flash LK / Kaeru via AnyKernel3** (menyebabkan hard brick!).
 - **Build variants:** Single universal kernel — targeted for AOSP/LineageOS 20+ (Android 13+ up to 17: Lineage 20 = A13, Lineage 21 = A14, Lineage 22 = A15, Lineage 23.2 = A16, Lineage 24.0 = A17) and 4.19-based HyperOS/MIUI ports. (Catatan: Stock official MIUI 13/14 menggunakan kernel 4.14 di reference project).
 - **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-Mocchipyon-cip136-st20`).
 - **Release channels:** Nightly (auto push), Beta (workflow_dispatch pre-release), Stable (git tag `v*`).
@@ -90,14 +90,22 @@ make O=out ARCH=arm64 \
 | SLAB_FREELIST_HARDENED panic | Jangan enable | defconfig-management |
 | /proc/config.gz stale | Fix `kernel/Makefile` line 125 | defconfig-management |
 | Goodix prebuilt stack protector | Disable atau provide stubs | defconfig-management |
-| Kaeru `flash_block` undefined | Ganti dengan `dd if= of=/dev/block/by-name/lk${SLOT}` | kaeru-integration |
-| Kaeru DRAM comm tak terdeteksi | Pastikan `write_kaeru_comm()` di `board_late_init()` | kaeru-integration |
-| Kaeru offset salah | Extract dari binary dengan Ghidra, jangan copy lancelot mentah | kaeru-integration |
+| Kaeru LK / DTBO brick | **JANGAN flash LK / DTBO via AnyKernel3** — hanya flash boot (`Image*`) | ci-cd-github-actions |
 | MTCMOS silent boot hang | Bounded `spm_wait_ack` di `clk-mt6768-pg.c` | build-system-fixes |
 | Clang CFI callback trap | Match function pointer signatures (`ktd3136_bl` & `rdma_ioctl`) | build-system-fixes |
 | 32-bit apps / HAL failure | `CONFIG_COMPAT=y` di `selene_defconfig` | defconfig-management |
 | Touchscreen double-tap wake | `CONFIG_TOUCHSCREEN_COMMON=y` di `selene_defconfig` | defconfig-management |
 | SCP IPI system deadlock | Bounded loop + mutex unlock saat timeout di `scp_ipi.c` | build-system-fixes |
+
+## CRITICAL: Flashing Partisi — JANGAN FLASH LK ATAU DTBO
+
+> **BRICK RISK** — Flashing custom LK (`dd ... of=/dev/block/by-name/lk*`) atau DTBO via AnyKernel3 menyebabkan PHONE BRICK.
+
+### Rules
+1. **AnyKernel3 HANYA flash `boot` (`write_boot;`)** — ganti kernel image di boot ramdisk, jangan sentuh partisi lain.
+2. **JANGAN bundle `lk_a.img`, `kaeru_selene.bin`, `dtbo.img`, atau `dtb` ke dalam zip AnyKernel3.**
+3. **Little Kernel (LK) adalah bootloader tahap kedua MediaTek** — jika binary LK tidak cocok atau rusak, HP mati total (hanya kebaca MTK BROM port).
+4. **DTBO adalah hardware overlay ROM** — menimpa partisi DTBO dapat menyebabkan black screen atau display panel gagal menyala.
 
 ## CRITICAL: Charger DTS — JANGAN UBAH TANPA HARDWARE VALIDATION
 

@@ -185,8 +185,7 @@ jobs:
             CONFIG_SND_SOC_AW87XXX \
             CONFIG_KSU \
             CONFIG_KSU_MANUAL_HOOK \
-            CONFIG_NOMOUNT \
-            CONFIG_KAERU_COMM; do
+            CONFIG_NOMOUNT; do
             grep -q "${sym}=y" out/.config || {
               echo "::warning::Config tidak ditemukan: ${sym}"
               miss=1
@@ -227,16 +226,6 @@ jobs:
           cp out/arch/arm64/boot/Image.gz-dtb ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image.gz ak3/ 2>/dev/null || \
           cp out/arch/arm64/boot/Image ak3/
-          # Bundle DTB and DTBO if available (for separate partition flashing)
-          cp out/arch/arm64/boot/dts/mediatek/mt6768.dtb ak3/dtb 2>/dev/null || true
-          cp out/arch/arm64/boot/dts/mediatek/selene.dtbo ak3/dtbo.img 2>/dev/null || true
-          # Bundle Kaeru LK if available
-          if [ -f kaeru/kaeru_selene.bin ]; then
-            echo "Bundling Kaeru LK binary..."
-            cp kaeru/kaeru_selene.bin ak3/lk_a.img
-            # Enable LK flashing in anykernel.sh
-            sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
-          fi
           cd ak3 && zip -r9 ../${{ steps.version.outputs.TAG }}.zip . -x .git/\*
 
       - name: Verify zip contents (no sensitive files)
@@ -247,9 +236,9 @@ jobs:
           unzip -l "$ZIP_FILE"
           echo "=== Checking for sensitive files ==="
           DANGEROUS=""
-          # Check for dangerous files but allow our Kaeru LK
-          for pat in '\.lk$' '\.LK$' '^.*\/lk' 'preloader' 'PRELOADER' '\/tz' '\/TZ' '\/scp' 'SSPM' 'sspm' '\/tee' '\/TEE' 'vbmeta' 'VBMETA'; do
-            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" | grep -v "lk_a.img" || true)
+          # Check for dangerous partition files (lk, dtbo, dtb, preloader, trustzone, scp, sspm, tee, vbmeta)
+          for pat in '\.lk$' '\.LK$' '^.*\/lk' 'dtbo' 'dtb' 'preloader' 'PRELOADER' '\/tz' '\/TZ' '\/scp' 'SSPM' 'sspm' '\/tee' '\/TEE' 'vbmeta' 'VBMETA'; do
+            MATCHES=$(unzip -l "$ZIP_FILE" 2>/dev/null | grep -iE "$pat" || true)
             if [ -n "$MATCHES" ]; then
               DANGEROUS="${DANGEROUS}${MATCHES}\n"
             fi
@@ -259,7 +248,7 @@ jobs:
             printf "$DANGEROUS"
             exit 1
           fi
-          echo "OK - no dangerous partition files in zip (Kaeru LK allowed)"
+          echo "OK - no dangerous partition files in zip"
 
       - name: Final check
         id: final-check

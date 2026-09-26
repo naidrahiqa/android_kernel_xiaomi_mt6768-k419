@@ -2,6 +2,50 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
 
+## 2026-09-26 — Fix Brick Risk: Remove LK & DTBO Flashing from AnyKernel3
+
+- **AnyKernel3 Boot-Only Flashing Restored:** `scripts/anykernel.sh`
+  - Completely removed Kaeru LK flashing logic (`dd if=lk_a.img of=/dev/block/by-name/lk*`).
+  - Restored standard AnyKernel3 boot-only install (`dump_boot; write_boot;`), only modifying the boot image ramdisk.
+  - Set `is_slot_device=auto;` for reliable automatic slot detection.
+- **CI / Build Workflow Safety Fixes:** `.github/workflows/build.yml`
+  - Removed bundling of `mt6768.dtb`, `selene.dtbo` (`dtbo.img`), and `kaeru_selene.bin` (`lk_a.img`) into the AnyKernel3 zip.
+  - Hardened zip verification check to strictly reject `lk`, `dtbo`, and `dtb` files to prevent foreign partition overwriting.
+  - Removed `CONFIG_KAERU_COMM` from required CI check.
+- **Defconfig & Artifacts Cleanup:**
+  - Disabled `CONFIG_KAERU_COMM` in `arch/arm64/configs/selene_defconfig`.
+  - Deleted dangerous prebuilt `kaeru/kaeru_selene.bin` binary from repository.
+  - Updated Telegram notifications and documentation to reflect stock LK and boot-only flashing.
+
+## 2026-09-26 — ReSukiSU v4.2.0-rc3, NoMount & DroidSpaces Container Support
+
+- **ReSukiSU v4.2.0-rc3 (`0e469895`, KSU_VERSION 35179):** `resukisu/`
+  - Upgraded kernel driver to upstream ReSukiSU `v4.2.0-rc3` (`0e4698951b8e`, 4479 commits).
+  - Version calculation: `30000 + 4479 + 700 = 35179`.
+  - Pinned version metadata in `resukisu/Kbuild` (`KSU_LOCAL_VERSION := 4479`, `KSU_TAG_NAME := v4.2.0-rc3`, `KSU_COMMIT_SHA := 0e469895`).
+  - Corrected `resukisu/include/uapi` symlink to point to local `../uapi`.
+  - Fixed credential handling during manager discovery (`override_creds(ksu_cred)`) and cleaned throne tracking.
+- **NoMount v20 Systemless Redirection:**
+  - Verified and enabled `CONFIG_NOMOUNT=y` in `arch/arm64/configs/selene_defconfig`.
+- **DroidSpaces Container Support:**
+  - Added required container runtime configs to `arch/arm64/configs/selene_defconfig`:
+    - Namespaces (`CONFIG_NAMESPACES=y`, `PID_NS`, `UTS_NS`, `IPC_NS`, `NET_NS`, `USER_NS`).
+    - Cgroups (`CONFIG_CGROUPS=y`, device, pids, memcg, sched, fair group sched, freezer, net_prio).
+    - Networking (`CONFIG_VETH=y`, `BRIDGE`, `NETFILTER`, `BRIDGE_NETFILTER`, `NF_CONNTRACK`, iptables, NAT, tables, masquerade).
+    - Filesystem (`CONFIG_DEVTMPFS=y`, `OVERLAY_FS`, `TMPFS_POSIX_ACL`, `TMPFS_XATTR`).
+    - Security & IPC (`CONFIG_SECCOMP=y`, `SECCOMP_FILTER`, `SYSVIPC`, `POSIX_MQUEUE`).
+- **Mocchipyon Feature Parity on Lineage 24.0:**
+  - Enabled `CONFIG_TCP_CONG_BBR=y` (default TCP congestion control).
+  - Enabled `CONFIG_CRYPTO_LZ4=y` and `CONFIG_CRYPTO_LZ4HC=y` (zRAM compression).
+  - Enabled `CONFIG_WIREGUARD=y`.
+  - Enabled `CONFIG_TOUCHSCREEN_COMMON=y` for double-tap wake support.
+  - Enabled `CONFIG_TRACEPOINTS=y`, `CONFIG_MMC_FFU=y`, `CONFIG_INCREMENTAL_FS=y`.
+  - Expanded log buffer to 2MB (`CONFIG_LOG_BUF_SHIFT=21`).
+- **CI / Build Workflow Fix:**
+  - Updated `.github/workflows/build.yml` config verification to support both `CONFIG_SND_SOC_AW87XXX` and `CONFIG_SND_SOC_AW87559` across branches.
+  - Removed forced selection of `INIT_ON_ALLOC_DEFAULT_ON` and `BUG_ON_DATA_CORRUPTION` from `drivers/misc/mediatek/Kconfig.default`, resolving CI build failure on dangerous config check.
+  - Hardcoded fallback Telegram channel IDs (`CHANNEL_ID=-1003752197403`) in `build.yml` and `notify-telegram.sh` to guarantee kernel zip delivery to Nai project update channel.
+
 ## 2026-09-23 — Boot Stability, Panic Guards & Subsystem Hardening
 
 - **MTCMOS Infinite Spin Prevention:** `drivers/clk/mediatek/clk-mt6768-pg.c`

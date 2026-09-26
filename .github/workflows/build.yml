@@ -182,7 +182,6 @@ jobs:
           }
           for sym in \
             CONFIG_TOUCHSCREEN_FTS_XIAOMI \
-            CONFIG_SND_SOC_AW87XXX \
             CONFIG_KSU \
             CONFIG_KSU_MANUAL_HOOK \
             CONFIG_NOMOUNT \
@@ -192,6 +191,10 @@ jobs:
               miss=1
             }
           done
+          if ! grep -q -E "^CONFIG_SND_SOC_AW87(XXX|559)=y" out/.config; then
+            echo "::warning::Config tidak ditemukan: CONFIG_SND_SOC_AW87XXX / AW87559"
+            miss=1
+          fi
           # Verify dangerous configs are disabled
           for sym in \
             CONFIG_SHADOW_CALL_STACK \

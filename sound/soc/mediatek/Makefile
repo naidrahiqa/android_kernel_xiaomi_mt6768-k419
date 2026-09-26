@@ -147,7 +147,6 @@ endif
 obj-y += common_int/
 
 ifeq ($(MTK_PLATFORM),mt6758)
-  obj-y += mt6758_int/
   subdir-ccflags-y += -I$(src)/mt6758_int
 else
   obj-y += $(AUDIO_PLATFORM)/

@@ -2336,7 +2336,11 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 
 	spi0:spi0@1100a000 {
 		compatible = "mediatek,mt6765-spi";
-		mediatek,pad-select = <0>,<1>;
+#ifndef CONFIG_TARGET_PRODUCT_SELENE
+		mediatek,pad-select = <0>;
+#else
+                mediatek,pad-select = <0>,<1>;
+#endif
 		reg = <0 0x1100a000 0 0x1000>;
 		interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_LOW>;
 		clocks = <&topckgen CLK_TOP_SYSPLL3_D2>,

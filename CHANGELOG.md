@@ -2,6 +2,13 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
 
+## 2026-09-26 — Sync dengan Upstream lineage-24.0 (Force-Update)
+
+- **Rebase ke Upstream Baru:** `Mocchipyon24.0` di-rebase ke `mt6768-S/lineage-24.0` yang di-rewrite upstream — dapat SUSFS 2.3.0 (runtime `fs/susfs.c`), sdcardfs, focaltech double-tap, perubahan Xiaomi eccci/imgsensor, fix watermark & blk-mq multi-queue.
+- **Driver Ultrawide imx355 Dipulihkan:** rewrite upstream menghapus driver `imx355_sunny`/`imx355_aac` tapi `selene_defconfig` tetap mereferensikannya (build error `No rule to make target .../imx355_aac.../Makefile`) — 10 file driver dikembalikan dari state sebelum sync.
+- **Tracing Fix:** upstream "Prepare for Product" menurunkan `KPROBE_EVENTS`/`UPROBE_EVENTS` dari `default y` ke `default n`; simbol `CONFIG_TRACING` (promptless) jadi tak ter-select → guard `trace_printk` di `kernel.h` mati → `cmdq_record.c` gagal compile (implicit declaration). Diset explicit di `selene_defconfig`.
+- **CIP Ternyata Sudah Sinkron:** tip `linux-4.19.y-cip` = cip136 (4.19.325, 11 Sep 2026) = persis `localversion-cip` kita — tidak ada backport baru yang perlu ditarik.
+
 ## 2026-09-26 — Two-Phase Notifications, CI Hardening & Branch Restructure
 
 - **Two-Phase Telegram Notifications:** `.github/scripts/notify-telegram.sh`, `.github/workflows/notify-tested.yml`

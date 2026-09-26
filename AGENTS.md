@@ -97,6 +97,7 @@ make O=out ARCH=arm64 \
 | 32-bit apps / HAL failure | `CONFIG_COMPAT=y` di `selene_defconfig` | defconfig-management |
 | Touchscreen double-tap wake | `CONFIG_TOUCHSCREEN_COMMON=y` di `selene_defconfig` | defconfig-management |
 | SCP IPI system deadlock | Bounded loop + mutex unlock saat timeout di `scp_ipi.c` | build-system-fixes |
+| Notif "sukses" padahal build gagal | `Final check` wajib cek `job.status` + `MAKE_EXIT_CODE` | ci-cd-github-actions |
 
 ## CRITICAL: Flashing Partisi — JANGAN FLASH LK ATAU DTBO
 

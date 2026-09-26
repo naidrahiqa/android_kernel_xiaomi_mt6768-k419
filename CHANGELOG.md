@@ -2,6 +2,22 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
 
+## 2026-09-26 — Two-Phase Notifications, CI Hardening & Branch Restructure
+
+- **Two-Phase Telegram Notifications:** `.github/scripts/notify-telegram.sh`, `.github/workflows/notify-tested.yml`
+  - Notifikasi `success` ke topic Selene CI sekarang singkat: hanya hasil build, **tanpa link download, tanpa changelog, tanpa tombol** — zip tetap dikirim ke private channel untuk dites.
+  - Status baru `tested` + workflow `Announce Tested Build` (`gh workflow run ... -f notes="booting aman"`): pengumuman lengkap dengan changelog, catatan testing, dan tombol ⬇️ Download, dikirim **hanya setelah build dites di device & booting aman**.
+  - Download URL di-resolve otomatis: GitHub Release jika ada, selain itu halaman Actions run (artifact zip).
+- **False-Success Notification Fix:** `.github/workflows/build.yml`
+  - `Final check` kini menghormati `job.status` — kegagalan step verify/package tidak lagi mengirim notifikasi "sukses".
+  - Klasifikasi `CI STEP ERROR` saat make sukses tapi step berikutnya gagal (bukan "compile error").
+- **Branch Restructure:**
+  - Default branch pindah ke `Mocchipyon24.0` (fokus development); `Mocchipyon23.2` di-freeze tanpa build CI.
+- **Dead Makefile References Removed:** 13 file Makefile (mis. `SOLOMON/`, `mt8167/`) — memperbaiki `make mrproper`.
+- **Zip Verification False Positive Fix:** `Image.gz-dtb` tidak lagi terdeteksi sebagai file `dtb` berbahaya di check verifikasi zip.
+- **CI Reliability:** Perbaikan installer & caching fallback Greenforce Clang; nama file paket & notifikasi menyertakan branch dan target Android.
+- **Unbrick (BROM) Skill:** `.opencode/skills/unbrick-brom/SKILL.md` — playbook recovery device mati total via mtkclient (restore LK dua slot, backup partisi, error DRAM/udev).
+
 ## 2026-09-26 — Fix Brick Risk: Remove LK & DTBO Flashing from AnyKernel3
 
 - **AnyKernel3 Boot-Only Flashing Restored:** `scripts/anykernel.sh`

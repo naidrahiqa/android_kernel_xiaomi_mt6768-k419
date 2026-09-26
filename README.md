@@ -8,7 +8,7 @@ Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT67
 |---|---|
 | **Kernel** | Linux 4.19.325 (CIP stable backport) |
 | **Base** | LineageOS 23.2 (Android 16) / LineageOS 24.0 (Android 17) |
-| **Branches** | `Mocchipyon23.2` (A16 base) / `Mocchipyon24.0` (A17 base) |
+| **Branches** | `Mocchipyon24.0` (A17 base, **primary/default**) / `Mocchipyon23.2` (A16 base, frozen) |
 | **Root** | [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU) (manual hook mode) |
 | **Systemless** | [NoMount v20](https://github.com/maxsteeel/nomount) |
 | **Bootloader** | Stock Little Kernel (LK) |
@@ -88,9 +88,13 @@ make O=out ARCH=arm64 \
 
 | Channel | Trigger | Stability |
 |---------|---------|-----------|
-| **Nightly** | Every push to `Mocchipyon23.2` or `Mocchipyon24.0` | Untested — may not boot |
+| **Nightly** | Every push to `Mocchipyon24.0` | Untested — may not boot |
 | **Beta** | Manual workflow dispatch | Partially tested |
 | **Stable** | Git tag `v*` | Hardware tested ✅ |
+
+Notifikasi Telegram dua fase: build sukses hanya mengirim singkat **tanpa link
+download**; pengumuman lengkap dengan tombol ⬇️ Download dikirim lewat
+`gh workflow run "Announce Tested Build"` setelah build dites & booting aman.
 
 ## Credits
 

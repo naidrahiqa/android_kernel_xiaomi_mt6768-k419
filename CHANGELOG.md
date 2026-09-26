@@ -2,6 +2,13 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
 
+## 2026-09-26 — Fast Charge: Restock Config Charger ala Stock
+
+- **Masalah:** fast charge tidak aktif di device (lama, bukan regresi sync — defconfig charger identik sebelum & sesudah sync).
+- **Diff vs stock 4.14:** stock selene menyetel `CONFIG_USB_POWER_DELIVERY=y` (negosiasi PD 9V lewat TCPC) dan `CONFIG_MTK_DUAL_CHARGER_SUPPORT=y` (jalur charger IC master+slave) — keduanya hilang di `selene_defconfig` kita (symbol ada di tree, cuma gak diset).
+- **Fix:** keduanya di-enable (2 baris defconfig), build lokal bersih, objek `mtk_pd_adapter.o` & `mtk_dual_switch_charging.o` masuk image. Pump Express tetap mati — memang mati juga di stock (fast charge stock lewat PD/dual-charger, bukan PE).
+- **Status:** menunggu validasi hardware (flash nightly + cek `dmesg` charger & tegangan input).
+
 ## 2026-09-26 — Sync dengan Upstream lineage-24.0 (Force-Update)
 
 - **Rebase ke Upstream Baru:** `Mocchipyon24.0` di-rebase ke `mt6768-S/lineage-24.0` yang di-rewrite upstream — dapat SUSFS 2.3.0 (runtime `fs/susfs.c`), sdcardfs, focaltech double-tap, perubahan Xiaomi eccci/imgsensor, fix watermark & blk-mq multi-queue.

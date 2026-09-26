@@ -11,8 +11,8 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **SoC**: MediaTek MT6768 / MT6769 (Helio G88), 8-core ARM Cortex-A75/A55
 - **Kernel**: Linux 4.19.325 (CIP stable backport) — **STATUS: UNSTABLE, MASIH PORTING**
 - **Branches**:
-  - `Mocchipyon23.2`: Primary development branch (LineageOS 23.2 / Android 16 & CIP 4.19.325 porting)
-  - `Mocchipyon24.0`: Development branch untuk LineageOS 24.0 / Android 17
+  - `Mocchipyon24.0`: **Primary / default branch** (LineageOS 24.0 / Android 17 — semua development & CI di sini)
+  - `Mocchipyon23.2`: Frozen (LineageOS 23.2 / Android 16 — tanpa build CI)
   - `lineage-24.0`: Clean tracking branch dari upstream `mt6768-S`
 - **Remotes**:
   - `origin`: `https://github.com/naidrahiqa/android_kernel_xiaomi_mt6768-k419` (fork)
@@ -239,8 +239,8 @@ cp defconfig arch/arm64/configs/selene_defconfig
 - `cip`: `https://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git`
 
 ### Active Branches
-- `Mocchipyon23.2`: Primary development branch (Lineage 23.2 & 4.19 CIP porting)
-- `Mocchipyon24.0`: Development branch untuk Lineage 24.0
+- `Mocchipyon24.0`: **Primary / default branch** (Lineage 24.0 & semua development)
+- `Mocchipyon23.2`: Frozen (Lineage 23.2, tanpa build CI)
 - `lineage-24.0`: Pristine tracking branch dari upstream `mt6768-S`
 
 ### Syncing Upstream Branches

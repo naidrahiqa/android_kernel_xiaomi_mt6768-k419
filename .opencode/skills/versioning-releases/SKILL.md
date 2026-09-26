@@ -38,7 +38,7 @@ MOCCHIPYON_STATUS=unstable
 
 | Channel | Trigger | Tag Format | GitHub Release? | Changelog | Target Audience |
 |---|---|---|---|---|---|
-| **Nightly** | Auto push ke `Mocchipyon24.0` (primary) / `Mocchipyon23.2` | `Mocchipyon-v{ver}-nightly-{date}-{hash}` | ❌ No (Artifact 90d) | ❌ No | Developer & internal test |
+| **Nightly** | Auto push ke `Mocchipyon24.0` (`Mocchipyon23.2` frozen, tanpa build) | `Mocchipyon-v{ver}-nightly-{date}-{hash}` | ❌ No (Artifact 90d) | ❌ No | Developer & internal test |
 | **Beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}` | ✅ Pre-release + Zip | ✅ Auto-changelog | Early testers |
 | **Stable** | Push git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}` | ✅ Full Release + Zip | ✅ Auto-changelog | All users |
 

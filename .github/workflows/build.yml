@@ -2,7 +2,7 @@ name: Build MT6768 Kernel 4.19
 
 on:
   push:
-    branches: [Mocchipyon23.2]
+    branches: [Mocchipyon24.0]
     tags: ['v*']
     paths-ignore:
       - '*.md'

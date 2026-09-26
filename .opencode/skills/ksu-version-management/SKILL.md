@@ -13,10 +13,10 @@ Panduan dan otomatisasi manajemen versi ReSukiSU untuk kernel MT6768 (Mocchipyon
 |---|---|
 | **Driver** | ReSukiSU (`ReSukiSU/ReSukiSU`) |
 | **Driver Path** | `resukisu/` (4.19) / `resukisu/kernel/` (4.14) |
-| **Latest Commit** | `5cfdd725aa92` (2026-09-22) |
-| **Commit Count (`KSU_LOCAL_VERSION`)** | `4460` |
-| **Latest Tag** | `v4.2.0-rc2` |
-| **KSU_VERSION Code** | `35160` |
+| **Latest Commit** | `0e4698951b8e` (2026-09-25) |
+| **Commit Count (`KSU_LOCAL_VERSION`)** | `4479` |
+| **Latest Tag** | `v4.2.0-rc3` |
+| **KSU_VERSION Code** | `35179` |
 | **Hook Mode** | Manual hook (`CONFIG_KSU_MANUAL_HOOK=y`) |
 
 ## Rumus Perhitungan KSU_VERSION

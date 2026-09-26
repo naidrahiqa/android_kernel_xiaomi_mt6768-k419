@@ -23,7 +23,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 
 - **Device:** Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime), codename **selene**, MediaTek MT6768 / MT6769 (Helio G88).
 - **Kernel:** Linux 4.19.325 (CIP stable backport), **non-GKI**, **STATUS: UNSTABLE/PORTING**.
-- **Branch:** `Mocchipyon23.2` (primary / 4.19 porting), `Mocchipyon24.0` (Lineage 24.0 dev), `lineage-24.0` (upstream tracking)
+- **Branch:** `Mocchipyon24.0` (**primary / default branch** — semua development & fokus di sini), `Mocchipyon23.2` (Lineage 23.2 / Android 16, maintenance saja), `lineage-24.0` (upstream tracking)
 - **Remotes:** `origin` (naidrahiqa fork), `upstream` (`mt6768-S/android_kernel_xiaomi_mt6768`), `cip` (linux-cip)
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).

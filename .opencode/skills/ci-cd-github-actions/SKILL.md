@@ -57,7 +57,7 @@ Trigger (Push / Dispatch / Tag)
 
 | Channel | Trigger | Output | GitHub Release? |
 |---|---|---|---|
-| **nightly** | Push ke `Mocchipyon23.2` (ignore `*.md`, `.opencode/**`, `VERSION`) | `Mocchipyon-v{ver}-nightly-{date}-{hash}.zip` | ❌ Artifact only (90d) |
+| **nightly** | Push ke `Mocchipyon24.0` (primary) / `Mocchipyon23.2` (ignore `*.md`, `.opencode/**`, `VERSION`) | `Mocchipyon-v{ver}-nightly-{date}-{hash}.zip` | ❌ Artifact only (90d) |
 | **beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}.zip` | ✅ Pre-release + changelog |
 | **stable** | Git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}.zip` | ✅ Full release + changelog |
 

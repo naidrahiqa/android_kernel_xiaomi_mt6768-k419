@@ -1,7 +1,12 @@
 #!/bin/bash
 # Telegram Notification - Mocchipyon Kernel 4.19
-# Usage: bash notify-telegram.sh <status> <version> <tag> [changelog_or_log] [zip_file]
-# Status: start | success | failed
+# Usage: bash notify-telegram.sh <status> <version> <tag> [arg4] [arg5]
+# Status: start | success | failed | tested
+#   start   - build dimulai
+#   success - build SUKSES: notif singkat TANPA link download, tanpa changelog
+#   failed  - build gagal (ringkasan + log)
+#   tested  - build sudah DITES & BOOTING AMAN: notif lengkap + tombol download
+#             arg4 = catatan testing, arg5 = download URL
 #
 # Target Channels / Topics:
 #   Left (Supergroup Naidrahiqa Stuff):
@@ -50,7 +55,8 @@ if [ -f resukisu/Kbuild ]; then
 	[ -n "$KSU_LOCAL" ] && KSU_VER_CODE=$((30000 + KSU_LOCAL + 700))
 fi
 
-BRANCH="${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")}"
+# NOTIFY_BRANCH: override saat announce build lintas-branch (notify-tested workflow)
+BRANCH="${NOTIFY_BRANCH:-${GITHUB_REF_NAME:-$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")}}"
 ANDROID_TARGET="AOSP"
 case "$BRANCH" in
 	*24.0*|*lineage-24*)
@@ -180,25 +186,21 @@ function build_success() {
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
 
 	# 1. KIRIM NOTIFIKASI KE GAMBAR KIRI (Supergroup Naidrahiqa Stuff -> Topic ⁉️ Selene CI)
-	# HANYA NOTIFIKASI - SAMA SEKALI TIDAK MENGIRIM FILE ZIP KE SINI
+	# HANYA "build berhasil" — TANPA link download, tanpa changelog, tanpa tombol.
+	# Pengumuman download dikirim terpisah lewat status `tested` SETELAH device tes booting.
 	local notif_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
-<b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
-🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
-📦 <b>File:</b> <code>$(basename "$zip_file")</code>
-⚠️ ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})} · NoMount v20
+✅ <b>Build succeeded</b>
+🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+📦 <code>$(basename "$zip_file")</code>${BUILD_TIME:+ · ⏱ $((BUILD_TIME / 60))m$((BUILD_TIME % 60))s}
+<code>${SHA}</code> ${safe_commit_msg}
+<a href='${BUILD_URL}'>Build Log</a>
 
-Changelog:
-${changelog_items:-<i>No changes recorded</i>}
-
-📦 <i>File kernel telah dikirim ke channel rilis.</i>
-<a href='${REPO_URL}/blob/${BRANCH}/CHANGELOG.md'>Full Changelog</a>"
-
-	local BUTTONS='{"inline_keyboard":[[{"text":"📱 ReSukiSU APK","url":"https://github.com/ReSukiSU/ReSukiSU/releases/tag/'"${KSU_VER_TAG}"'"}],[{"text":"⬇ GitHub Release","url":"'"${REPO_URL}/releases/tag/${TAG}"'"}],[{"text":"📦 NoMount","url":"https://github.com/maxsteeel/nomount/releases"}]]}'
+<i>Belum diuji — pengumuman download menyusul setelah tes booting aman.</i>"
 
 	local target_group="${GROUP_ID:-$CHANNEL_ID}"
 	if [ -n "$target_group" ]; then
-		tg_send "$target_group" "$notif_msg" "$TOPIC_CI" "$BUTTONS" && echo "Success notification sent to CI topic." || echo "Success notification to CI topic FAILED."
+		tg_send "$target_group" "$notif_msg" "$TOPIC_CI" "" && echo "Success notification sent to CI topic." || echo "Success notification to CI topic FAILED."
 	fi
 
 	# 2. KIRIM FILE KERNEL .ZIP KE GAMBAR KANAN (Private Channel 'Nai project update')
@@ -221,6 +223,36 @@ ${changelog_items:-<i>No changes recorded</i>}
 ⚠️ <i>Flash via AnyKernel3 recovery (TWRP/OrangeFox).</i>"
 
 		tg_document "$CHANNEL_ID" "$zip_file" "$doc_caption" && echo "Kernel zip document sent to release channel." || echo "Failed to send kernel zip to release channel."
+	fi
+}
+
+function build_tested() {
+	local notes="${1:-booting aman}"
+	local download_url="${2:-${REPO_URL}/releases/tag/${TAG}}"
+	local zip_name="${TAG}.zip"
+
+	local changelog_items=""
+	if [ -f "CHANGELOG.md" ]; then
+		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -20 | html_escape)
+	fi
+
+	local notif_msg="🍡 <b>Mocchipyon</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+━━━━━━━━━━━━━━━━━━━━
+✅ <b>Tested — booting aman</b>
+<b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
+🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+📦 <b>File:</b> <code>${zip_name}</code>
+⚠️ ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})} · NoMount v20
+🧪 <b>Catatan:</b> ${notes}
+
+Changelog:
+${changelog_items:-<i>No changes recorded</i>}"
+
+	local BUTTONS='{"inline_keyboard":[[{"text":"⬇️ Download","url":"'"${download_url}"'"}],[{"text":"📱 ReSukiSU APK","url":"https://github.com/ReSukiSU/ReSukiSU/releases/tag/'"${KSU_VER_TAG}"'"}],[{"text":"📦 NoMount","url":"https://github.com/maxsteeel/nomount/releases"}]]}'
+
+	local target_group="${GROUP_ID:-$CHANNEL_ID}"
+	if [ -n "$target_group" ]; then
+		tg_send "$target_group" "$notif_msg" "$TOPIC_CI" "$BUTTONS" && echo "Tested notification sent to CI topic." || echo "Tested notification to CI topic FAILED."
 	fi
 }
 
@@ -314,9 +346,12 @@ case "$STATUS" in
 	failed)
 		build_failed "$4"
 		;;
+	tested)
+		build_tested "$4" "$5"
+		;;
 	*)
 		echo "Unknown status: $STATUS"
-		echo "Usage: notify-telegram.sh <start|success|failed> <version> <tag> [changelog_or_log] [zip_file]"
+		echo "Usage: notify-telegram.sh <start|success|failed|tested> <version> <tag> [arg4] [arg5]"
 		exit 1
 		;;
 esac

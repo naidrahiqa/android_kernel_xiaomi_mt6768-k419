@@ -230,7 +230,14 @@ function build_failed() {
 	local error_type="UNKNOWN ERROR"
 	local failed_step="Unknown step"
 
-	if [ -f "$error_log" ]; then
+	if [ "${MAKE_EXIT_CODE:-1}" -eq 0 ]; then
+		# make succeeded — a later pipeline step (verify/package) failed
+		error_type="CI STEP ERROR"
+		failed_step="Post-build step (verify/package)"
+		if [ -f "$error_log" ]; then
+			error_context=$(tail -12 "$error_log")
+		fi
+	elif [ -f "$error_log" ]; then
 		if grep -q "make\[" "$error_log" && grep -q "Error" "$error_log"; then
 			error_type="MAKE ERROR"
 		elif grep -q "fatal:" "$error_log"; then

@@ -276,8 +276,14 @@ jobs:
       - name: Final check
         id: final-check
         if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: |
           HAS_ERROR=0
+          if [ "$JOB_STATUS" != "success" ]; then
+            echo "::error::Job status is ${JOB_STATUS} (a previous step failed)"
+            HAS_ERROR=1
+          fi
           if [ -f build.log ] && grep -qiE "(\.c:[0-9]+:.*error:|clang: error:|error:.*failed)" build.log 2>/dev/null; then
             echo "::error::Compilation error found"
             HAS_ERROR=1

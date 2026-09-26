@@ -155,11 +155,6 @@ function build_success() {
 		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -20 | html_escape)
 	fi
 
-	local HAS_KAERU="No"
-	if [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
-		unzip -l "$zip_file" 2>/dev/null | grep -q "lk_a.img" && HAS_KAERU="Yes"
-	fi
-
 	local safe_commit_msg
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
 
@@ -169,7 +164,6 @@ function build_success() {
 ━━━━━━━━━━━━━━━━━━━━
 <b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
 ⚠️ ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})} · NoMount v20
-Kaeru LK: <b>${HAS_KAERU}</b>
 
 Changelog:
 ${changelog_items:-<i>No changes recorded</i>}
@@ -193,7 +187,6 @@ ${changelog_items:-<i>No changes recorded</i>}
 <b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
 <b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
 <b>Redirection:</b> NoMount v20
-<b>Kaeru LK:</b> ${HAS_KAERU}
 <b>Size:</b> ${file_size}
 <b>Commit:</b> <code>${SHA}</code> ${safe_commit_msg}
 

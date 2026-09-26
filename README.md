@@ -11,7 +11,7 @@ Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT67
 | **Branches** | `Mocchipyon23.2` (A16 base) / `Mocchipyon24.0` (A17 base) |
 | **Root** | [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU) (manual hook mode) |
 | **Systemless** | [NoMount v20](https://github.com/maxsteeel/nomount) |
-| **Bootloader** | [Kaeru LK](https://github.com/R0rt1z2/kaeru) (lock state spoofing) |
+| **Bootloader** | Stock Little Kernel (LK) |
 | **Toolchain** | [Greenforce Clang](https://github.com/greenforce-project/greenforce_clang) (PGO+ThinLTO+O3+Polly) |
 
 ## Download
@@ -26,7 +26,6 @@ Nightly builds are available as GitHub Actions artifacts (expires after 90 days)
 - 🔐 **WireGuard** VPN built-in
 - ⚡ **LZ4/LZ4HC** zRAM compression
 - 📦 **DroidSpaces** container support
-- 🔓 **Kaeru** bootloader lock state spoofing + cert bypass
 - 🛡️ **NoMount** systemless path redirection (keyring-based)
 - 👑 **ReSukiSU** KernelSU root (manual hook mode)
 
@@ -37,7 +36,7 @@ Nightly builds are available as GitHub Actions artifacts (expires after 90 days)
 3. Flash the AnyKernel3 zip
 4. Reboot
 
-> **Note:** The zip includes Kaeru LK when available. It will auto-flash to the `lk` partition on A/B devices.
+> **Note:** AnyKernel3 only flashes the kernel into the boot image ramdisk. It does not overwrite bootloader (LK) or DTBO partitions.
 
 ## Supported Devices
 

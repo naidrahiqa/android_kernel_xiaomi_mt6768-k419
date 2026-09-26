@@ -24,7 +24,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **TEE**: Microtrust v400
 - **Root**: ReSukiSU (manual hook mode)
 - **Systemless**: NoMount v20
-- **Bootloader**: Kaeru LK (lock state spoofing + cert bypass)
+- **Bootloader**: Stock Little Kernel (LK) — flashing LK / DTBO dilarang karena risiko brick
 
 ## ROM & Android Compatibility
 

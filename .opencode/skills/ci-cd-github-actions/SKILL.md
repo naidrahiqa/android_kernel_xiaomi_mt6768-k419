@@ -66,8 +66,8 @@ Trigger (Push / Dispatch / Tag)
 
 - Source: `scripts/anykernel.sh`
 - AK3 repo: `osm0sis/AnyKernel3` pinned ke commit `dca9dc3`
-- Includes: `Image.gz-dtb` (atau `Image.gz`), `dtb`, `dtbo.img`, dan opsional `lk_a.img` jika Kaeru LK tersedia di `kaeru/kaeru_selene.bin`.
-- Keamanan: Ada automated check yang memblokir file partisi sensitif (`preloader`, `tee`, `sspm`, `vbmeta`, dll).
+- Includes: `Image.gz-dtb` (atau `Image.gz` / `Image`).
+- Keamanan: Partisi `dtb`, `dtbo.img`, dan `lk` DILARANG di-bundle dalam zip AnyKernel3 karena berisiko brick. Automated check memblokir file partisi sensitif (`lk`, `dtbo`, `dtb`, `preloader`, `tee`, `sspm`, `vbmeta`, dll).
 
 ## Telegram Notifications
 

@@ -1,0 +1,111 @@
+name: Announce Tested Build
+
+# Kirim notif lengkap + tombol download ke topic ⁉️ Selene CI,
+# SETELAH build di-flash ke device dan tes booting aman.
+# Pakai: gh workflow run "Announce Tested Build" -f notes="booting aman, GPU ok"
+#        (tanpa -f tag = otomatis ambil build SUKSES terakhir)
+
+run-name: Announce tested ${{ inputs.tag || 'latest successful build' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Build tag (kosongkan = build sukses terakhir)'
+        required: false
+        default: ''
+      notes:
+        description: 'Catatan testing (mis. booting aman, GPU ok, tidak ada reboot)'
+        required: false
+        default: ''
+
+jobs:
+  announce:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve build tag + download URL
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          TAG="$INPUT_TAG"
+          RUN_URL=""
+
+          if [ -z "$TAG" ]; then
+            # Ambil run SUKSES terakhir dari workflow build
+            RUN_ID=$(gh api "repos/$REPO/actions/runs?status=success&per_page=20" \
+              --jq '[.workflow_runs[] | select(.name == "Build MT6768 Kernel 4.19")][0].id // empty')
+            if [ -z "$RUN_ID" ]; then
+              echo "::error::Tidak ada build sukses yang ditemukan"
+              exit 1
+            fi
+            # Artifact = zip kernel (bukan kernel-config-*)
+            TAG=$(gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+              --jq '[.artifacts[] | select(.name | startswith("Mocchipyon"))][0].name // empty')
+            RUN_URL=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.html_url // empty')
+            if [ -z "$TAG" ]; then
+              echo "::error::Run terakhir tidak punya artifact zip kernel"
+              exit 1
+            fi
+          else
+            RUN_URL=$(gh api "repos/$REPO/actions/artifacts?name=$TAG" \
+              --jq '.artifacts[0].workflow_run.html_url // empty')
+          fi
+
+          # Download URL: GitHub Release kalau ada, else halaman run (artifact)
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            DL_URL=$(gh release view "$TAG" --repo "$REPO" --json url --jq '.url')
+          else
+            DL_URL="${RUN_URL:-https://github.com/$REPO/actions/workflows/build.yml}"
+          fi
+
+          # Parse branch tag + version dari TAG: Mocchipyon-<branch>-v<ver>...
+          if [[ "$TAG" =~ ^Mocchipyon-([0-9.]+)-v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            BRANCH_TAG="${BASH_REMATCH[1]}"
+            VERSION="${BASH_REMATCH[2]}"
+          else
+            BRANCH_TAG=""
+            VERSION="$(source VERSION 2>/dev/null && echo "${MOCCHIPYON_VERSION:-0.0.0}" || echo "0.0.0")"
+          fi
+
+          case "$BRANCH_TAG" in
+            24.0) NOTIFY_BRANCH="Mocchipyon24.0" ;;
+            23.2) NOTIFY_BRANCH="Mocchipyon23.2" ;;
+            *)    NOTIFY_BRANCH="${GITHUB_REF_NAME}" ;;
+          esac
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "dl_url=$DL_URL" >> "$GITHUB_OUTPUT"
+          echo "notify_branch=$NOTIFY_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved: tag=$TAG branch=$NOTIFY_BRANCH version=$VERSION"
+          echo "Download: $DL_URL"
+
+      - name: Notify Telegram (tested)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}
+          TELEGRAM_TOPIC_CI: "47"
+          TELEGRAM_TOPIC_LOG: "8"
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID || '-1003752197403' }}
+          NOTIFY_BRANCH: ${{ steps.resolve.outputs.notify_branch }}
+        run: |
+          bash .github/scripts/notify-telegram.sh \
+            tested \
+            "${{ steps.resolve.outputs.version }}" \
+            "${{ steps.resolve.outputs.tag }}" \
+            "${{ inputs.notes }}" \
+            "${{ steps.resolve.outputs.dl_url }}"
+        continue-on-error: true

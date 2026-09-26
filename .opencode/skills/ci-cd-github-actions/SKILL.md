@@ -7,7 +7,8 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 
 ## Workflow Location
 
-`.github/workflows/build.yml`
+- `.github/workflows/build.yml` — build, package, release, notif
+- `.github/workflows/notify-tested.yml` — notif "tested & booting aman" (manual dispatch)
 
 ## Setup Requirements
 
@@ -23,10 +24,14 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 
 ### Notification & Artifact Routing
 1. **Gambar Kiri — Supergroup Naidrahiqa Stuff (`-1004414006944`)**:
-   - **Topic `⁉️ Selene CI` (#47)**: HANYA menerima teks notifikasi Build Start dan Build Success. **TIDAK dikirimi file .zip**.
+   - **Topic `⁉️ Selene CI` (#47)**: Notif teks saja — **TIDAK dikirimi file .zip**:
+     - `start` — build dimulai
+     - `success` — **singkat, TANPA link download / tombol / changelog** (hanya "✅ Build succeeded" + info ringkas)
+     - `tested` — **notif lengkap + tombol ⬇️ Download**, hanya setelah build dites di device & booting aman (lihat workflow `notify-tested.yml`)
+     - `failed` — ringkasan error
    - **Topic `🔍 log` (#8)**: Menerima potongan 3000 karakter terakhir `build.log` jika build gagal.
 2. **Gambar Kanan — Private Channels**:
-   - **Channel `Nai project update` (`-1003752197403`)**: Menerima file kernel `.zip` AnyKernel3 via `sendDocument` lengkap dengan caption spesifikasi & commit.
+   - **Channel `Nai project update` (`-1003752197403`)**: Menerima file kernel `.zip` AnyKernel3 via `sendDocument` — sumber zip buat dites (tetap dikirim tiap build sukses).
    - **Channel `Nai Error Dump` (`-1003945405514`)**: Menerima error dump saat kompilasi gagal.
 
 > [!NOTE]
@@ -42,10 +47,10 @@ Trigger (Push / Dispatch / Tag)
   → Install build dependencies & cross-compilers
   → Build kernel clean from scratch (selene_defconfig)
   → Verify critical configs & dangerous partitions
-  → Package AnyKernel3 (embed Kaeru LK if present)
+  → Package AnyKernel3 (boot-only, tanpa LK/DTBO)
   → Upload artifacts
   → Generate changelog & GitHub Release (beta/stable only)
-  → Notify Telegram (with build time & file attachment)
+  → Notify Telegram (success = notif singkat; zip → private channel)
 ```
 
 ## Build Triggers & Release Channels
@@ -71,9 +76,29 @@ Trigger (Push / Dispatch / Tag)
 
 ## Telegram Notifications
 
+### Dua Fase (by design — jangan digabung!)
+1. **Build sukses** → topic Selene CI: notif **singkat tanpa link download**
+   ("✅ Build succeeded" + branch/file/build log). Zip tetap dikirim ke private
+   channel `Nai project update` supaya bisa dites.
+2. **Setelah tes di device & booting aman** → kirim notif **lengkap + tombol ⬇️ Download**:
+
+   ```bash
+   # tanpa tag = ambil build SUKSES terakhir otomatis
+   gh workflow run "Announce Tested Build" -f notes="booting aman, GPU ok"
+
+   # atau pilih build tertentu
+   gh workflow run "Announce Tested Build" \
+     -f tag="Mocchipyon-23.2-v0.1.0-nightly-20260926-abcdef1" \
+     -f notes="booting aman"
+   ```
+
+   Resolve download URL otomatis: GitHub Release jika tag punya release,
+   selain itu halaman Actions run (artifact zip). Implementasi:
+   `notify-telegram.sh tested <version> <tag> [notes] [download_url]`.
+
 ### Setup — Group with Topics
 - **Group**: "Naidrahiqa Stuff" (forum topics enabled)
-- **CI topic**: thread_id `47` (notifikasi start, build success dengan file attachment zip, build failed)
+- **CI topic**: thread_id `47` (start, success singkat, tested lengkap + download, failed)
 - **Log topic**: thread_id `8` (upload log saat build error)
 
 ### Gotcha: Thread IDs Hardcoded

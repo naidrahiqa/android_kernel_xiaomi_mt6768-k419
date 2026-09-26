@@ -84,7 +84,6 @@ obj-y += mt6853/
 else ifeq ($(CONFIG_MACH_MT6785),y)
 obj-y += mt6785/
 else ifeq ($(CONFIG_MACH_MT6771),y)
-obj-y += mt6771/
 else
 obj-y += $(subst ",,$(CONFIG_MTK_LEGACY_THERMAL_PLATFORM))/
 

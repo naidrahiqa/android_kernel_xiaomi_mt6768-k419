@@ -4,7 +4,7 @@ Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunu
 
 ## 2026-09-27 — CI: Hentikan Broadcast Zip Sebelum Tes + Config Batch Gaming/Perf
 
-- **Notif spam fix:** `.github/scripts/notify-telegram.sh` — `build_success()` tidak lagi mengirim file zip + changelog ke channel release otomatis setelah build (fitur ini yang bikin "kok udah ada announce padahal belum tes"). Sekarang CI topic hanya menerima notif singkat "build berhasil / belum diuji"; pengumuman download (link + tombol) **hanya** lewat status `tested` (`notify-tested.yml`) setelah device tes booting.
+- **Notif spam fix:** `.github/scripts/notify-telegram.sh` — file zip **tetap dikirim** ke channel private `Nai project update` tiap build, tapi caption kini dibuka dengan tanda **"⚠️ BELUM DIUJI — hasil build otomatis, announcement resmi menyusul setelah tes booting aman"** — tidak lagi terlihat seperti announce hasil tes. Notif CI topic juga tetap "belum diuji"; announcement resmi (tombol download) tetap hanya lewat status `tested` (`notify-tested.yml`).
 - **Config batch** (`arch/arm64/configs/selene_defconfig` + `drivers/misc/mediatek/Kconfig.default`), build lokal hijau:
   - `CONFIG_CMDLINE_EXTEND=y` — sebelumnya `CMDLINE_FROM_BOOTLOADER` → string `vmalloc=496M slub_max_order=0 slub_debug=O` bisa terbuang saat LK sudah melewatkan cmdline sendiri (bug identik Phrolova v0.9.12).
   - Default I/O scheduler cfq → **deadline** (`CONFIG_DEFAULT_DEADLINE=y`) — optimal buat eMMC 5.1 legacy; `MQ_IOSCHED_KYBER` dimatikan (tak terpakai).

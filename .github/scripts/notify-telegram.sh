@@ -153,7 +153,7 @@ function tg_document() {
 function build_start() {
 	local safe_commit_msg
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
-	local msg="🍡 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+	local msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 🔨 <b>Building...</b>
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
@@ -188,7 +188,7 @@ function build_success() {
 	# 1. KIRIM NOTIFIKASI KE GAMBAR KIRI (Supergroup Naidrahiqa Stuff -> Topic ⁉️ Selene CI)
 	# HANYA "build berhasil" — TANPA link download, tanpa changelog, tanpa tombol.
 	# Pengumuman download dikirim terpisah lewat status `tested` SETELAH device tes booting.
-	local notif_msg="🍡 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+	local notif_msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 ✅ <b>Build succeeded</b>
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
@@ -207,7 +207,7 @@ function build_success() {
 	if [ -n "$CHANNEL_ID" ] && [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
 		local file_size
 		file_size=$(du -h "$zip_file" | cut -f1)
-		local doc_caption="🍡 <b>PawwwNunungggg Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+		local doc_caption="🐾 <b>PawwwNunungggg Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 <b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
 🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
@@ -236,7 +236,7 @@ function build_tested() {
 		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -20 | html_escape)
 	fi
 
-	local notif_msg="🍡 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+	local notif_msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 ✅ <b>Tested — booting aman</b>
 <b>Redmi 10</b> · selene · MT6768 · Linux 4.19 (CIP)
@@ -297,7 +297,7 @@ function build_failed() {
 	safe_failed_step=$(html_escape "$failed_step")
 	safe_error_context=$(html_escape "$error_context")
 
-	local simple_msg="🍡 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+	local simple_msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 ❌ <b>${safe_error_type}</b>
@@ -326,7 +326,7 @@ function build_failed() {
 
 	# Kirim ke Gambar Kanan (Private Channel 'Nai Error Dump')
 	if [ -n "$ERROR_CHANNEL_ID" ]; then
-		local detail_msg="🍡 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
+		local detail_msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 <b>${safe_error_type}</b> · ${safe_failed_step}
 

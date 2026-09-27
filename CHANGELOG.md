@@ -2,6 +2,17 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunungggg Kernel.
 
+## 2026-09-27 — CI: Hentikan Broadcast Zip Sebelum Tes + Config Batch Gaming/Perf
+
+- **Notif spam fix:** `.github/scripts/notify-telegram.sh` — `build_success()` tidak lagi mengirim file zip + changelog ke channel release otomatis setelah build (fitur ini yang bikin "kok udah ada announce padahal belum tes"). Sekarang CI topic hanya menerima notif singkat "build berhasil / belum diuji"; pengumuman download (link + tombol) **hanya** lewat status `tested` (`notify-tested.yml`) setelah device tes booting.
+- **Config batch** (`arch/arm64/configs/selene_defconfig` + `drivers/misc/mediatek/Kconfig.default`), build lokal hijau:
+  - `CONFIG_CMDLINE_EXTEND=y` — sebelumnya `CMDLINE_FROM_BOOTLOADER` → string `vmalloc=496M slub_max_order=0 slub_debug=O` bisa terbuang saat LK sudah melewatkan cmdline sendiri (bug identik Phrolova v0.9.12).
+  - Default I/O scheduler cfq → **deadline** (`CONFIG_DEFAULT_DEADLINE=y`) — optimal buat eMMC 5.1 legacy; `MQ_IOSCHED_KYBER` dimatikan (tak terpakai).
+  - **BBR benar-benar default:** seed lama `DEFAULT_TCP_CONG="bbr"` ternyata inert (string promptless hasil hitungan choice) → set member `CONFIG_DEFAULT_BBR=y`; `TCP_CONG_BIC` dimatikan + hapus `select TCP_CONG_BIC` dari `MTK_ANDROID_DEFAULT_SETTING` — vendor `networksetting.rc` Huaqin yang menulis `bic` kini gagal senyap dan fallback ke bbr.
+  - Qosc toolbox: `NET_SCH_NETEM`, `NET_SCH_FQ_CODEL`, `NET_SCH_CAKE` + `CGROUP_NET_CLASSID` — tool bufferbolt/QoS & klasifikasi traffic Android buat gaming sambil download.
+- **QC/HVDCP (audit, tanpa perubahan kode):** alur deteksi dipetakan — BC1.2 jalan di SMB1351 (`primary_chg`, `qcom,bc12_supported`) dengan enable saat probe (`/*enable QC*/`), jalur BQ25890 gated `id_dis==3`; `charger_dev_check_hv_charging` tak dipanggil di kedua tree (reference pun sama). Kesimpulan sementara: `dhx--hvdcp:0` paling mungkin artinya charger tes memang non-QC — menunggu tes dengan adapter QC berlabel (mis. Xiaomi 18W) + `dmesg` live.
+- **Offline charging (LK):** tetap terpisah dari kernel (jalur bootloader) — belum lulus tes.
+
 ## 2026-09-27 — Fast Charge: Bypass Thermal Mitigation Clamp + Backlight Clamp (Port Phrolova v0.9.3)
 
 - **Masalah:** fast charge "stuck ~1W" padahal charger dinding terdeteksi & animasi jalan. Bukti live: cooling device `battery` diam di `system_temp_level=12` → tabel `thermal_mitigation_*` menjegal input current (QC3 level 12 = ~975mA, DCP = 1.6A) meski suhu cell aman. Akar masalah: thermal HAL userspace menulis `CHARGE_CONTROL_LIMIT` → `system_temp_level` naik.

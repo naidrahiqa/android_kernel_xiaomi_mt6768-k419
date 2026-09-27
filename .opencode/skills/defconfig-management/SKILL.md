@@ -82,6 +82,18 @@ cp out/defconfig arch/arm64/configs/selene_defconfig
 - `kernel/Makefile` line 125 — hardcoded `stock_defconfig`
 - **Fix**: Ganti ke `$(KCONFIG_CONFIG)` untuk accurate config dump
 
+### Computed choice strings — seed inert (27 Sep 2026)
+- `CONFIG_DEFAULT_TCP_CONG` & `CONFIG_DEFAULT_IOSCHED` = string promptless yang **dihitung dari choice member** → seed string di defconfig DIABAIKAN (keluar `cubic`/`cfq` padahal seed `bbr`)
+- **Fix**: set member choice-nya — `CONFIG_DEFAULT_BBR=y`, `CONFIG_DEFAULT_DEADLINE=y`
+- `MTK_ANDROID_DEFAULT_SETTING` di `drivers/misc/mediatek/Kconfig.default` isi `select TCP_CONG_BIC` → menimpa `# CONFIG_TCP_CONG_BIC is not set`
+- **Fix**: hapus baris `select TCP_CONG_BIC` (BBR tetap di blok `TCP_CONG_ADVANCED` — jangan hapus `select TCP_CONG_ADVANCED`)
+- Konteks: vendor `networksetting.rc` (Huaqin) nulis `tcp_congestion_control=bic` → kalo BIC tak ada di kernel, write gagal senyap & fallback ke default bbr
+
+### CMDLINE mode (27 Sep 2026)
+- `CONFIG_CMDLINE_FROM_BOOTLOADER` (default) → string `CONFIG_CMDLINE` kita (`vmalloc=496M slub_max_order=0 slub_debug=O`) terbuang kalo LK sudah kasih cmdline sendiri (bug identik Phrolova v0.9.12)
+- **Fix**: `CONFIG_CMDLINE_EXTEND=y` (append, aman — nilai kita jadi pemenang terakhir)
+- Verifikasi: `cat /proc/cmdline` harus memuat `vmalloc=496M slub_max_order=0 slub_debug=O`
+
 ## Debug Workflow
 
 ```bash

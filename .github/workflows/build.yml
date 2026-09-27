@@ -1,5 +1,9 @@
 name: Build MT6768 Kernel 4.19
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [PawwwNunungggg24.0]
@@ -358,7 +362,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Notify result (Telegram)
-        if: always()
+        if: success() || failure()
         run: |
           STATUS="${{ steps.final-check.outputs.status }}"
           ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip PawwwNunungggg-*.zip 2>/dev/null | head -1)

@@ -4,7 +4,7 @@ Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunu
 
 ## 2026-09-27 — CI: Hentikan Broadcast Zip Sebelum Tes + Config Batch Gaming/Perf
 
-- **Notif disederhanakan jadi 4** (`.github/scripts/notify-telegram.sh`): (1) `start`, (2) `failed` (+ detail log ke `Nai Error Dump`), (3) `success` = teks singkat "✅ Build succeeded / belum diuji" ke CI topic, (4) file zip dikirim ke channel private `Nai project update` dengan caption **"⚠️ BELUM DIUJI — hasil build otomatis"**. Workflow two-phase `notify-tested.yml` + status `tested` **dihapus**.
+- **Notif disederhanakan jadi 4** (`.github/scripts/notify-telegram.sh`): (1) `start`, (2) `failed` = ringkasan **+ baris error pertama** (+ detail log ke `Nai Error Dump`), (3) `success` = teks singkat "✅ Build succeeded" ke CI topic, (4) file zip + changelog + SHA-256 pendek + tombol ⬇️ Download (link Actions run) ke channel private `Nai project update` — tanpa banner "belum diuji". Workflow two-phase `notify-tested.yml` + status `tested` **dihapus**. **Concurrency:** `build.yml` kini `cancel-in-progress` (push beruntun cuma build terakhir) & notif result di-guard `success() || failure()` biar run cancel tidak kirim notif.
 - **Config batch** (`arch/arm64/configs/selene_defconfig` + `drivers/misc/mediatek/Kconfig.default`), build lokal hijau:
   - `CONFIG_CMDLINE_EXTEND=y` — sebelumnya `CMDLINE_FROM_BOOTLOADER` → string `vmalloc=496M slub_max_order=0 slub_debug=O` bisa terbuang saat LK sudah melewatkan cmdline sendiri (bug identik Phrolova v0.9.12).
   - Default I/O scheduler cfq → **deadline** (`CONFIG_DEFAULT_DEADLINE=y`) — optimal buat eMMC 5.1 legacy; `MQ_IOSCHED_KYBER` dimatikan (tak terpakai).

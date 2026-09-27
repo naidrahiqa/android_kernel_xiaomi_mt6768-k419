@@ -76,11 +76,12 @@ Trigger (Push / Dispatch / Tag)
 
 ### Flow — 4 notif aja (final, 27 Sep 2026)
 1. **`start`** → topic Selene CI: build dimulai.
-2. **`failed`** → topic Selene CI: ringkasan error; detail log ke channel `Nai Error Dump`.
+2. **`failed`** → topic Selene CI: ringkasan error **+ baris error pertama** (`error: …`); detail log ke channel `Nai Error Dump`.
 3. **`success`** → topic Selene CI: **teks singkat** ("✅ Build succeeded" + ringkas, tanpa file/tombol/changelog panjang).
-4. **File zip** → channel private `Nai project update`: file + changelog, caption dibuka **"⚠️ BELUM DIUJI — hasil build otomatis"** (bagian dari status `success`).
+4. **File zip** → channel private `Nai project update`: file + changelog + **SHA-256 pendek** + tombol **⬇️ Download (GitHub)** (link Actions run). Tanpa banner "belum diuji".
 
 > Workflow `notify-tested.yml` (announce "tested & booting aman") sudah **DIHAPUS** — jangan ditambah lagi tanpa diskusi.
+> `build.yml` pakai `concurrency: cancel-in-progress` — push beruntun cuma build terakhir; notif result di-guard `success() || failure()` supaya run yang di-cancel diam.
 
 ### Setup — Group with Topics
 - **Group**: "Naidrahiqa Stuff" (forum topics enabled)

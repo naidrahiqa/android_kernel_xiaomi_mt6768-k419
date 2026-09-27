@@ -4,7 +4,7 @@
 # Status: start | success | failed
 #   start   - build dimulai
 #   success - build SUKSES: notif singkat ke CI topic (TANPA file) + file zip
-#             dikirim ke channel private (caption: "BELUM DIUJI")
+#             + changelog dikirim ke channel private
 #   failed  - build gagal (ringkasan + log)
 #
 # Target Channels / Topics:
@@ -130,10 +130,13 @@ function tg_photo() {
 }
 
 function tg_document() {
-	local target="$1" doc_path="$2" caption="$3" thread_id="${4:-}"
+	local target="$1" doc_path="$2" caption="$3" thread_id="${4:-}" buttons="${5:-}"
 	local extra_args=()
 	if [ -n "$thread_id" ]; then
 		extra_args+=(-F "message_thread_id=${thread_id}")
+	fi
+	if [ -n "$buttons" ]; then
+		extra_args+=(-F "reply_markup=${buttons}")
 	fi
 	local resp
 	resp=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
@@ -193,30 +196,27 @@ function build_success() {
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 📦 <code>$(basename "$zip_file")</code>${BUILD_TIME:+ · ⏱ $((BUILD_TIME / 60))m$((BUILD_TIME % 60))s}
 <code>${SHA}</code> ${safe_commit_msg}
-<a href='${BUILD_URL}'>Build Log</a>
-
-<i>Belum diuji — file zip menyusul di channel Nai project update.</i>"
+<a href='${BUILD_URL}'>Build Log</a>"
 
 	local target_group="${GROUP_ID:-$CHANNEL_ID}"
 	if [ -n "$target_group" ]; then
 		tg_send "$target_group" "$notif_msg" "$TOPIC_CI" "" && echo "Success notification sent to CI topic." || echo "Success notification to CI topic FAILED."
 	fi
 
-	# 2. KIRIM FILE KERNEL .ZIP KE CHANNEL PRIVATE 'Nai project update'
-	#    (file tetap dikirim tiap build — caption diberi tanda BELUM DIUJI
-	#     supaya tidak dianggap announcement hasil tes booting)
+	# 2. KIRIM FILE KERNEL .ZIP + CHANGELOG KE CHANNEL PRIVATE 'Nai project update'
 	if [ -n "$CHANNEL_ID" ] && [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
-		local file_size
+		local file_size sha256
 		file_size=$(du -h "$zip_file" | cut -f1)
+		sha256=$(sha256sum "$zip_file" | cut -c1-16)
 		local doc_caption="🐾 <b>PawwwNunungggg Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
-⚠️ <b>BELUM DIUJI</b> — hasil build otomatis.
 <b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
 🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 📦 <b>File:</b> <code>$(basename "$zip_file")</code>
 <b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
 <b>Redirection:</b> NoMount v20
 <b>Size:</b> ${file_size}
+<b>SHA-256:</b> <code>${sha256}…</code>
 <b>Commit:</b> <code>${SHA}</code> ${safe_commit_msg}
 
 Changelog:
@@ -224,7 +224,8 @@ ${changelog_items:-<i>No changes recorded</i>}
 
 ⚠️ <i>Flash via AnyKernel3 recovery (TWRP/OrangeFox).</i>"
 
-		tg_document "$CHANNEL_ID" "$zip_file" "$doc_caption" && echo "Kernel zip document sent to release channel." || echo "Failed to send kernel zip to release channel."
+		local FILE_BUTTONS='{"inline_keyboard":[[{"text":"⬇️ Download (GitHub)","url":"'"${BUILD_URL}"'"}]]}'
+		tg_document "$CHANNEL_ID" "$zip_file" "$doc_caption" "" "$FILE_BUTTONS" && echo "Kernel zip document sent to release channel." || echo "Failed to send kernel zip to release channel."
 	fi
 }
 
@@ -269,10 +270,15 @@ function build_failed() {
 	safe_failed_step=$(html_escape "$failed_step")
 	safe_error_context=$(html_escape "$error_context")
 
+	local first_error=""
+	first_error=$(printf '%s\n' "$error_context" | tr -d '\r' | grep -m1 . | cut -c1-160)
+	first_error=$(html_escape "$first_error")
+
 	local simple_msg="🐾 <b>PawwwNunungggg</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
 ━━━━━━━━━━━━━━━━━━━━
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 ❌ <b>${safe_error_type}</b>
+${first_error:+<code>${first_error}</code>}
 <a href='${BUILD_URL}'>Check Log</a>"
 
 	local target_group="${GROUP_ID:-$CHANNEL_ID}"

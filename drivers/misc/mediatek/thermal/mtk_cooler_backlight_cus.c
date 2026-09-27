@@ -57,25 +57,23 @@ static int mtk_cl_backlight_get_cur_state
 static int mtk_cl_backlight_set_cur_state
 (struct thermal_cooling_device *cdev, unsigned long state)
 {
-/* C3T code for HQ-223914 by liunianliang at 2022/08/03 start */
-	int enable = (state >= MAX_BACKLIGHT_BRIGHTNESS) ? 0 : 1;
-#if !defined(CONFIG_LEDS_MTK_DISP) && \
-		!defined(CONFIG_LEDS_MTK_PWM)
-	int temp;
-
-#endif
-	state = (state > MAX_BACKLIGHT_BRIGHTNESS)
-		? MAX_BACKLIGHT_BRIGHTNESS : state;
-
+	/*
+	 * Ported from Phrolova v0.9.3 (reference 4.14, live-verified on
+	 * selene): never let the thermal HAL dim or blank the panel.
+	 * Only the reset path (state == max) is honored so a clamp left
+	 * over from an earlier session/boot is cleared; writes below max
+	 * are ignored. Real overheating is still mitigated via the
+	 * cpufreq/GPU coolers.
+	 */
+	if (state >= MAX_BACKLIGHT_BRIGHTNESS) {
 #if defined(CONFIG_LEDS_MTK_DISP) || \
 		defined(CONFIG_LEDS_MTK_PWM)
-	setMaxBrightness("lcd-backlight", state, enable);
+		setMaxBrightness("lcd-backlight", MAX_BACKLIGHT_BRIGHTNESS, 0);
 #else
-	temp = state * MAX_BACKLIGHT_LEVEL / MAX_BACKLIGHT_BRIGHTNESS;
-	setMaxbrightness(temp, enable);
+		setMaxbrightness(MAX_BACKLIGHT_LEVEL, 0);
 #endif
-/* C3T code for HQ-223914 by liunianliang at 2022/08/03 start */
-	g_backlight_level = state;
+	}
+	g_backlight_level = MAX_BACKLIGHT_BRIGHTNESS;
 	mtk_cooler_backlight_dprintk("%u\n", g_backlight_level);
 
 	return 0;

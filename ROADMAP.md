@@ -36,7 +36,7 @@ UNSTABLE/PORTING  ──────►  TESTING  ────────►  F
   - [ ] Charging 18W: PD 9V aktif, suhu baterai aman, ga ada reboot pas charge
   - [ ] USB tethering long-session (PC harian) — tanpa `IpServer` error
   - [ ] WiFi/BT, VoLTE/telepon, fingerprint, kamera (foto+video), GPS, sensor (gyro/accel)
-- [ ] Beta release `PawwwNunungggg-24.0-v0.1.0-beta.202609xx` (workflow_dispatch) + `notify-tested`
+- [ ] Beta release `PawwwNunungggg-24.0-v0.1.0-beta.202609xx` (workflow_dispatch)
 - [ ] CI: run success di branding baru, build time ≤ 16 menit (ccache warm)
 - [ ] Checklist hardware diisi di `mt6768-kernel` skill (apa work / apa belum)
 - [ ] Lolos semua → bump `PAWWWNUNUNGGG_STATUS=testing` (commit `build:`)

@@ -8,7 +8,6 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 ## Workflow Location
 
 - `.github/workflows/build.yml` — build, package, release, notif
-- `.github/workflows/notify-tested.yml` — notif "tested & booting aman" (manual dispatch)
 
 ## Setup Requirements
 
@@ -26,8 +25,7 @@ description: GitHub Actions CI/CD untuk kernel MT6768. Build workflow, Telegram 
 1. **Gambar Kiri — Supergroup Naidrahiqa Stuff (`-1004414006944`)**:
    - **Topic `⁉️ Selene CI` (#47)**: Notif teks saja — **TIDAK dikirimi file .zip**:
      - `start` — build dimulai
-     - `success` — **singkat, TANPA link download / tombol / changelog** (hanya "✅ Build succeeded" + info ringkas)
-     - `tested` — **notif lengkap + tombol ⬇️ Download**, hanya setelah build dites di device & booting aman (lihat workflow `notify-tested.yml`)
+     - `success` — **singkat, TANPA link download / tombol / changelog** (hanya "✅ Build succeeded" + info ringkas; file zip dikirim terpisah ke channel private)
      - `failed` — ringkasan error
    - **Topic `🔍 log` (#8)**: Menerima potongan 3000 karakter terakhir `build.log` jika build gagal.
 2. **Gambar Kanan — Private Channels**:
@@ -76,29 +74,17 @@ Trigger (Push / Dispatch / Tag)
 
 ## Telegram Notifications
 
-### Dua Fase (by design — jangan digabung!)
-1. **Build sukses** → topic Selene CI: notif **singkat tanpa link download**
-   ("✅ Build succeeded" + branch/file/build log). Zip tetap dikirim ke private
-   channel `Nai project update` supaya bisa dites.
-2. **Setelah tes di device & booting aman** → kirim notif **lengkap + tombol ⬇️ Download**:
+### Flow — 4 notif aja (final, 27 Sep 2026)
+1. **`start`** → topic Selene CI: build dimulai.
+2. **`failed`** → topic Selene CI: ringkasan error; detail log ke channel `Nai Error Dump`.
+3. **`success`** → topic Selene CI: **teks singkat** ("✅ Build succeeded" + ringkas, tanpa file/tombol/changelog panjang).
+4. **File zip** → channel private `Nai project update`: file + changelog, caption dibuka **"⚠️ BELUM DIUJI — hasil build otomatis"** (bagian dari status `success`).
 
-   ```bash
-   # tanpa tag = ambil build SUKSES terakhir otomatis
-   gh workflow run "Announce Tested Build" -f notes="booting aman, GPU ok"
-
-   # atau pilih build tertentu
-   gh workflow run "Announce Tested Build" \
-     -f tag="PawwwNunungggg-23.2-v0.1.0-nightly-20260926-abcdef1" \
-     -f notes="booting aman"
-   ```
-
-   Resolve download URL otomatis: GitHub Release jika tag punya release,
-   selain itu halaman Actions run (artifact zip). Implementasi:
-   `notify-telegram.sh tested <version> <tag> [notes] [download_url]`.
+> Workflow `notify-tested.yml` (announce "tested & booting aman") sudah **DIHAPUS** — jangan ditambah lagi tanpa diskusi.
 
 ### Setup — Group with Topics
 - **Group**: "Naidrahiqa Stuff" (forum topics enabled)
-- **CI topic**: thread_id `47` (start, success singkat, tested lengkap + download, failed)
+- **CI topic**: thread_id `47` (start, success singkat, failed)
 - **Log topic**: thread_id `8` (upload log saat build error)
 
 ### Gotcha: Thread IDs Hardcoded

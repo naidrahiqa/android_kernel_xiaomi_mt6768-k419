@@ -125,3 +125,11 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
 
 - **Systemless Path Redirection:** Integrated NoMount v20 (`maxsteeel/nomount`) with keyring-based control.
 - **Root Solution:** Integrated ReSukiSU with non-GKI manual hook mode (`CONFIG_KSU_MANUAL_HOOK=y`).
+
+## 2026-09-27 — ReSukiSU v4.2.0-rc3 Upstream (KSU_VERSION 35184)
+
+- **ReSukiSU v4.2.0-rc3 (`fa8311f6`, KSU_VERSION 35184):**
+  - Synced driver with upstream ReSukiSU `v4.2.0-rc3` + latest commits from `main` (commit `fa8311f6`).
+  - Total upstream commits: 4484.
+  - Pinned version in Kbuild: `KSU_LOCAL_VERSION := 4484`, `KSU_TAG_NAME := v4.2.0-rc3`, `KSU_COMMIT_SHA := fa8311f6` (`30000 + 4484 + 700 = 35184`).
+  - Required Manager: ReSukiSU Manager matching KSU_VERSION `35184` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/v4.2.0-rc3)).

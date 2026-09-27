@@ -1089,8 +1089,17 @@ void charger_manager_set_prop_system_temp_level(int temp_level)
 		}
 	}
 
-	if (pinfo->system_temp_level == 0)
-		thermal_icl_ua = -1;
+	/*
+	 * Ported from Phrolova v0.9.3 (reference 4.14, live-verified on
+	 * selene): ignore userspace thermal input-current throttling
+	 * (charge_control_limit / system_temp_level). The thermal HAL
+	 * raised system_temp_level and clamped QC/HVDCP fast charge to
+	 * ~1A via the thermal_mitigation_* tables even at benign cell
+	 * temperatures. Battery safety stays intact: sw_jeita (runtime
+	 * dts thresholds, T4=45C) and bq2589x hardware JEITA still limit
+	 * CC/CV by real cell temperature.
+	 */
+	thermal_icl_ua = -1;
 	if (thermal_icl_ua == 500000) {
 		thermal_is_500 = true;
 	} else {

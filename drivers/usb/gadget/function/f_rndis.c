@@ -925,7 +925,11 @@ static struct usb_function_instance *rndis_alloc_inst(void)
 
 	mutex_init(&opts->lock);
 	opts->func_inst.free_func_inst = rndis_free_inst;
-	opts->net = gether_setup_default();
+	/* Android Tethering matches USB netdev via config_tether_usb_regexs
+	 * (["usb\d","rndis\d"] base, narrowed to ["rndis\d"] by vendor NCM
+	 * overlay). Name it rndis%d so ifaceNameToType() finds it and
+	 * enableUsbIpServing() can attach IpServer. */
+	opts->net = gether_setup_name_default("rndis");
 	if (IS_ERR(opts->net)) {
 		struct net_device *net = opts->net;
 		kfree(opts);

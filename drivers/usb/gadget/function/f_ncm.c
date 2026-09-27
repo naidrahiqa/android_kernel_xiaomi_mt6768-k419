@@ -1654,7 +1654,9 @@ static struct usb_function_instance *ncm_alloc_inst(void)
 
 	mutex_init(&opts->lock);
 	opts->func_inst.free_func_inst = ncm_free_inst;
-	opts->net = gether_setup_default();
+	/* Match Android config_tether_ncm_regexs ["ncm\d"] so NCM tethering
+	 * can attach IpServer when gadget HAL >= 1.2. */
+	opts->net = gether_setup_name_default("ncm");
 	if (IS_ERR(opts->net)) {
 		struct net_device *net = opts->net;
 		kfree(opts);

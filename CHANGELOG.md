@@ -2,6 +2,15 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunungggg Kernel.
 
+## 2026-09-27 — Fast Charge: Bypass Thermal Mitigation Clamp + Backlight Clamp (Port Phrolova v0.9.3)
+
+- **Masalah:** fast charge "stuck ~1W" padahal charger dinding terdeteksi & animasi jalan. Bukti live: cooling device `battery` diam di `system_temp_level=12` → tabel `thermal_mitigation_*` menjegal input current (QC3 level 12 = ~975mA, DCP = 1.6A) meski suhu cell aman. Akar masalah: thermal HAL userspace menulis `CHARGE_CONTROL_LIMIT` → `system_temp_level` naik.
+- **Fix 1 (fast charge):** `drivers/power/supply/mediatek/charger/mtk_charger.c` — `charger_manager_set_prop_system_temp_level()` kini set `thermal_icl_ua = -1` permanen (clamp userspace di-bypass). Port dari reference `android_kernel_xiaomi_selene` **v0.9.3** ("Fast Charge Tanpa Module", live-verified di selene). Keamanan tetap: sw_jeita runtime (T4=45°C) + hardware JEITA bq2589x masih membatasi CC/CV berdasar suhu cell asli — yang dilepas hanya throttle policy-level.
+- **Fix 2 (thermal layar):** `drivers/misc/mediatek/thermal/mtk_cooler_backlight_cus.c` — `mtk_cl_backlight_set_cur_state()` hanya menghormati reset path (`state == max`), write di bawah max diabaikan → thermal HAL tidak bisa mem-dim/mematikan panel sendiri (root cause "layar mati sendiri" pada reference). Mitigasi panas asli tetap lewat cpufreq/GPU cooler.
+- **Hasil tes (flash lokal `fastcharge-v093`):** arus charge **1W → 10W** (DCP 5V×2A, cocok `ac_charger_current=2050000`); port laptop CDP 952mA (sebelumnya ~300mA kena clamp). Log verifikasi: `system_temp_level:12 thermal_icl_ua:-1`.
+- **Sisa:** handshake QC/HVDCP belum menyala (`dhx--hvdcp:0` — charger tes kemungkinan polos 5V/2A, atau handshake perlu dibedah di `mtk_chg_type_det.c`) → target 18W belum tercapai. **Offline charging** (jalur LK bootloader, di luar kernel) terpisah dan masih dalam pengamatan — belum lulus tes 2 jam.
+- **Commit:** `c77aa0a6941a` (charger clamp), `dbdb7d488598` (backlight clamp).
+
 ## 2026-09-26 — Fast Charge: Restock Config Charger ala Stock
 
 - **Masalah:** fast charge tidak aktif di device (lama, bukan regresi sync — defconfig charger identik sebelum & sesudah sync).

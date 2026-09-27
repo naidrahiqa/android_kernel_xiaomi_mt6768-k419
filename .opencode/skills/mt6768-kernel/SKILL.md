@@ -171,6 +171,13 @@ temp_t4_threshold = <50>;          /* JANGAN UBAH ke 60 */
 4. **JANGAN asumsi LineageOS values aman** — device kita beda charger IC
 5. **Kalau mau ubah charger config**, flash dulu ke hardware, test, baru commit
 
+## Thermal / Charging Runtime Gotchas
+
+- **Fast charge stuck ~1W** bukan masalah DTS: thermal HAL nulis `CHARGE_CONTROL_LIMIT` → `system_temp_level` → tabel `thermal_mitigation_*` jegal input current. Fix = `thermal_icl_ua = -1` permanen di `drivers/power/supply/mediatek/charger/mtk_charger.c` (port Phrolova v0.9.3) — detail di skill `defconfig-management` § Fast Charge Clamp Trap. Verifikasi: dmesg `system_temp_level:N thermal_icl_ua:-1`.
+- **Layar dim/blank sendiri**: thermal daemon nulis `cur_state` `mtk-cl-backlight` → `mtk_cooler_backlight_cus.c`. Fix (port Phrolova v0.9.3): `set_cur_state` hanya hormati reset path (`state == MAX_BACKLIGHT_BRIGHTNESS`), write di bawah max diabaikan. cpufreq/GPU cooler tetap jalan buat mitigasi panas asli.
+- **Offline charging (HP mati) = jalur LK**, di luar kernel — input-nya dtb (boot.img) + dtbo (stock). Node `lk_charger` kita paritas dengan reference 4.14; kalau offline bermasalah, bedah DT/LK, jangan driver kernel.
+- **QC/HVDCP belum tentu nyala**: log `dhx--hvdcp:0` = handshake QC gagal/tidak ada → arus mentok DCP 5V×2A (10W). Lanjutan bedah: `mtk_chg_type_det.c`.
+
 ## Build Commands
 
 ### Setup Greenforce Clang (one-time)

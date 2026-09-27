@@ -97,6 +97,8 @@ make O=out ARCH=arm64 \
 | 32-bit apps / HAL failure | `CONFIG_COMPAT=y` di `selene_defconfig` | defconfig-management |
 | Touchscreen double-tap wake | `CONFIG_TOUCHSCREEN_COMMON=y` di `selene_defconfig` | defconfig-management |
 | SCP IPI system deadlock | Bounded loop + mutex unlock saat timeout di `scp_ipi.c` | build-system-fixes |
+| Fast charge stuck ~1W padahal charger ke-detect | `thermal_icl_ua = -1` di `charger_manager_set_prop_system_temp_level()` (`mtk_charger.c`) — thermal HAL clamp via `charge_control_limit` | defconfig-management |
+| Layar dim/blank sendiri (thermal HAL) | `mtk_cl_backlight_set_cur_state` hanya hormati reset path (`state==max`), write di bawah max diabaikan | mt6768-kernel |
 | Notif "sukses" padahal build gagal | `Final check` wajib cek `job.status` + `MAKE_EXIT_CODE` | ci-cd-github-actions |
 
 ## CRITICAL: Flashing Partisi — JANGAN FLASH LK ATAU DTBO

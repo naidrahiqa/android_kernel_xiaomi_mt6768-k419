@@ -164,6 +164,22 @@ temp_t4_threshold = 50         → JANGAN UBAH ke 60
 non_std_ac_charger_current = 500000 → JANGAN UBAH ke 1000000
 ```
 
+### Fast Charge Clamp Trap (27 Sep 2026) — BUKAN masalah DTS
+```
+Gejala: charger dinding terdeteksi (DCP/animasi jalan) tapi arus cuma ~1W
+Akar: thermal HAL userspace → psy CHARGE_CONTROL_LIMIT → system_temp_level ≥ 1
+      → tabel thermal_mitigation_* (dts qcom,thermal-mitigation-*) jegal ICL
+      → level 12: QC3 ~975mA / DCP 1.6A, padahal suhu cell aman
+Bukti: cooling device "battery" diam di cur_state=12; dmesg
+       "system_temp_level:12 thermal_icl_ua:<n>"
+FIX: charger_manager_set_prop_system_temp_level() di
+     drivers/power/supply/mediatek/charger/mtk_charger.c → thermal_icl_ua = -1 permanen
+     (port Phrolova v0.9.3 / reference android_kernel_xiaomi_selene)
+Aman: sw_jeita runtime (T4=45°C) + hw JEITA bq2589x tetap batasi CC/CV
+Verifikasi: dmesg harus tunjukkan "thermal_icl_ua:-1" walau system_temp_level > 0
+Hasil tes: 1W → 10W (DCP 5V×2A)
+```
+
 ### How to Safely Test Charger Changes
 ```bash
 # 1. Build with changes

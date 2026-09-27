@@ -108,7 +108,7 @@ sed -i 's/do_kaeru=0/do_kaeru=1/' ak3/anykernel.sh
 ```bash
 # ZIP includes both kernel + Kaeru LK
 # anykernel.sh automatically flashes LK to lk_a partition
-adb push Mocchipyon-*.zip /sdcard/
+adb push PawwwNunungggg-*.zip /sdcard/
 # Flash via TWRP/LineageOS recovery
 ```
 

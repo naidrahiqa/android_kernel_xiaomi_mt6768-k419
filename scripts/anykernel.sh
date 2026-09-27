@@ -1,11 +1,11 @@
 ### AnyKernel3 Ramdisk Mod Script
 ## osm0sis @ xda-developers
-## Mocchipyon Kernel — MediaTek-safe version
+## PawwwNunungggg Kernel — MediaTek-safe version
 
 ### AnyKernel setup
 # begin properties
 properties() { '
-kernel.string=Mocchipyon Kernel — by @Naidrahiqa
+kernel.string=PawwwNunungggg Kernel — by @Naidrahiqa
 do.devicecheck=1
 do.modules=0
 do.systemless=1

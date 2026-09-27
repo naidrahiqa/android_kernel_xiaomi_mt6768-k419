@@ -1,6 +1,6 @@
 ---
 name: mt6768-kernel
-description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project. Covers device tree, drivers, build system, defconfig, LineageOS/Mocchipyon integration. Trigger: selene, mt6768, kernel, device tree, defconfig, DTS, drivers, build, compile, porting.
+description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project. Covers device tree, drivers, build system, defconfig, LineageOS/PawwwNunungggg integration. Trigger: selene, mt6768, kernel, device tree, defconfig, DTS, drivers, build, compile, porting.
 ---
 
 # MT6768 Kernel Development Skill (4.19 Porting)
@@ -11,8 +11,8 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 - **SoC**: MediaTek MT6768 / MT6769 (Helio G88), 8-core ARM Cortex-A75/A55
 - **Kernel**: Linux 4.19.325 (CIP stable backport) — **STATUS: UNSTABLE, MASIH PORTING**
 - **Branches**:
-  - `Mocchipyon24.0`: **Primary / default branch** (LineageOS 24.0 / Android 17 — semua development & CI di sini)
-  - `Mocchipyon23.2`: Frozen (LineageOS 23.2 / Android 16 — tanpa build CI)
+  - `PawwwNunungggg24.0`: **Primary / default branch** (LineageOS 24.0 / Android 17 — semua development & CI di sini)
+  - `PawwwNunungggg23.2`: Frozen (LineageOS 23.2 / Android 16 — tanpa build CI)
   - `lineage-24.0`: Clean tracking branch dari upstream `mt6768-S`
 - **Remotes**:
   - `origin`: `https://github.com/naidrahiqa/android_kernel_xiaomi_mt6768-k419` (fork)
@@ -33,7 +33,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
   - **LineageOS 21**: Android 14
   - **LineageOS 22**: Android 15
   - **LineageOS 23 / 23.2**: Android 16 (aktif di device test via ADB)
-  - **LineageOS 24 / 24.0**: Android 17 (target pengembangan branch `Mocchipyon24.0`)
+  - **LineageOS 24 / 24.0**: Android 17 (target pengembangan branch `PawwwNunungggg24.0`)
   - Seluruh varian Custom ROM MT6768 di atas menggunakan unified device/vendor tree berbasis kernel 4.19.
 - **Stock MIUI 13 (Android 12) & MIUI 14 (Android 13)**:
   - ⚠️ **Stock Xiaomi ROM untuk Selene berjalan di atas Kernel 4.14**. Stock proprietary vendor blobs (Camera ISP, Mali DDK, Display, Audio) di-compile terhadap ABI kernel 4.14.
@@ -239,8 +239,8 @@ cp defconfig arch/arm64/configs/selene_defconfig
 - `cip`: `https://git.kernel.org/pub/scm/linux/kernel/git/cip/linux-cip.git`
 
 ### Active Branches
-- `Mocchipyon24.0`: **Primary / default branch** (Lineage 24.0 & semua development)
-- `Mocchipyon23.2`: Frozen (Lineage 23.2, tanpa build CI)
+- `PawwwNunungggg24.0`: **Primary / default branch** (Lineage 24.0 & semua development)
+- `PawwwNunungggg23.2`: Frozen (Lineage 23.2, tanpa build CI)
 - `lineage-24.0`: Pristine tracking branch dari upstream `mt6768-S`
 
 ### Syncing Upstream Branches
@@ -250,10 +250,10 @@ git checkout lineage-24.0
 git pull upstream lineage-24.0
 git push origin lineage-24.0
 
-# Rebase / update branch dev Mocchipyon24.0 dari upstream lineage-24.0
-git checkout Mocchipyon24.0
+# Rebase / update branch dev PawwwNunungggg24.0 dari upstream lineage-24.0
+git checkout PawwwNunungggg24.0
 git rebase lineage-24.0
-git push origin Mocchipyon24.0 --force-with-lease
+git push origin PawwwNunungggg24.0 --force-with-lease
 ```
 
 - **Commit format**: `<subsystem>: <description>`

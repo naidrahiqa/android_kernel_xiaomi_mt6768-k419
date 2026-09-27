@@ -135,7 +135,7 @@ EXPORT_SYMBOL_GPL(kaeru_is_download);
 
 /* Module info */
 MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("Mocchipyon Kernel");
+MODULE_AUTHOR("PawwwNunungggg Kernel");
 MODULE_DESCRIPTION("Kaeru bootloader communication module");
 MODULE_VERSION("1.0");
 

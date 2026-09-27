@@ -59,7 +59,7 @@ GIT_BIN := /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin git
 
 KSU_SRC := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-# Mocchipyon local patch: resukisu/ is a direct copy (not a git submodule).
+# PawwwNunungggg local patch: resukisu/ is a direct copy (not a git submodule).
 # Upstream Kbuild hard-errors in that case; we pin version info manually.
 # Update these pins when refreshing the snapshot from ReSukiSU/ReSukiSU main.
 # Upstream commit: fa8311f632a2 (2026-09-26)

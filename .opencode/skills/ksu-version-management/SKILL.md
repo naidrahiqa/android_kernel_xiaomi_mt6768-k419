@@ -5,7 +5,7 @@ description: Manage ReSukiSU driver version pins, sync with upstream, generate v
 
 # KSU Version Management — ReSukiSU Version Notes & Sync
 
-Panduan dan otomatisasi manajemen versi ReSukiSU untuk kernel MT6768 (Mocchipyon 4.19 & Phrolova 4.14).
+Panduan dan otomatisasi manajemen versi ReSukiSU untuk kernel MT6768 (PawwwNunungggg 4.19 & Phrolova 4.14).
 
 ## Current State
 

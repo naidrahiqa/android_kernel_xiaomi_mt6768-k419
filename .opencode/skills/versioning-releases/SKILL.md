@@ -1,15 +1,15 @@
 ---
 name: versioning-releases
-description: Versioning scheme, release channels (nightly/beta/stable), localversion branding, GitHub Releases, and release workflow for Mocchipyon Kernel. Trigger: version, release, tag, changelog, channel, nightly, beta, stable, localversion.
+description: Versioning scheme, release channels (nightly/beta/stable), localversion branding, GitHub Releases, and release workflow for PawwwNunungggg Kernel. Trigger: version, release, tag, changelog, channel, nightly, beta, stable, localversion.
 ---
 
-# Versioning & Release Channels — Mocchipyon Kernel
+# Versioning & Release Channels — PawwwNunungggg Kernel
 
-Pedoman versioning, release channels, branding kernel version, dan otomatisasi release untuk Mocchipyon Kernel.
+Pedoman versioning, release channels, branding kernel version, dan otomatisasi release untuk PawwwNunungggg Kernel.
 
 ## 1. Versioning Scheme
 
-Format: `Mocchipyon-v<major>.<minor>.<patch>[-<channel>]`
+Format: `PawwwNunungggg-v<major>.<minor>.<patch>[-<channel>]`
 
 | Component | Format | Keterangan |
 |---|---|---|
@@ -23,14 +23,14 @@ Format: `Mocchipyon-v<major>.<minor>.<patch>[-<channel>]`
 File `VERSION` di root repository mengontrol versioning:
 
 ```bash
-MOCCHIPYON_VERSION=0.1.0
-MOCCHIPYON_CODENAME=Kucing
-MOCCHIPYON_STATUS=unstable
+PAWWWNUNUNGGG_VERSION=0.1.0
+PAWWWNUNUNGGG_CODENAME=Kucing
+PAWWWNUNUNGGG_STATUS=unstable
 ```
 
-- **`MOCCHIPYON_VERSION`**: Semver version string (dibaca oleh CI dan release scripts)
-- **`MOCCHIPYON_CODENAME`**: Nama rilis bertema (misal tema kucing/hewan per major cycle)
-- **`MOCCHIPYON_STATUS`**: Status porting saat ini (`unstable`, `testing`, `stable`)
+- **`PAWWWNUNUNGGG_VERSION`**: Semver version string (dibaca oleh CI dan release scripts)
+- **`PAWWWNUNUNGGG_CODENAME`**: Nama rilis bertema (misal tema kucing/hewan per major cycle)
+- **`PAWWWNUNUNGGG_STATUS`**: Status porting saat ini (`unstable`, `testing`, `stable`)
 
 ---
 
@@ -38,15 +38,15 @@ MOCCHIPYON_STATUS=unstable
 
 | Channel | Trigger | Tag Format | GitHub Release? | Changelog | Target Audience |
 |---|---|---|---|---|---|
-| **Nightly** | Auto push ke `Mocchipyon24.0` (`Mocchipyon23.2` frozen, tanpa build) | `Mocchipyon-v{ver}-nightly-{date}-{hash}` | ❌ No (Artifact 90d) | ❌ No | Developer & internal test |
-| **Beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}` | ✅ Pre-release + Zip | ✅ Auto-changelog | Early testers |
-| **Stable** | Push git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}` | ✅ Full Release + Zip | ✅ Auto-changelog | All users |
+| **Nightly** | Auto push ke `PawwwNunungggg24.0` (`PawwwNunungggg23.2` frozen, tanpa build) | `PawwwNunungggg-v{ver}-nightly-{date}-{hash}` | ❌ No (Artifact 90d) | ❌ No | Developer & internal test |
+| **Beta** | Manual `workflow_dispatch` (channel: beta) | `PawwwNunungggg-v{ver}-beta.{date}` | ✅ Pre-release + Zip | ✅ Auto-changelog | Early testers |
+| **Stable** | Push git tag `v*` (misal `v0.1.0`) | `PawwwNunungggg-v{ver}` | ✅ Full Release + Zip | ✅ Auto-changelog | All users |
 
 ### Zip File Naming
 
-- Nightly: `Mocchipyon-v0.1.0-nightly-20260921-60e26c0.zip`
-- Beta: `Mocchipyon-v0.1.0-beta.20260921.zip`
-- Stable: `Mocchipyon-v0.1.0.zip`
+- Nightly: `PawwwNunungggg-v0.1.0-nightly-20260921-60e26c0.zip`
+- Beta: `PawwwNunungggg-v0.1.0-beta.20260921.zip`
+- Stable: `PawwwNunungggg-v0.1.0.zip`
 
 ---
 
@@ -54,17 +54,17 @@ MOCCHIPYON_STATUS=unstable
 
 Kernel Makefile menggabungkan semua file yang berawalan `localversion*` secara alfabetis (`scripts/setlocalversion`):
 
-1. `localversion` → `-Mocchipyon`
+1. `localversion` → `-PawwwNunungggg`
 2. `localversion-cip` → `-cip136`
 3. `localversion-st` → `-st20`
 
 Hasil string `uname -r` di perangkat:
 ```
-4.19.325-Mocchipyon-cip136-st20
+4.19.325-PawwwNunungggg-cip136-st20
 ```
 
 > [!NOTE]
-> Urutan ini mempertahankan upstream tracking CIP dan ST sembari menampilkan branding `-Mocchipyon` di depan.
+> Urutan ini mempertahankan upstream tracking CIP dan ST sembari menampilkan branding `-PawwwNunungggg` di depan.
 
 ---
 
@@ -95,13 +95,13 @@ Pada channel **Beta** dan **Stable**, CI secara otomatis:
 
 1. Update `VERSION` di root jika versi naik:
    ```bash
-   sed -i 's/MOCCHIPYON_VERSION=.*/MOCCHIPYON_VERSION=0.2.0/' VERSION
+   sed -i 's/PAWWWNUNUNGGG_VERSION=.*/PAWWWNUNUNGGG_VERSION=0.2.0/' VERSION
    git commit -am "build: bump version to v0.2.0"
-   git push origin Mocchipyon24.0
+   git push origin PawwwNunungggg24.0
    ```
 2. Buat tag release berawalan `v`:
    ```bash
-   git tag -a v0.2.0 -m "Release Mocchipyon v0.2.0"
+   git tag -a v0.2.0 -m "Release PawwwNunungggg v0.2.0"
    git push origin v0.2.0
    ```
 3. GitHub Actions otomatis tertrigger oleh tag `v*`, mengeset channel ke `stable`, membuat Full GitHub Release, dan upload zip.

@@ -57,9 +57,9 @@ Trigger (Push / Dispatch / Tag)
 
 | Channel | Trigger | Output | GitHub Release? |
 |---|---|---|---|
-| **nightly** | Push ke `Mocchipyon24.0` (satu-satunya branch build; `Mocchipyon23.2` frozen) — ignore `*.md`, `.opencode/**`, `VERSION` | `Mocchipyon-v{ver}-nightly-{date}-{hash}.zip` | ❌ Artifact only (90d) |
-| **beta** | Manual `workflow_dispatch` (channel: beta) | `Mocchipyon-v{ver}-beta.{date}.zip` | ✅ Pre-release + changelog |
-| **stable** | Git tag `v*` (misal `v0.1.0`) | `Mocchipyon-v{ver}.zip` | ✅ Full release + changelog |
+| **nightly** | Push ke `PawwwNunungggg24.0` (satu-satunya branch build; `PawwwNunungggg23.2` frozen) — ignore `*.md`, `.opencode/**`, `VERSION` | `PawwwNunungggg-v{ver}-nightly-{date}-{hash}.zip` | ❌ Artifact only (90d) |
+| **beta** | Manual `workflow_dispatch` (channel: beta) | `PawwwNunungggg-v{ver}-beta.{date}.zip` | ✅ Pre-release + changelog |
+| **stable** | Git tag `v*` (misal `v0.1.0`) | `PawwwNunungggg-v{ver}.zip` | ✅ Full release + changelog |
 
 ## Toolchain Caching (Greenforce Clang)
 
@@ -88,7 +88,7 @@ Trigger (Push / Dispatch / Tag)
 
    # atau pilih build tertentu
    gh workflow run "Announce Tested Build" \
-     -f tag="Mocchipyon-23.2-v0.1.0-nightly-20260926-abcdef1" \
+     -f tag="PawwwNunungggg-23.2-v0.1.0-nightly-20260926-abcdef1" \
      -f notes="booting aman"
    ```
 

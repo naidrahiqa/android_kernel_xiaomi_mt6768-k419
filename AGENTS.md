@@ -1,4 +1,4 @@
-# AGENTS.md — MT6768 Kernel (Mocchipyon Edition)
+# AGENTS.md — MT6768 Kernel (PawwwNunungggg Edition)
 
 Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untuk detail task, load skill terkait dari `.opencode/skills/*/SKILL.md`.
 
@@ -23,14 +23,14 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 
 - **Device:** Xiaomi Selene (Redmi 10 / Redmi 10 2022 / Redmi 10 Prime), codename **selene**, MediaTek MT6768 / MT6769 (Helio G88).
 - **Kernel:** Linux 4.19.325 (CIP stable backport), **non-GKI**, **STATUS: UNSTABLE/PORTING**.
-- **Branch:** `Mocchipyon24.0` (**primary / default branch** — semua development & fokus di sini), `Mocchipyon23.2` (Lineage 23.2 / Android 16, **frozen** — tanpa CI build), `lineage-24.0` (upstream tracking)
+- **Branch:** `PawwwNunungggg24.0` (**primary / default branch** — semua development & fokus di sini), `PawwwNunungggg23.2` (Lineage 23.2 / Android 16, **frozen** — tanpa CI build), `lineage-24.0` (upstream tracking)
 - **Remotes:** `origin` (naidrahiqa fork), `upstream` (`mt6768-S/android_kernel_xiaomi_mt6768`), `cip` (linux-cip)
 - **Toolchain:** Greenforce Clang (LLVM/Clang, PGO+ThinLTO+O3+Polly)
 - **Root solution:** ReSukiSU (`ReSukiSU/ReSukiSU`, manual hook mode `CONFIG_KSU_MANUAL_HOOK=y`).
 - **Systemless:** NoMount v20 (`maxsteeel/nomount`, keyring-based control).
 - **Bootloader:** Stock Little Kernel (LK). **JANGAN flash LK / Kaeru via AnyKernel3** (menyebabkan hard brick!).
 - **Build variants:** Single universal kernel — targeted for AOSP/LineageOS 20+ (Android 13+ up to 17: Lineage 20 = A13, Lineage 21 = A14, Lineage 22 = A15, Lineage 23.2 = A16, Lineage 24.0 = A17) and 4.19-based HyperOS/MIUI ports. (Catatan: Stock official MIUI 13/14 menggunakan kernel 4.14 di reference project).
-- **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-Mocchipyon-cip136-st20`).
+- **Version:** `v0.1.0` (tracked in `VERSION`, codename "Kucing", uname -r: `4.19.325-PawwwNunungggg-cip136-st20`).
 - **Release channels:** Nightly (auto push), Beta (workflow_dispatch pre-release), Stable (git tag `v*`).
 - **Reference:** `/home/naidra/Projects/Kernel/android_kernel_xiaomi_selene` (4.14 stable, branch `phrolova`, untuk stock MIUI 12.5/13/14)
 

@@ -2,7 +2,7 @@ name: Build MT6768 Kernel 4.19
 
 on:
   push:
-    branches: [Mocchipyon24.0]
+    branches: [PawwwNunungggg24.0]
     tags: ['v*']
     paths-ignore:
       - '*.md'
@@ -41,8 +41,8 @@ jobs:
 
       - name: Configure git identity
         run: |
-          git config user.name "Mocchipyon CI"
-          git config user.email "mocchipyon@users.noreply.github.com"
+          git config user.name "PawwwNunungggg CI"
+          git config user.email "pawwwnununggg@users.noreply.github.com"
 
       - name: Generate version tag
         id: version
@@ -56,8 +56,8 @@ jobs:
           if [ -f VERSION ]; then
             source VERSION
           else
-            MOCCHIPYON_VERSION="0.0.0"
-            MOCCHIPYON_CODENAME="Unknown"
+            PAWWWNUNUNGGG_VERSION="0.0.0"
+            PAWWWNUNUNGGG_CODENAME="Unknown"
           fi
 
           # Determine channel
@@ -88,13 +88,13 @@ jobs:
           # Build tag based on channel
           case "$CHANNEL" in
             stable)
-              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}"
+              TAG="PawwwNunungggg-${BRANCH_TAG}-v${PAWWWNUNUNGGG_VERSION}"
               ;;
             beta)
-              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}-beta.${DATE_TAG}"
+              TAG="PawwwNunungggg-${BRANCH_TAG}-v${PAWWWNUNUNGGG_VERSION}-beta.${DATE_TAG}"
               ;;
             nightly)
-              TAG="Mocchipyon-${BRANCH_TAG}-v${MOCCHIPYON_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
+              TAG="PawwwNunungggg-${BRANCH_TAG}-v${PAWWWNUNUNGGG_VERSION}-nightly-${DATE_TAG}-${SHORT_HASH}"
               ;;
           esac
 
@@ -104,14 +104,14 @@ jobs:
           echo "COMMIT_URL=${COMMIT_URL}" >> $GITHUB_OUTPUT
           echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
           echo "CHANNEL=${CHANNEL}" >> $GITHUB_OUTPUT
-          echo "VERSION=${MOCCHIPYON_VERSION}" >> $GITHUB_OUTPUT
-          echo "CODENAME=${MOCCHIPYON_CODENAME}" >> $GITHUB_OUTPUT
+          echo "VERSION=${PAWWWNUNUNGGG_VERSION}" >> $GITHUB_OUTPUT
+          echo "CODENAME=${PAWWWNUNUNGGG_CODENAME}" >> $GITHUB_OUTPUT
           echo "BRANCH=${BRANCH}" >> $GITHUB_OUTPUT
           echo "BRANCH_TAG=${BRANCH_TAG}" >> $GITHUB_OUTPUT
           echo "ANDROID_TARGET=${ANDROID_TARGET}" >> $GITHUB_OUTPUT
           echo "tag=${TAG}" >> $GITHUB_ENV
           echo "CHANNEL=${CHANNEL}" >> $GITHUB_ENV
-          echo "::notice::Channel: ${CHANNEL} | Branch: ${BRANCH} (${ANDROID_TARGET}) | Tag: ${TAG} | Version: v${MOCCHIPYON_VERSION}"
+          echo "::notice::Channel: ${CHANNEL} | Branch: ${BRANCH} (${ANDROID_TARGET}) | Tag: ${TAG} | Version: v${PAWWWNUNUNGGG_VERSION}"
 
       - name: Notify start (Telegram)
         run: |
@@ -350,7 +350,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.TAG }}
-          name: "Mocchipyon v${{ steps.version.outputs.VERSION }} (${{ steps.version.outputs.BRANCH_TAG }}) — ${{ steps.version.outputs.CODENAME }}"
+          name: "PawwwNunungggg v${{ steps.version.outputs.VERSION }} (${{ steps.version.outputs.BRANCH_TAG }}) — ${{ steps.version.outputs.CODENAME }}"
           body_path: CHANGELOG.md
           prerelease: ${{ env.CHANNEL == 'beta' }}
           files: ${{ steps.version.outputs.TAG }}.zip
@@ -361,7 +361,7 @@ jobs:
         if: always()
         run: |
           STATUS="${{ steps.final-check.outputs.status }}"
-          ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip Mocchipyon-*.zip 2>/dev/null | head -1)
+          ZIP_FILE=$(ls ${{ steps.version.outputs.TAG }}.zip PawwwNunungggg-*.zip 2>/dev/null | head -1)
           if [ "$STATUS" = "success" ]; then
             bash .github/scripts/notify-telegram.sh \
               success \

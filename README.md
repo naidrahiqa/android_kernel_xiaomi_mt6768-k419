@@ -1,4 +1,4 @@
-# Mocchipyon Kernel
+# PawwwNunungggg Kernel
 
 Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT6768 (Helio G88)
 
@@ -8,7 +8,7 @@ Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT67
 |---|---|
 | **Kernel** | Linux 4.19.325 (CIP stable backport) |
 | **Base** | LineageOS 23.2 (Android 16) / LineageOS 24.0 (Android 17) |
-| **Branches** | `Mocchipyon24.0` (A17 base, **primary/default**) / `Mocchipyon23.2` (A16 base, frozen) |
+| **Branches** | `PawwwNunungggg24.0` (A17 base, **primary/default**) / `PawwwNunungggg23.2` (A16 base, frozen) |
 | **Root** | [ReSukiSU](https://github.com/ReSukiSU/ReSukiSU) (manual hook mode) |
 | **Systemless** | [NoMount v20](https://github.com/maxsteeel/nomount) |
 | **Bootloader** | Stock Little Kernel (LK) |
@@ -88,7 +88,7 @@ make O=out ARCH=arm64 \
 
 | Channel | Trigger | Stability |
 |---------|---------|-----------|
-| **Nightly** | Every push to `Mocchipyon24.0` | Untested — may not boot |
+| **Nightly** | Every push to `PawwwNunungggg24.0` | Untested — may not boot |
 | **Beta** | Manual workflow dispatch | Partially tested |
 | **Stable** | Git tag `v*` | Hardware tested ✅ |
 

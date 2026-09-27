@@ -1,6 +1,6 @@
-# CHANGELOG — Mocchipyon Edition (MT6768 / Linux 4.19 CIP)
+# CHANGELOG — PawwwNunungggg Edition (MT6768 / Linux 4.19 CIP)
 
-Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyon Kernel.
+Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunungggg Kernel.
 
 ## 2026-09-26 — Fast Charge: Restock Config Charger ala Stock
 
@@ -11,7 +11,7 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
 
 ## 2026-09-26 — Sync dengan Upstream lineage-24.0 (Force-Update)
 
-- **Rebase ke Upstream Baru:** `Mocchipyon24.0` di-rebase ke `mt6768-S/lineage-24.0` yang di-rewrite upstream — dapat SUSFS 2.3.0 (runtime `fs/susfs.c`), sdcardfs, focaltech double-tap, perubahan Xiaomi eccci/imgsensor, fix watermark & blk-mq multi-queue.
+- **Rebase ke Upstream Baru:** `PawwwNunungggg24.0` di-rebase ke `mt6768-S/lineage-24.0` yang di-rewrite upstream — dapat SUSFS 2.3.0 (runtime `fs/susfs.c`), sdcardfs, focaltech double-tap, perubahan Xiaomi eccci/imgsensor, fix watermark & blk-mq multi-queue.
 - **Driver Ultrawide imx355 Dipulihkan:** rewrite upstream menghapus driver `imx355_sunny`/`imx355_aac` tapi `selene_defconfig` tetap mereferensikannya (build error `No rule to make target .../imx355_aac.../Makefile`) — 10 file driver dikembalikan dari state sebelum sync.
 - **Tracing Fix:** upstream "Prepare for Product" menurunkan `KPROBE_EVENTS`/`UPROBE_EVENTS` dari `default y` ke `default n`; simbol `CONFIG_TRACING` (promptless) jadi tak ter-select → guard `trace_printk` di `kernel.h` mati → `cmdq_record.c` gagal compile (implicit declaration). Diset explicit di `selene_defconfig`.
 - **CIP Ternyata Sudah Sinkron:** tip `linux-4.19.y-cip` = cip136 (4.19.325, 11 Sep 2026) = persis `localversion-cip` kita — tidak ada backport baru yang perlu ditarik.
@@ -26,7 +26,7 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
   - `Final check` kini menghormati `job.status` — kegagalan step verify/package tidak lagi mengirim notifikasi "sukses".
   - Klasifikasi `CI STEP ERROR` saat make sukses tapi step berikutnya gagal (bukan "compile error").
 - **Branch Restructure:**
-  - Default branch pindah ke `Mocchipyon24.0` (fokus development); `Mocchipyon23.2` di-freeze tanpa build CI.
+  - Default branch pindah ke `PawwwNunungggg24.0` (fokus development); `PawwwNunungggg23.2` di-freeze tanpa build CI.
 - **Dead Makefile References Removed:** 13 file Makefile (mis. `SOLOMON/`, `mt8167/`) — memperbaiki `make mrproper`.
 - **Zip Verification False Positive Fix:** `Image.gz-dtb` tidak lagi terdeteksi sebagai file `dtb` berbahaya di check verifikasi zip.
 - **CI Reliability:** Perbaikan installer & caching fallback Greenforce Clang; nama file paket & notifikasi menyertakan branch dan target Android.
@@ -64,7 +64,7 @@ Daftar perubahan, porting, backport security, dan update komponen pada Mocchipyo
     - Networking (`CONFIG_VETH=y`, `BRIDGE`, `NETFILTER`, `BRIDGE_NETFILTER`, `NF_CONNTRACK`, iptables, NAT, tables, masquerade).
     - Filesystem (`CONFIG_DEVTMPFS=y`, `OVERLAY_FS`, `TMPFS_POSIX_ACL`, `TMPFS_XATTR`).
     - Security & IPC (`CONFIG_SECCOMP=y`, `SECCOMP_FILTER`, `SYSVIPC`, `POSIX_MQUEUE`).
-- **Mocchipyon Feature Parity on Lineage 24.0:**
+- **PawwwNunungggg Feature Parity on Lineage 24.0:**
   - Enabled `CONFIG_TCP_CONG_BBR=y` (default TCP congestion control).
   - Enabled `CONFIG_CRYPTO_LZ4=y` and `CONFIG_CRYPTO_LZ4HC=y` (zRAM compression).
   - Enabled `CONFIG_WIREGUARD=y`.

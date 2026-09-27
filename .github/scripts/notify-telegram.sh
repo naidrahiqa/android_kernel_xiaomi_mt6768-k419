@@ -174,14 +174,6 @@ function build_success() {
 		zip_file=$(ls PawwwNunungggg-*.zip 2>/dev/null | head -1)
 	fi
 
-	local changelog_items=""
-	if [ -n "$changelog_file" ] && [ -f "$changelog_file" ]; then
-		changelog_items=$(grep '^- ' "$changelog_file" 2>/dev/null | head -20 | html_escape)
-	fi
-	if [ -z "$changelog_items" ] && [ -f "CHANGELOG.md" ]; then
-		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -20 | html_escape)
-	fi
-
 	local safe_commit_msg
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
 
@@ -203,27 +195,9 @@ function build_success() {
 		tg_send "$target_group" "$notif_msg" "$TOPIC_CI" "" && echo "Success notification sent to CI topic." || echo "Success notification to CI topic FAILED."
 	fi
 
-	# 2. KIRIM FILE KERNEL .ZIP KE GAMBAR KANAN (Private Channel 'Nai project update')
-	if [ -n "$CHANNEL_ID" ] && [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
-		local file_size
-		file_size=$(du -h "$zip_file" | cut -f1)
-		local doc_caption="🐾 <b>PawwwNunungggg Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
-━━━━━━━━━━━━━━━━━━━━
-<b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
-🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
-📦 <b>File:</b> <code>$(basename "$zip_file")</code>
-<b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
-<b>Redirection:</b> NoMount v20
-<b>Size:</b> ${file_size}
-<b>Commit:</b> <code>${SHA}</code> ${safe_commit_msg}
-
-Changelog:
-${changelog_items:-<i>No changes recorded</i>}
-
-⚠️ <i>Flash via AnyKernel3 recovery (TWRP/OrangeFox).</i>"
-
-		tg_document "$CHANNEL_ID" "$zip_file" "$doc_caption" && echo "Kernel zip document sent to release channel." || echo "Failed to send kernel zip to release channel."
-	fi
+	# ZIP TIDAK dikirim di sini. Broadcast file/changelog/download hanya
+	# lewat status `tested` (notify-tested.yml) SETELAH device tes booting
+	# aman — sebelum tes, channel hanya menerima "build berhasil" singkat.
 }
 
 function build_tested() {

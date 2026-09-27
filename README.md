@@ -3,6 +3,7 @@
 Custom kernel for **Xiaomi Redmi 10 / Redmi 10 2022 (Selene)** — MediaTek MT6768 (Helio G88)
 
 > ⚠️ **Status: Unstable / Porting** — Not yet ready for daily use.
+> 🗺️ **[Roadmap & milestone](ROADMAP.md)** — v0.1.x stabilisasi (soak 48h) → `testing` → v0.2.0 fitur → v1.0.0 stable.
 
 | | |
 |---|---|

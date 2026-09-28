@@ -140,6 +140,7 @@ all.config
 # Build directories
 out/
 ak3/
+drain-dump/
 *.zip
 *.log
 greenforce-clang/

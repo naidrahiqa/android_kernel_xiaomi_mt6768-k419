@@ -78,10 +78,38 @@ Trigger (Push / Dispatch / Tag)
 1. **`start`** → topic Selene CI: build dimulai.
 2. **`failed`** → topic Selene CI: ringkasan error **+ baris error pertama** (`error: …`); detail log ke channel `Nai Error Dump`.
 3. **`success`** → topic Selene CI: **teks singkat** ("✅ Build succeeded" + ringkas, tanpa file/tombol/changelog panjang).
-4. **File zip** → channel private `Nai project update`: file + changelog + **SHA-256 pendek** + tombol **⬇️ Download (GitHub)** (link Actions run). Tanpa banner "belum diuji".
+4. **File zip** → channel private `Nai project update`: caption format **"New PawwwNunungggg Release"** (lihat bawah) + tombol **⬇️ Click Here**.
 
 > Workflow `notify-tested.yml` (announce "tested & booting aman") sudah **DIHAPUS** — jangan ditambah lagi tanpa diskusi.
 > `build.yml` pakai `concurrency: cancel-in-progress` — push beruntun cuma build terakhir; notif result di-guard `success() || failure()` supaya run yang di-cancel diam.
+
+### Caption format zip (channel private)
+Format ala GKI release note, dihasilkan `build_success()` bagian 2:
+
+```
+New PawwwNunungggg Release
+
+Branch: <branch> (<android target>)
+Commit: <short sha>
+Tag: <tag>
+
+Features:
+Build mode = ReSukiSU / KSU = <tag> (<code>) / Manual hook / SuSFS /
+NoMount / Kaeru / Multi-manager / Modules / LTO / TCP / ZRAM writeback /
+Sched MC / Toolchain
+
+Change Log: <5 baris>
+
+Download: Click Here   (URL per channel)
+<zip> · <size> · SHA-256 <16 char>
+Workflow commit: <40 char sha .github/workflows/build.yml>
+```
+
+- **Features dibaca dari `out/.config`** (helper `cfg`/`bool`/`build_features`) — bukan hardcode. Ubah kalau ada config baru yang layak ditampilkan.
+- **Change Log**: `CHANNEL=nightly` → `git log -5` (CHANGELOG.md diabaikan); beta/stable → bullet `CHANGELOG.md`. Semua jalur lewat `compact_log 60` (strip `**`/backtick + potong 60 char).
+- **Download URL**: nightly → Actions run; beta/stable → `releases/tag/<TAG>`.
+- **Guard 1024 char** (limit Telegram `sendDocument`): loop potong Change Log dari bawah; kalau masih lewat → `- (changelog truncated)` + `::warning::` di log.
+- Dry-run lokal: stub `curl` (nulis payload ke file) lalu `bash .github/scripts/notify-telegram.sh success <ver> <tag> CHANGELOG.md <zip>` dengan `TELEGRAM_BOT_TOKEN=dryrun`.
 
 ### Setup — Group with Topics
 - **Group**: "Naidrahiqa Stuff" (forum topics enabled)

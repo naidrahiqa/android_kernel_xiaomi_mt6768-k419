@@ -152,6 +152,55 @@ function tg_document() {
 	return 0
 }
 
+# --- Features helper (dibaca dari out/.config yang sudah di-build) ---
+function cfg() {
+	# cfg SYMBOL -> y | n
+	if [ -f out/.config ] && grep -q "^${1}=y" out/.config; then
+		echo "y"
+	else
+		echo "n"
+	fi
+}
+
+function bool() {
+	[ "$1" = "y" ] && echo "true" || echo "false"
+}
+
+function compact_log() {
+	# Baca bullet changelog dari stdin -> tiap baris dipangkas ke maks $1 char,
+	# markdown inline (**, `) dibuang supaya muat di caption 1024 char.
+	local max="${1:-90}"
+	sed -e 's/[*`]//g' -e 's/  \+/ /g' | while IFS= read -r line; do
+		[ -z "$line" ] && continue
+		if [ "${#line}" -gt "$max" ]; then
+			line="${line:0:$max}…"
+		fi
+		printf '%s\n' "$line"
+	done
+}
+
+function build_features() {
+	local toolchain="${TOOLCHAIN_NAME:-Greenforce Clang}"
+	local lto="none" tcp="default"
+	grep -q "^CONFIG_LTO_NONE=y" out/.config 2>/dev/null || lto="thin"
+	grep -q "^CONFIG_TCP_CONG_BBR=y" out/.config 2>/dev/null && tcp="BBR"
+	cat <<EOF
+Build mode = ReSukiSU
+KSU = ${KSU_VER_TAG}${KSU_VER_CODE:+ (${KSU_VER_CODE})}
+Manual hook = $(bool "$(cfg CONFIG_KSU_MANUAL_HOOK)")
+SuSFS = $(bool "$(cfg CONFIG_KSU_SUSFS)")
+NoMount = $(bool "$(cfg CONFIG_NOMOUNT)")
+Kaeru = $(bool "$(cfg CONFIG_KAERU_COMM)")
+Multi-manager = $(bool "$(cfg CONFIG_KSU_MULTI_MANAGER_SUPPORT)")
+Modules = $(bool "$(cfg CONFIG_MODULES)")
+LTO = ${lto}
+TCP = ${tcp}
+ZRAM writeback = $(bool "$(cfg CONFIG_ZRAM_WRITEBACK)")
+Sched MC = $(bool "$(cfg CONFIG_SCHED_MC)")
+Toolchain = ${toolchain}
+EOF
+}
+
 function build_start() {
 	local safe_commit_msg
 	safe_commit_msg=$(html_escape "$COMMIT_MSG")
@@ -177,11 +226,17 @@ function build_success() {
 	fi
 
 	local changelog_items=""
-	if [ -n "$changelog_file" ] && [ -f "$changelog_file" ]; then
-		changelog_items=$(grep '^- ' "$changelog_file" 2>/dev/null | head -20 | html_escape)
+	if [ "${CHANNEL:-nightly}" = "nightly" ]; then
+		# nightly: tampilkan 5 commit terakhir (CHANGELOG.md tidak dianggap)
+		changelog_items=$(git log -5 --pretty='- %s (%h)' 2>/dev/null | compact_log 60 | html_escape)
+	elif [ -n "$changelog_file" ] && [ -f "$changelog_file" ]; then
+		changelog_items=$(grep '^- ' "$changelog_file" 2>/dev/null | head -5 | compact_log 60 | html_escape)
 	fi
 	if [ -z "$changelog_items" ] && [ -f "CHANGELOG.md" ]; then
-		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -20 | html_escape)
+		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -5 | compact_log 60 | html_escape)
+	fi
+	if [ -z "$changelog_items" ]; then
+		changelog_items=$(git log -5 --pretty='- %s (%h)' 2>/dev/null | compact_log 60 | html_escape)
 	fi
 
 	local safe_commit_msg
@@ -204,27 +259,69 @@ function build_success() {
 	fi
 
 	# 2. KIRIM FILE KERNEL .ZIP + CHANGELOG KE CHANNEL PRIVATE 'Nai project update'
+	# Format: "New Release" ala GKI — Branch/Commit/Tag + Features + Change Log + Download.
 	if [ -n "$CHANNEL_ID" ] && [ -n "$zip_file" ] && [ -f "$zip_file" ]; then
 		local file_size sha256
 		file_size=$(du -h "$zip_file" | cut -f1)
 		sha256=$(sha256sum "$zip_file" | cut -c1-16)
-		local doc_caption="🐾 <b>PawwwNunungggg Kernel</b> · <code>${VERSION}</code> · <b>[${BRANCH}]</b>
-━━━━━━━━━━━━━━━━━━━━
-<b>Device:</b> Redmi 10 (selene) · MT6768 · Linux 4.19
-🌿 <b>Target:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
-📦 <b>File:</b> <code>$(basename "$zip_file")</code>
-<b>Root:</b> ReSukiSU <code>${KSU_VER_TAG}</code>${KSU_VER_CODE:+ (${KSU_VER_CODE})}
-<b>Redirection:</b> NoMount v20
-<b>Size:</b> ${file_size}
-<b>SHA-256:</b> <code>${sha256}…</code>
-<b>Commit:</b> <code>${SHA}</code> ${safe_commit_msg}
 
-Changelog:
-${changelog_items:-<i>No changes recorded</i>}
+		# URL download: beta/stable -> GitHub Release, nightly -> Actions run
+		local download_url="$BUILD_URL"
+		if [ "${CHANNEL:-nightly}" != "nightly" ]; then
+			download_url="${REPO_URL}/releases/tag/${TAG}"
+		fi
 
-⚠️ <i>Flash via AnyKernel3 recovery (TWRP/OrangeFox).</i>"
+		local workflow_commit
+		workflow_commit=$(git log -1 --format=%H -- .github/workflows/build.yml 2>/dev/null || echo "unknown")
 
-		local FILE_BUTTONS='{"inline_keyboard":[[{"text":"⬇️ Download (GitHub)","url":"'"${BUILD_URL}"'"}]]}'
+		local features
+		features=$(build_features)
+
+		# Telegram sendDocument caption limit = 1024 char. Potong Change Log dari bawah sampai muat.
+		local cl_count=5 cl_text doc_caption
+		while :; do
+			cl_text=$(printf '%s\n' "$changelog_items" | head -n "$cl_count")
+			[ -z "$cl_text" ] && cl_text="<i>No changes recorded</i>"
+			doc_caption="🐾 <b>New PawwwNunungggg Release</b>
+
+<b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+<b>Commit:</b> <code>${SHA}</code>
+<b>Tag:</b> <code>${TAG}</code>
+
+<b>Features:</b>
+<pre>${features}</pre>
+
+<b>Change Log:</b>
+${cl_text}
+
+<b>Download:</b> <a href=\"${download_url}\">Click Here</a>
+📦 <code>$(basename "$zip_file")</code> · ${file_size} · SHA-256 <code>${sha256}…</code>
+<b>Workflow commit:</b> <code>${workflow_commit}</code>"
+			[ "${#doc_caption}" -le 1024 ] && break
+			[ "$cl_count" -le 1 ] && break
+			cl_count=$((cl_count - 1))
+		done
+		if [ "${#doc_caption}" -gt 1024 ]; then
+			cl_text="- (changelog truncated)"
+			doc_caption="🐾 <b>New PawwwNunungggg Release</b>
+
+<b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
+<b>Commit:</b> <code>${SHA}</code>
+<b>Tag:</b> <code>${TAG}</code>
+
+<b>Features:</b>
+<pre>${features}</pre>
+
+<b>Change Log:</b>
+${cl_text}
+
+<b>Download:</b> <a href=\"${download_url}\">Click Here</a>
+📦 <code>$(basename "$zip_file")</code> · ${file_size} · SHA-256 <code>${sha256}…</code>
+<b>Workflow commit:</b> <code>${workflow_commit}</code>"
+		fi
+		[ "${#doc_caption}" -gt 1024 ] && echo "::warning::Caption ${#doc_caption} chars exceeds Telegram 1024 limit"
+
+		local FILE_BUTTONS='{"inline_keyboard":[[{"text":"⬇️ Click Here","url":"'"${download_url}"'"}]]}'
 		tg_document "$CHANNEL_ID" "$zip_file" "$doc_caption" "" "$FILE_BUTTONS" && echo "Kernel zip document sent to release channel." || echo "Failed to send kernel zip to release channel."
 	fi
 }

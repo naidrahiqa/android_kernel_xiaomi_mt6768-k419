@@ -212,9 +212,14 @@ function build_start() {
 <a href='${BUILD_URL}'>Build Log</a>"
 
 	local target_group="${GROUP_ID:-$CHANNEL_ID}"
+	local rc=0
 	if [ -n "$target_group" ]; then
-		tg_send "$target_group" "$msg" "$TOPIC_CI" && echo "Start notification sent to CI topic." || echo "Start notification to CI topic FAILED."
+		tg_send "$target_group" "$msg" "$TOPIC_CI" && echo "Start notification sent to CI topic." || { echo "Start notification to CI topic FAILED."; rc=1; }
 	fi
+	if [ -n "$CHANNEL_ID" ] && [ "$CHANNEL_ID" != "$target_group" ]; then
+		tg_send "$CHANNEL_ID" "$msg" && echo "Start notification sent to channel." || { echo "Start notification to channel FAILED."; rc=1; }
+	fi
+	return $rc
 }
 
 function build_success() {

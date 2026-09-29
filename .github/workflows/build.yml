@@ -209,7 +209,7 @@ jobs:
           for sym in \
             CONFIG_TOUCHSCREEN_FTS_XIAOMI \
             CONFIG_KSU \
-            CONFIG_KSU_MANUAL_HOOK \
+            CONFIG_KSU_SUSFS \
             CONFIG_NOMOUNT; do
             grep -q "${sym}=y" out/.config || {
               echo "::warning::Config tidak ditemukan: ${sym}"

@@ -30,6 +30,18 @@ KSU_VERSION=$((30000 + KSU_LOCAL_VERSION + 700))
 
 DATE_TODAY=$(date +%Y-%m-%d 2>/dev/null || echo "2026-09-22")
 
+# Detect hook mode: build .config jika ada, fallback ke selene_defconfig
+DEFCONFIG_PATH="arch/arm64/configs/selene_defconfig"
+if [ -f out/.config ]; then
+    DEFCONFIG_PATH="out/.config"
+fi
+HOOK_MODE="Tracepoint (\`CONFIG_KSU_TRACEPOINT_HOOK=y\`)"
+if grep -q '^CONFIG_KSU_SUSFS=y' "$DEFCONFIG_PATH" 2>/dev/null; then
+    HOOK_MODE="SUSFS inline (\`CONFIG_KSU_SUSFS=y\`)"
+elif grep -q '^CONFIG_KSU_MANUAL_HOOK=y' "$DEFCONFIG_PATH" 2>/dev/null; then
+    HOOK_MODE="Manual Hook (\`CONFIG_KSU_MANUAL_HOOK=y\`)"
+fi
+
 # Format output mode: markdown (default), tg, or changelog
 MODE="${1:-markdown}"
 
@@ -66,7 +78,7 @@ EOF
 | **Commit SHA** | [\`${KSU_COMMIT_SHA}\`](https://github.com/ReSukiSU/ReSukiSU/commit/${KSU_COMMIT_SHA}) |
 | **Commit Count** | ${KSU_LOCAL_VERSION} commits |
 | **Upstream Branch** | \`${KSU_BRANCH_NAME}\` |
-| **Hook Mode** | Manual Hook (\`CONFIG_KSU_MANUAL_HOOK=y\`) |
+| **Hook Mode** | ${HOOK_MODE} |
 | **Manager APK** | [Download ${KSU_TAG_NAME}](https://github.com/ReSukiSU/ReSukiSU/releases/tag/${KSU_TAG_NAME}) |
 
 > **⚠️ Penting:** Versi Manager APK harus match dengan KSU_VERSION \`${KSU_VERSION}\` agar module & root terdeteksi sempurna.

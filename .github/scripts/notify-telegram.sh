@@ -90,17 +90,21 @@ function tg_send() {
 		extra_args+=(-d "message_thread_id=${thread_id}")
 	fi
 	if [ -n "$buttons" ]; then
-		extra_args+=(-d "reply_markup=${buttons}")
+		# urlencode: JSON button bisa mengandung & (+ di URL download)
+		extra_args+=(--data-urlencode "reply_markup=${buttons}")
 	fi
 	local resp
+	# --data-urlencode WAJIB untuk text: html_escape menghasilkan &gt;/&amp;,
+	# dan curl -d tidak encode & sehingga form body terpotong di & pertama
+	# (pesan terpotong -> "Can't find end tag ... ").
 	resp=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
 		-d chat_id="${target}" \
 		"${extra_args[@]}" \
-		-d text="${message}" \
+		--data-urlencode "text=${message}" \
 		-d parse_mode="HTML" \
 		-d disable_web_page_preview=true)
 	if ! echo "$resp" | grep -q '"ok":true'; then
-		echo "Telegram API error: $(echo "$resp" | grep -o '"description":"[^"]*"' | cut -d\" -f4)"
+		echo "Telegram API error: $(echo "$resp" | head -c 400)"
 		return 1
 	fi
 	return 0
@@ -118,12 +122,12 @@ function tg_photo() {
 	local resp
 	resp=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto" \
 		-d chat_id="${target}" \
-		-d photo="${photo_url}" \
-		-d caption="${caption}" \
+		--data-urlencode "photo=${photo_url}" \
+		--data-urlencode "caption=${caption}" \
 		-d parse_mode="HTML" \
 		"${extra_args[@]}")
 	if ! echo "$resp" | grep -q '"ok":true'; then
-		echo "Telegram photo API error: $(echo "$resp" | grep -o '"description":"[^"]*"' | cut -d\" -f4)"
+		echo "Telegram photo API error: $(echo "$resp" | head -c 400)"
 		return 1
 	fi
 	return 0
@@ -146,7 +150,7 @@ function tg_document() {
 		-F parse_mode="HTML" \
 		"${extra_args[@]}")
 	if ! echo "$resp" | grep -q '"ok":true'; then
-		echo "Telegram document API error: $(echo "$resp" | grep -o '"description":"[^"]*"' | cut -d\" -f4)"
+		echo "Telegram document API error: $(echo "$resp" | head -c 400)"
 		return 1
 	fi
 	return 0

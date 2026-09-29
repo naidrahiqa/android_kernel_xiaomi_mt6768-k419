@@ -61,6 +61,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 | Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass |
 | Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
 | Charging Diagnostics | `.opencode/skills/charging-diagnostics/SKILL.md` | Live diagnosa charger via adb: sysfs power_supply, dmesg VChr/ibus, isolasi kabel/adapter |
+| Flash & Boot-Test | `.opencode/skills/flashing-boot-test/SKILL.md` | Cycle flash AK3 per batch: artifact, sideload/manager, verify uname/config, rollback |
 
 **Cara pakai:** Saat dapat task, baca skill yang sesuai. Untuk task umum, mulai dari skill ini.
 

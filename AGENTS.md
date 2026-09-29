@@ -17,6 +17,7 @@ Baca file ini dulu sebelum kerja di repo ini. **File ini orchestrator** — untu
 | Unbrick (BROM) | `.opencode/skills/unbrick-brom/SKILL.md` | Brick, unbrick, brom, mtkclient, device mati total, flash LK/boot |
 | Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
 | Charging Diagnostics | `.opencode/skills/charging-diagnostics/SKILL.md` | Charger, charging, rapid charge, isi daya lambat, VChr, ibus, real_type, bq2589x, adb tcpip |
+| Flash & Boot-Test | `.opencode/skills/flashing-boot-test/SKILL.md` | Flash, sideload, fastboot, recovery, artifact download, verify, uname, rollback, manager install |
 
 **Cara pakai:** Saat dapat task, load skill yang sesuai dari tabel di atas.
 

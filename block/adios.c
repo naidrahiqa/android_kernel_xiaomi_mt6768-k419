@@ -707,6 +707,8 @@ static inline struct adios_rq_data *get_rq_data(struct request *rq) {
 	return rq->elv.priv[0];
 }
 
+static struct adios_rq_data *adios_rq_data_init(struct request *rq);
+
 static inline
 void set_adios_state(struct adios_data *ad, u32 shift, u32 idx, bool flag) {
 	if (flag)
@@ -1007,6 +1009,7 @@ static void adios_insert_requests(struct blk_mq_hw_ctx *hctx,
 			}
 			rq = list_first_entry(list, struct request, queuelist);
 			list_del_init(&rq->queuelist);
+			adios_rq_data_init(rq);
 			if (likely(ad->models_stable))
 				insert_request_post_stability(hctx, rq, at_head);
 			else
@@ -1017,14 +1020,25 @@ static void adios_insert_requests(struct blk_mq_hw_ctx *hctx,
 }
 
 // Prepare a request before it is inserted into the scheduler
-static void adios_prepare_request(struct request *rq, struct bio *bio) {
-	struct adios_data *ad = rq->q->elevator->elevator_data;
-	struct adios_rq_data *rd;
+/* 4.19 skips prepare_request for flush ops (op_is_flush in
+ * blk_mq_get_request) and for requests allocated under a previous
+ * elevator. Lazily create rq->elv.priv[0] before first use. */
+static struct adios_rq_data *adios_rq_data_init(struct request *rq) {
+	struct adios_rq_data *rd = rq->elv.priv[0];
+	struct adios_data *ad;
 
+	if (likely(rd))
+		return rd;
+	ad = rq->q->elevator->elevator_data;
 	rd = mempool_alloc(ad->rq_data_pool, GFP_ATOMIC);
 	memset(rd, 0, sizeof(*rd));
 	rd->rq = rq;
 	rq->elv.priv[0] = rd;
+	return rd;
+}
+
+static void adios_prepare_request(struct request *rq, struct bio *bio) {
+	adios_rq_data_init(rq);
 }
 
 static struct adios_rq_data *get_dl_first_rd(struct adios_data *ad, bool idx) {
@@ -1355,6 +1369,11 @@ static void adios_completed_request(struct request *rq) {
 	struct adios_data *ad = rq->q->elevator->elevator_data;
 	struct adios_rq_data *rd = get_rq_data(rq);
 	union adios_in_flight_rqs ifr = { .scalar = 0 };
+
+	/* flush / never-prepared requests have no rd (4.19 skips
+	 * prepare_request for op_is_flush); nothing to account. */
+	if (unlikely(!rd))
+		return;
 
 	if (rd->managed) {
 		union adios_in_flight_rqs ifr_to_sub = {

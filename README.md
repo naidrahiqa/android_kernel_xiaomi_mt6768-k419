@@ -26,7 +26,6 @@ Nightly builds are available as GitHub Actions artifacts (expires after 90 days)
 - 🚀 **BBR** TCP congestion control (default)
 - 🔐 **WireGuard** VPN built-in
 - ⚡ **LZ4/LZ4HC** zRAM compression
-- 📦 **DroidSpaces** container support
 - 🛡️ **NoMount** systemless path redirection (keyring-based)
 - 👑 **ReSukiSU** KernelSU root (manual hook mode)
 

@@ -400,7 +400,7 @@ CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK=y
 CONFIG_NOMOUNT=y
 CONFIG_TRACEPOINTS=y
 
-# Dropped DroidSpaces container extras (permintaan: RAM6GB) — default n, biarin off:
+# Container extras dimatikan (permintaan: RAM6GB) — default n, biarin off:
 #   USER_NS, IPC_NS, CGROUP_NET_PRIO, CGROUP_NET_CLASSID
 # Config phone dari blok lama TETAP dipertahankan:
 CONFIG_SYSVIPC=y

@@ -94,9 +94,11 @@ Commit: <short sha>
 Tag: <tag>
 
 Features:
-Build mode = ReSukiSU / KSU = <tag> (<code>) / Manual hook / SuSFS /
-NoMount / Kaeru / Multi-manager / Modules / LTO / TCP / ZRAM writeback /
-Sched MC / Toolchain
+Build mode = ReSukiSU / KSU = <tag> (<code>) / Manual hook
+[baris kondisional, hanya muncul kalau =y: NoMount / Multi-manager /
+ Modules / FQ qdisc / ZRAM writeback / Sched MC / Encore FAS /
+ ADIOS io-sched]
+TCP = <cc> / ZRAM compressor = <baca zram_drv.c> / Toolchain
 
 Change Log: <5 baris>
 
@@ -105,7 +107,10 @@ Download: Click Here   (URL per channel)
 Workflow commit: <40 char sha .github/workflows/build.yml>
 ```
 
-- **Features dibaca dari `out/.config`** (helper `cfg`/`bool`/`build_features`) — bukan hardcode. Ubah kalau ada config baru yang layak ditampilkan.
+- **Features dibaca dari `out/.config`** (helper `cfg`/`bool`/`build_features`). **Aturan: cantumin HANYA fitur yang dipakai** — `SuSFS`/`Kaeru`/`LTO` dihapus permanen (SUSFS dropped, Kaeru off, LTO none).
+- **Baris wajib selalu tampil**: `Build mode`, `KSU`, `Manual hook`, `TCP`, `ZRAM compressor`, `Toolchain`.
+- **Baris kondisional** (`[ "$(cfg CONFIG_X)" = "y" ] && active+=...`): NoMount, Multi-manager, Modules, FQ qdisc, ZRAM writeback, Sched MC, Encore FAS, ADIOS io-sched. Nambah fitur baru → tambah 1 baris `active+=` — otomatis muncul di notif saat config-nya aktif (contoh: `CONFIG_ENCORE_FAS=y` → baris "Encore FAS = true").
+- `ZRAM compressor` di-sed dari `default_compressor` di `drivers/block/zram/zram_drv.c` (bukan dari config). Catatan: init vendor `init.mt6768.rc` nulis `lz4` setelah boot, jadi nilai aktif di runtime bisa lz4 walau default kernel zstd.
 - **Change Log**: `CHANNEL=nightly` → `git log -5` (CHANGELOG.md diabaikan); beta/stable → bullet `CHANGELOG.md`. Semua jalur lewat `compact_log 60` (strip `**`/backtick + potong 60 char).
 - **Download URL**: nightly → Actions run; beta/stable → `releases/tag/<TAG>`.
 - **Guard 1024 char** (limit Telegram `sendDocument`): loop potong Change Log dari bawah; kalau masih lewat → `- (changelog truncated)` + `::warning::` di log.

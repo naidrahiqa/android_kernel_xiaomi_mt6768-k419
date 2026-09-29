@@ -363,5 +363,5 @@ CONFIG_KSU_HACK_ARM64_BRANCH_LINK=y
 # NoMount
 CONFIG_NOMOUNT=y
 
-# SUSFS
-CONFIG_KSU_SUSFS=y
+# SUSFS kernel side (dfee8b9) not ported — keep off or ReSukiSU susfs hooks fail to link
+# CONFIG_KSU_SUSFS is not set

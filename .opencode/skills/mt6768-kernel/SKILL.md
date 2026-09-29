@@ -60,6 +60,7 @@ description: Master skill untuk Xiaomi Selene MT6768 kernel 4.19 porting project
 | Defconfig Management | `.opencode/skills/defconfig-management/SKILL.md` | Config dependency chains, gotchas |
 | Kaeru Integration | `.opencode/skills/kaeru-integration/SKILL.md` | Bootloader spoofer, lock state, cert bypass |
 | Versioning & Releases | `.opencode/skills/versioning-releases/SKILL.md` | Version scheme, channels (nightly/beta/stable), localversion, tag conventions |
+| Charging Diagnostics | `.opencode/skills/charging-diagnostics/SKILL.md` | Live diagnosa charger via adb: sysfs power_supply, dmesg VChr/ibus, isolasi kabel/adapter |
 
 **Cara pakai:** Saat dapat task, baca skill yang sesuai. Untuk task umum, mulai dari skill ini.
 
@@ -177,6 +178,7 @@ temp_t4_threshold = <50>;          /* JANGAN UBAH ke 60 */
 - **Layar dim/blank sendiri**: thermal daemon nulis `cur_state` `mtk-cl-backlight` → `mtk_cooler_backlight_cus.c`. Fix (port Phrolova v0.9.3): `set_cur_state` hanya hormati reset path (`state == MAX_BACKLIGHT_BRIGHTNESS`), write di bawah max diabaikan. cpufreq/GPU cooler tetap jalan buat mitigasi panas asli.
 - **Offline charging (HP mati) = jalur LK**, di luar kernel — input-nya dtb (boot.img) + dtbo (stock). Node `lk_charger` kita paritas dengan reference 4.14; kalau offline bermasalah, bedah DT/LK, jangan driver kernel.
 - **QC/HVDCP belum tentu nyala**: log `dhx--hvdcp:0` = handshake QC gagal/tidak ada → arus mentok DCP 5V×2A (10W). Lanjutan bedah: `mtk_chg_type_det.c`.
+- **Diagnosa live charger** (siapa yang rusak: kabel/adapter/HP?): skill `charging-diagnostics` — sysfs `power_supply` + dmesg `VChr`/`ibus` via adb tcpip. Ringkas: `VChr` sag ~4.5V + `ibus:0` padahal `bq2589x enable` muncul = hardware di luar IC; `battery/current_now` negatif = sedang mengisi.
 
 ## Build Commands
 

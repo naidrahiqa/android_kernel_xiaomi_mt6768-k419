@@ -392,18 +392,11 @@ CONFIG_WIREGUARD=y
 # Critical features
 CONFIG_KSU=y
 CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
-# Hook method = SUSFS inline hook (pilihan ganti KSU_MANUAL_HOOK — sama kayak kernel-tree)
-CONFIG_KSU_SUSFS=y
-# TEST-ONLY bisect: subfitur susfs dimatikan (hapus blok ini setelah tes):
-# CONFIG_KSU_SUSFS_SUS_PATH is not set
-# CONFIG_KSU_SUSFS_SUS_MOUNT is not set
-# CONFIG_KSU_SUSFS_SUS_KSTAT is not set
-# CONFIG_KSU_SUSFS_SPOOF_UNAME is not set
-# CONFIG_KSU_SUSFS_ENABLE_LOG is not set
-# CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS is not set
-# CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG is not set
-# CONFIG_KSU_SUSFS_OPEN_REDIRECT is not set
-# CONFIG_KSU_SUSFS_SUS_MAP is not set
+# Hook method = manual hook (SUSFS inline mode dibuang: bootloop logo->reboot, ga ada log)
+CONFIG_KSU_MANUAL_HOOK=y
+CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK=y
+CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK=y
+CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK=y
 CONFIG_NOMOUNT=y
 CONFIG_TRACEPOINTS=y
 

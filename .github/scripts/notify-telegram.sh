@@ -185,23 +185,28 @@ function compact_log() {
 
 function build_features() {
 	local toolchain="${TOOLCHAIN_NAME:-Greenforce Clang}"
-	local lto="none" tcp="default"
-	grep -q "^CONFIG_LTO_NONE=y" out/.config 2>/dev/null || lto="thin"
+	local tcp="default" zram_algo active=""
 	grep -q "^CONFIG_TCP_CONG_BBR=y" out/.config 2>/dev/null && tcp="BBR"
+	zram_algo=$(sed -n 's/^static const char \*default_compressor = "\([^"]*\)".*/\1/p' drivers/block/zram/zram_drv.c 2>/dev/null | head -1)
+	zram_algo="${zram_algo:-lzo}"
+
+	# Fitur non-default: hanya dicetak kalau aktif di build ini (yang non-aktif ga usah dicantumin)
+	[ "$(cfg CONFIG_NOMOUNT)" = "y" ] && active+=$' NoMount = true\n'
+	[ "$(cfg CONFIG_KSU_MULTI_MANAGER_SUPPORT)" = "y" ] && active+=$' Multi-manager = true\n'
+	[ "$(cfg CONFIG_MODULES)" = "y" ] && active+=$' Modules = true\n'
+	[ "$(cfg CONFIG_NET_SCH_FQ)" = "y" ] && active+=$' FQ qdisc = true\n'
+	[ "$(cfg CONFIG_ZRAM_WRITEBACK)" = "y" ] && active+=$' ZRAM writeback = true\n'
+	[ "$(cfg CONFIG_SCHED_MC)" = "y" ] && active+=$' Sched MC = true\n'
+	[ "$(cfg CONFIG_ENCORE_FAS)" = "y" ] && active+=$' Encore FAS = true\n'
+	[ "$(cfg CONFIG_MQ_IOSCHED_ADIOS)" = "y" ] && active+=$' ADIOS io-sched = true\n'
+
 	cat <<EOF
-Build mode = ReSukiSU
-KSU = ${KSU_VER_TAG}${KSU_VER_CODE:+ (${KSU_VER_CODE})}
-Manual hook = $(bool "$(cfg CONFIG_KSU_MANUAL_HOOK)")
-SuSFS = $(bool "$(cfg CONFIG_KSU_SUSFS)")
-NoMount = $(bool "$(cfg CONFIG_NOMOUNT)")
-Kaeru = $(bool "$(cfg CONFIG_KAERU_COMM)")
-Multi-manager = $(bool "$(cfg CONFIG_KSU_MULTI_MANAGER_SUPPORT)")
-Modules = $(bool "$(cfg CONFIG_MODULES)")
-LTO = ${lto}
-TCP = ${tcp}
-ZRAM writeback = $(bool "$(cfg CONFIG_ZRAM_WRITEBACK)")
-Sched MC = $(bool "$(cfg CONFIG_SCHED_MC)")
-Toolchain = ${toolchain}
+ Build mode = ReSukiSU
+ KSU = ${KSU_VER_TAG}${KSU_VER_CODE:+ (${KSU_VER_CODE})}
+ Manual hook = $(bool "$(cfg CONFIG_KSU_MANUAL_HOOK)")
+${active} TCP = ${tcp}
+ ZRAM compressor = ${zram_algo}
+ Toolchain = ${toolchain}
 EOF
 }
 

@@ -13,10 +13,10 @@ Panduan dan otomatisasi manajemen versi ReSukiSU untuk kernel MT6768 (PawwwNunun
 |---|---|
 | **Driver** | ReSukiSU (`ReSukiSU/ReSukiSU`) |
 | **Driver Path** | `resukisu/` (4.19) / `resukisu/kernel/` (4.14) |
-| **Latest Commit** | `fa8311f632a2` (2026-09-26) |
-| **Commit Count (`KSU_LOCAL_VERSION`)** | `4484` |
+| **Latest Commit** | `94dd3c93c205` (2026-09-29) |
+| **Commit Count (`KSU_LOCAL_VERSION`)** | `4487` |
 | **Latest Tag** | `v4.2.0-rc3` |
-| **KSU_VERSION Code** | `35184` |
+| **KSU_VERSION Code** | `35187` |
 | **Hook Mode** | Manual hook (`CONFIG_KSU_MANUAL_HOOK=y`) |
 
 ## Rumus Perhitungan KSU_VERSION

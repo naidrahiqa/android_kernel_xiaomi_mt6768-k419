@@ -196,6 +196,28 @@ mov r7, #__NR_sigreturn
 mov r7, #__NR_rt_sigreturn
 ```
 
+## C99 Declarations vs KBUILD `-std=gnu89` (port file luar/upstream)
+
+**Problem:** KBUILD pakai `-std=gnu89` (top-level `Makefile`), tapi file port
+dari kernel baru (ADIOS 6.12, NoMount HEAD, dsb.) berisi `for (int i = ...)`,
+mixed declarations → warning `-Wdeclaration-after-statement`, dan bisa jadi
+implicit-declaration error.
+
+**Fix (per-file, jangan global):** di Makefile subdirektori, TAMBAH setelah
+baris obj:
+
+```makefile
+CFLAGS_adios.o    += -std=gnu11 -Wno-declaration-after-statement
+CFLAGS_nomount.o  += -std=gnu11
+```
+
+Mekanisme: `scripts/Makefile.lib:95` men-append `$(CFLAGS_$(basetarget).o)`
+SETELAH `orig_c_flags` (yang punya `-std=gnu89`) → per-file flags MENANG
+(last `-std` wins). Nama var = `CFLAGS_<namafile>.o` (basetarget tanpa path).
+
+**Contoh dipakai:** `block/Makefile` (adios.c), `fs/Makefile` (nomount.c).
+Jangan ubah `-std` global — semua file lain harus tetap gnu89.
+
 ## Anti-Patterns (JANGAN LAKUKAN)
 
 1. **Jangan enable `CONFIG_LTO_CLANG`** tanpa pastikan LLVM version match

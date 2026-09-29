@@ -12,6 +12,13 @@ description: NoMount systemless path redirection untuk kernel 4.19. VFS hooks, k
 - **Kernel module**: `fs/nomount.c` + `fs/nomount.h`
 - **Userspace**: `tools/nomount/` (binary + Magisk module)
 
+> **Catatan layout:** repo `upstream/kernel-tree` punya layout alternatif
+> "Meta NoMount" (`fs/nomount/` + source di `fs/Kconfig`/`fs/Makefile`) yang
+> **sengaja TIDAK dipakai** di sini. Kita tetap wiring v20 flat karena versi
+> Meta membuang null-check (`d_backing_inode`, `i_private`) dan guard
+> `TASK_SIZE` pada `get_user_pages_fast`. Jangan pernah `source
+> "fs/nomount/Kconfig"` — duplikat simbol `NOMOUNT`.
+
 ## Architecture
 
 NoMount melakukan virtual file injection + path redirection tanpa mount filesystem:

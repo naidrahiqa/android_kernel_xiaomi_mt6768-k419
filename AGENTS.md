@@ -100,6 +100,7 @@ make O=out ARCH=arm64 \
 | Fast charge stuck ~1W padahal charger ke-detect | `thermal_icl_ua = -1` di `charger_manager_set_prop_system_temp_level()` (`mtk_charger.c`) — thermal HAL clamp via `charge_control_limit` | defconfig-management |
 | Layar dim/blank sendiri (thermal HAL) | `mtk_cl_backlight_set_cur_state` hanya hormati reset path (`state==max`), write di bawah max diabaikan | mt6768-kernel |
 | Notif "sukses" padahal build gagal | `Final check` wajib cek `job.status` + `MAKE_EXIT_CODE` | ci-cd-github-actions |
+| SUSFS inline mode (`CONFIG_KSU_SUSFS`) bootloop logo→reboot, adbd mati, log nihil | **Dibuang permanen** — patch susfs kernel di-revert (`32041a369804`), subfitur-off pun tetap bootloop; manual hook saja | resukisu-integration |
 
 ## CRITICAL: Flashing Partisi — JANGAN FLASH LK ATAU DTBO
 

@@ -391,8 +391,9 @@ CONFIG_WIREGUARD=y
 
 # Critical features
 CONFIG_KSU=y
-CONFIG_KSU_MANUAL_HOOK=y
 CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
+# Hook method = SUSFS inline hook (pilihan ganti KSU_MANUAL_HOOK — sama kayak kernel-tree)
+CONFIG_KSU_SUSFS=y
 CONFIG_NOMOUNT=y
 CONFIG_TRACEPOINTS=y
 

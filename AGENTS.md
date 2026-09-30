@@ -104,6 +104,7 @@ make O=out ARCH=arm64 \
 | Layar dim/blank sendiri (thermal HAL) | `mtk_cl_backlight_set_cur_state` hanya hormati reset path (`state==max`), write di bawah max diabaikan | mt6768-kernel |
 | Notif "sukses" padahal build gagal | `Final check` wajib cek `job.status` + `MAKE_EXIT_CODE` | ci-cd-github-actions |
 | SUSFS inline mode (`CONFIG_KSU_SUSFS`) bootloop logo→reboot, adbd mati, log nihil | **Dibuang permanen** — patch susfs kernel di-revert (`32041a369804`), subfitur-off pun tetap bootloop; manual hook saja | resukisu-integration |
+| `teei_log_thread` R 100% CPU sejak boot (boros baterai, big cluster nyangkut 2.0GHz, deep suspend 0×) | Index NQ永久 mismatch (+2 dari work entry boot yang cuma bump input) → loop `teei_log_fn` tak pernah wait; dengan `CONFIG_MICROTRUST_TZ_LOG=n` body kosong → busy-spin. Fix `1bfcda1c2dc6`: TZ_LOG=`y` + guard `kthread_create` di `teei_client_main.c` | defconfig-management |
 
 ## CRITICAL: Flashing Partisi — JANGAN FLASH LK ATAU DTBO
 

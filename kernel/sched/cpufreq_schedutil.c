@@ -17,6 +17,9 @@
 #include <trace/events/power.h>
 #include "cpufreq_schedutil.h"
 
+#define SUGOV_UP_RATE_LIMIT_US		1500
+#define SUGOV_DOWN_RATE_LIMIT_US	500
+
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
 	unsigned int		up_rate_limit_us;
@@ -932,8 +935,8 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto stop_kthread;
 	}
 
-	tunables->up_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
-	tunables->down_rate_limit_us = cpufreq_policy_transition_delay_us(policy);
+	tunables->up_rate_limit_us = SUGOV_UP_RATE_LIMIT_US;
+	tunables->down_rate_limit_us = SUGOV_DOWN_RATE_LIMIT_US;
 
 	policy->governor_data = sg_policy;
 	sg_policy->tunables = tunables;

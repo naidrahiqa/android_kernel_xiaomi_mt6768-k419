@@ -138,6 +138,7 @@ all.config
 out/
 ak3/
 drain-dump/
+log-dump/
 *.zip
 *.log
 greenforce-clang/

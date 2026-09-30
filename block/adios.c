@@ -1009,7 +1009,17 @@ static void adios_insert_requests(struct blk_mq_hw_ctx *hctx,
 			}
 			rq = list_first_entry(list, struct request, queuelist);
 			list_del_init(&rq->queuelist);
-			adios_rq_data_init(rq);
+			if (unlikely(!adios_rq_data_init(rq))) {
+				/*
+				 * rd pool exhausted (severe memory pressure):
+				 * park the request on the requeue list (only
+				 * q->requeue_lock, no hctx lock ordering issue)
+				 * and retry from a fresh insert cycle.
+				 */
+				blk_mq_add_to_requeue_list(rq, false, true);
+				stop = true;
+				break;
+			}
 			if (likely(ad->models_stable))
 				insert_request_post_stability(hctx, rq, at_head);
 			else
@@ -1027,10 +1037,23 @@ static struct adios_rq_data *adios_rq_data_init(struct request *rq) {
 	struct adios_rq_data *rd = rq->elv.priv[0];
 	struct adios_data *ad;
 
-	if (likely(rd))
+	/*
+	 * struct request shares elv and flush storage (blkdev.h), so
+	 * flush.list.next aliases elv.priv[0].  A slot reused after flush
+	 * processing (blk_insert_flush memsets the union and re-inits
+	 * flush.list, and flush-op slots never run prepare/finish because
+	 * 4.19 core skips them) carries a stale interior pointer here.
+	 * Only trust priv[0] when it really belongs to this request;
+	 * otherwise discard it and allocate a fresh rd.
+	 */
+	if (likely(rd && rd->rq == rq))
 		return rd;
 	ad = rq->q->elevator->elevator_data;
 	rd = mempool_alloc(ad->rq_data_pool, GFP_ATOMIC);
+	if (unlikely(!rd)) {
+		WARN_ON_ONCE(1);
+		return NULL;
+	}
 	memset(rd, 0, sizeof(*rd));
 	rd->rq = rq;
 	rq->elv.priv[0] = rd;
@@ -1370,9 +1393,10 @@ static void adios_completed_request(struct request *rq) {
 	struct adios_rq_data *rd = get_rq_data(rq);
 	union adios_in_flight_rqs ifr = { .scalar = 0 };
 
-	/* flush / never-prepared requests have no rd (4.19 skips
-	 * prepare_request for op_is_flush); nothing to account. */
-	if (unlikely(!rd))
+	/* Flush-union / never-prepared slots: priv[0] is NULL or a stale
+	 * flush.list interior pointer (aliases elv.priv[0]), not a real rd.
+	 * Those requests never entered our queues, nothing to account. */
+	if (unlikely(!rd || rd->rq != rq))
 		return;
 
 	if (rd->managed) {
@@ -1437,12 +1461,16 @@ static void adios_completed_request(struct request *rq) {
 // Clean up after a request is finished
 static void adios_finish_request(struct request *rq) {
 	struct adios_data *ad = rq->q->elevator->elevator_data;
+	struct adios_rq_data *rd = rq->elv.priv[0];
 
-	if (rq->elv.priv[0]) {
-		// Free adios_rq_data back to the memory pool
-		mempool_free(get_rq_data(rq), ad->rq_data_pool);
-		rq->elv.priv[0] = NULL;
-	}
+	/*
+	 * Never mempool_free a stale flush.list interior pointer (would
+	 * corrupt the slab freelist), but always detach priv[0] so the
+	 * next occupant of this request slot starts clean.
+	 */
+	if (rd && rd->rq == rq)
+		mempool_free(rd, ad->rq_data_pool);
+	rq->elv.priv[0] = NULL;
 }
 
 // Check if there are any requests available for dispatch

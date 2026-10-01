@@ -280,6 +280,18 @@ jobs:
           fi
           echo "OK - no dangerous partition files in zip"
 
+      - name: Publish checksums
+        if: success()
+        run: |
+          ZIP_FILE="${{ steps.version.outputs.TAG }}.zip"
+          {
+            echo "### Checksums"
+            echo '```'
+            md5sum "$ZIP_FILE"
+            sha256sum "$ZIP_FILE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Final check
         id: final-check
         if: always()

@@ -142,3 +142,8 @@ log-dump/
 *.zip
 *.log
 greenforce-clang/
+
+# Local docs/config (not published to source)
+.opencode/
+AGENTS.md
+ROADMAP.md

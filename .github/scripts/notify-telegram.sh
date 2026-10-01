@@ -265,7 +265,7 @@ function build_success() {
 🌿 <b>Branch:</b> <code>${BRANCH}</code> (${ANDROID_TARGET})
 📦 <code>$(basename "$zip_file")</code>${BUILD_TIME:+ · ⏱ $((BUILD_TIME / 60))m$((BUILD_TIME % 60))s}
 <code>${SHA}</code> ${safe_commit_msg}
-<a href='${BUILD_URL}'>Build Log</a>"
+<a href='${BUILD_URL}'>Build Log</a> · <a href='${REPO_URL}/blob/${BRANCH}/CHANGELOG.md'>Changelog</a>"
 
 	local target_group="${GROUP_ID:-$CHANNEL_ID}"
 	if [ -n "$target_group" ]; then
@@ -307,6 +307,7 @@ function build_success() {
 
 <b>Change Log:</b>
 ${cl_text}
+📋 <a href=\"${REPO_URL}/blob/${BRANCH}/CHANGELOG.md\">Full changelog</a>
 
 <b>Download:</b> <a href=\"${download_url}\">Click Here</a>
 📦 <code>$(basename "$zip_file")</code> · ${file_size} · SHA-256 <code>${sha256}…</code>
@@ -328,6 +329,7 @@ ${cl_text}
 
 <b>Change Log:</b>
 ${cl_text}
+📋 <a href=\"${REPO_URL}/blob/${BRANCH}/CHANGELOG.md\">Full changelog</a>
 
 <b>Download:</b> <a href=\"${download_url}\">Click Here</a>
 📦 <code>$(basename "$zip_file")</code> · ${file_size} · SHA-256 <code>${sha256}…</code>

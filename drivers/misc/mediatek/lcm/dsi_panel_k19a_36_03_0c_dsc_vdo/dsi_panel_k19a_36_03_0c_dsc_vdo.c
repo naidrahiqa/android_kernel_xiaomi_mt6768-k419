@@ -592,7 +592,7 @@ static unsigned int lcm_ata_check(unsigned char *buffer)
 
 static void lcm_setbacklight_cmdq(void *handle, unsigned int level)
 {
-	pr_err("%s,nt36672c backlight: level = %d\n", __func__, level);
+	pr_debug("%s,nt36672c backlight: level = %d\n", __func__, level);
 
 	bl_level[0].para_list[0] = level;
 

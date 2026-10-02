@@ -62,7 +62,7 @@ void mtk_pdc_check_cable_impedance(struct charger_manager *pinfo)
 
 	/* Set ichg = 2500mA, set MIVR */
 	charger_dev_set_charging_current(pinfo->chg1_dev, 2500000);
-	mdelay(240);
+	msleep(240);
 	ret = mtk_pdc_set_mivr(pinfo, pinfo->data.min_charger_voltage);
 	if (ret < 0)
 		chr_err("%s: failed, ret = %d\n", __func__, ret);

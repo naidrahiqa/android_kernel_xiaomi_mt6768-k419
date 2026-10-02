@@ -537,7 +537,7 @@ int charger_manager_force_disable_power_path(struct charger_consumer *consumer,
 		chg_dev = info->chg2_dev;
 		break;
 	default:
-		ret = -EINVAL;
+		return -EINVAL;
 	}
 
 	mutex_lock(&info->pp_lock[idx]);
@@ -1394,7 +1394,7 @@ int hq_config(void)
 		config = K19V;
 	else
 		config = K19D;
-	printk("%s: config = %d",__func__,config);
+	chr_debug("%s: config = %d",__func__,config);
 	return config;
 }
 
@@ -1423,7 +1423,7 @@ void hq_jeita_config(struct charger_manager *info)
 			default:
 				break;
 		}
-		printk("%s: temp_level = %d",__func__,sw_jeita->sm);
+		chr_debug("%s: temp_level = %d",__func__,sw_jeita->sm);
 	}
 	else
 		return;
@@ -1464,31 +1464,31 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 			sw_jeita->sm = TEMP_ABOVE_T4;
 			chr_err("[SW_JEITA]wlc now temprature is %d, te_thres_minus: %d !!\n",info->battery_temp, info->data.temp_t4_thres_minus_x_degree);
 		} else {
-			chr_err("[SW_JEITA] Battery Temperature between %d and %d !!\n",
+			chr_debug("[SW_JEITA] Battery Temperature between %d and %d !!\n",
 				info->data.temp_t3_thres,
 				info->data.temp_t4_thres);
 
 			sw_jeita->sm = TEMP_T3_TO_T4;
 		}
 	} else if (info->battery_temp >= info->data.temp_t2_thres) {
-			chr_err("[SW_JEITA] Battery Normal Temperature between %d and %d !!\n",
+			chr_debug("[SW_JEITA] Battery Normal Temperature between %d and %d !!\n",
 				info->data.temp_t2_thres,
 				info->data.temp_t3_thres);
 			sw_jeita->sm = TEMP_T2_TO_T3;
 	} else if (info->battery_temp >= info->data.temp_t1_thres) {
-			chr_err("[SW_JEITA] Battery Temperature between %d and %d !!\n",
+			chr_debug("[SW_JEITA] Battery Temperature between %d and %d !!\n",
 				info->data.temp_t1_thres,
 				info->data.temp_t2_thres);
 
 			sw_jeita->sm = TEMP_T1_TO_T2;
 	} else if (info->battery_temp >= info->data.temp_t0_thres) {
-			chr_err("[SW_JEITA] Battery Temperature between %d and %d !!\n",
+			chr_debug("[SW_JEITA] Battery Temperature between %d and %d !!\n",
 				info->data.temp_t0_thres,
 				info->data.temp_t1_thres);
 
 			sw_jeita->sm = TEMP_T0_TO_T1;
 	} else if (info->battery_temp >= info->data.temp_neg_10_thres) {
-			chr_err("[SW_JEITA] Battery Temperature between %d and %d !!\n",
+			chr_debug("[SW_JEITA] Battery Temperature between %d and %d !!\n",
 				info->data.temp_neg_10_thres,
 				info->data.temp_t0_thres);
 
@@ -1532,7 +1532,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 		sw_jeita->cv = 0;
 	}
 
-	chr_err("[SW_JEITA]preState:%d newState:%d tmp:%d cv:%d cc:%d\n",
+	chr_debug("[SW_JEITA]preState:%d newState:%d tmp:%d cv:%d cc:%d\n",
 		sw_jeita->pre_sm, sw_jeita->sm, info->battery_temp,
 		sw_jeita->cv, sw_jeita->cc);
 }
@@ -1542,7 +1542,7 @@ static ssize_t show_sw_jeita(struct device *dev, struct device_attribute *attr,
 {
 	struct charger_manager *pinfo = dev->driver_data;
 
-	chr_err("%s: %d\n", __func__, pinfo->enable_sw_jeita);
+	chr_debug("%s: %d\n", __func__, pinfo->enable_sw_jeita);
 	return sprintf(buf, "%d\n", pinfo->enable_sw_jeita);
 }
 
@@ -2193,7 +2193,7 @@ static void charger_check_status(struct charger_manager *info)
 stop_charging:
 	mtk_battery_notify_check(info);
 
-	chr_err("tmp:%d (jeita:%d sm:%d cv:%d en:%d) (sm:%d) en:%d c:%d s:%d ov:%d sc:%d %d %d\n",
+	chr_debug("tmp:%d (jeita:%d sm:%d cv:%d en:%d) (sm:%d) en:%d c:%d s:%d ov:%d sc:%d %d %d\n",
 		temperature, info->enable_sw_jeita, info->sw_jeita.sm,
 		info->sw_jeita.cv, info->sw_jeita.charging, thermal->sm,
 		charging, info->cmd_discharging, info->safety_timeout,
@@ -2326,7 +2326,7 @@ static void mtk_charger_start_timer(struct charger_manager *info)
 
 	ktime = ktime_set(info->endtime.tv_sec, info->endtime.tv_nsec);
 
-	chr_err("%s: alarm timer start:%d, %ld %ld\n", __func__, ret,
+	chr_debug("%s: alarm timer start:%d, %ld %ld\n", __func__, ret,
 		info->endtime.tv_sec, info->endtime.tv_nsec);
 	alarm_start(&pinfo->charger_timer, ktime);
 }

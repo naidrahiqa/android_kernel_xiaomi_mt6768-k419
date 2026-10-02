@@ -1337,7 +1337,7 @@ int pd_policy_engine_run(struct tcpc_device *tcpc)
 
 	if(tcpc->ops->set_msg_header == NULL)
 	{
-		pr_err("tcpc->ops->set_msg_header == NULL , return\n");
+		pr_err_ratelimited("tcpc->ops->set_msg_header == NULL , return\n");
 		return false;
 	}
 

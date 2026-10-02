@@ -2702,13 +2702,13 @@ void fg_drv_update_hw_status(void)
 	chr_vol = battery_get_vbus();
 	tmp = force_get_tbat(true);
 
-	bm_err("lbat %d %d %d %d\n",
+	bm_debug("lbat %d %d %d %d\n",
 		gm.sw_low_battery_ht_en,
 		gm.sw_low_battery_ht_threshold,
 		gm.sw_low_battery_lt_en,
 		gm.sw_low_battery_lt_threshold);
 
-	bm_err("car[%d,%ld,%ld,%ld,%ld, cycle_car:%d,ncar:%d] c:%d %d vbat:%d vbus:%d soc:%d %d gm3:%d %d %d %d\n",
+	bm_debug("car[%d,%ld,%ld,%ld,%ld, cycle_car:%d,ncar:%d] c:%d %d vbat:%d vbus:%d soc:%d %d gm3:%d %d %d %d\n",
 		fg_coulomb, gm.coulomb_plus.end,
 		gm.coulomb_minus.end, gm.soc_plus.end,
 		gm.soc_minus.end,
@@ -2724,7 +2724,7 @@ void fg_drv_update_hw_status(void)
 	fg_current_iavg = gauge_get_average_current(&valid);
 	fg_nafg_monitor();
 
-	bm_err("tmp:%d %d %d hcar2:%d lcar2:%d time:%d sw_iavg:%d %d %d nafg_m:%d %d %d\n",
+	bm_debug("tmp:%d %d %d hcar2:%d lcar2:%d time:%d sw_iavg:%d %d %d nafg_m:%d %d %d\n",
 		tmp, gm.fg_bat_tmp_int_ht, gm.fg_bat_tmp_int_lt,
 		gm.fg_bat_int2_ht, gm.fg_bat_int2_lt,
 		fg_get_system_sec(), gm.sw_iavg, fg_current_iavg, valid,
@@ -4810,7 +4810,7 @@ void gm3_log_dump_nafg(int type)
 #endif
 	system_time = fg_get_system_sec();
 
-	bm_err("%s %d %llu %d %d %d %d %d\n",
+	bm_debug("%s %d %llu %d %d %d %d %d\n",
 		title,
 		system_time,
 		logtime,
@@ -4852,7 +4852,7 @@ void gm3_log_dump(bool force)
 
 	car = gauge_get_coulomb();
 
-	bm_err("GM3log1 %d %llu %d %d %d %d %d %d %d %d %d %d %d\n",
+	bm_debug("GM3log1 %d %llu %d %d %d %d %d %d %d %d %d %d %d\n",
 		system_time,
 		logtime,
 		battery_get_bat_voltage(),
@@ -4867,7 +4867,7 @@ void gm3_log_dump(bool force)
 		gm.gdev->fg_hw_info.iavg_valid,
 		gm.log.chr_status);
 
-	bm_err("GM3log2 %llu %d %d %d %d %d %d %d %d\n",
+	bm_debug("GM3log2 %llu %d %d %d %d %d %d %d %d\n",
 		logtime,
 		gm.log.zcv_int,
 		gm.log.zcv,
@@ -4878,7 +4878,7 @@ void gm3_log_dump(bool force)
 		gm.log.ptim_is_charging,
 		battery_get_vbus());
 
-	bm_err("GM3log3 %llu %d %d %d %d\n",
+	bm_debug("GM3log3 %llu %d %d %d %d\n",
 		logtime,
 		gm.pl_shutdown_time,
 		gm.ptim_lk_v,
@@ -4886,7 +4886,7 @@ void gm3_log_dump(bool force)
 		gm.log.nafg_zcv
 		);
 
-	bm_err("GM3log4 %d %d %d %d %d %d %d %d %d %d %d\n",
+	bm_debug("GM3log4 %d %d %d %d %d %d %d %d %d %d %d\n",
 		gm.log.is_gauge_initialized,
 		gm.log.rtc_ui_soc,
 		gm.log.is_rtc_invalid,
@@ -4901,7 +4901,7 @@ void gm3_log_dump(bool force)
 		);
 
 	if (gm.gdev->fg_hw_info.hw_zcv != 0)
-		bm_err("GM3log5 %d %d %d %d %d\n",
+		bm_debug("GM3log5 %d %d %d %d %d\n",
 		gm.gdev->fg_hw_info.pmic_zcv,
 		gm.gdev->fg_hw_info.pmic_zcv_rdy,
 		gm.gdev->fg_hw_info.charger_zcv,
@@ -4909,7 +4909,7 @@ void gm3_log_dump(bool force)
 			gm.hw_status.flag_hw_ocv_unreliable
 		);
 
-	bm_err("GM3log int %llu %d %d %d %d %d\n",
+	bm_debug("GM3log int %llu %d %d %d %d %d\n",
 		logtime,
 		system_time,
 		gm.log.phone_state,
@@ -4917,12 +4917,12 @@ void gm3_log_dump(bool force)
 		gm.log.dlpt_sd_int,
 		gm.log.chr_in_int);
 
-	bm_err("GM3log phone_state %llu %d\n",
+	bm_debug("GM3log phone_state %llu %d\n",
 		gm.log.ps_logtime,
 		gm.log.ps_system_time);
 
 
-	bm_err("GM3 car:%d car_diff:%d\n",
+	bm_debug("GM3 car:%d car_diff:%d\n",
 		car,
 		gm.log.car_diff);
 

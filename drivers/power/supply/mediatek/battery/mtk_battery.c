@@ -4689,7 +4689,7 @@ static void otg_boost_limit_work(struct work_struct *work)
 		fgcurrent = 0 - fgcurrent;
 
 	current_now = fgcurrent * 100;
-	pr_err("dhx--state:%d--current now = %d\n", b_ischarging, current_now);
+	bm_debug("dhx--state:%d--current now = %d\n", b_ischarging, current_now);
 	if (!primary_charger) {
 		pr_err("primary_charger is NULL\n");
 		primary_charger = get_charger_by_name("primary_chg");

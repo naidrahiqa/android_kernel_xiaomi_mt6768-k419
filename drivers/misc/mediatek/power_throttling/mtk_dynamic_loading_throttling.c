@@ -363,9 +363,9 @@ static int dlpt_notify_handler(void *unused)
 		cur_ui_soc = dlpt_get_uisoc();
 
 		if (dlpt.imix_r == 0)
-			pr_info("[DLPT] imix_r==0, skip\n");
+			pr_debug("[DLPT] imix_r==0, skip\n");
 		else if (!get_mtk_gauge_psy())
-			pr_info("[DLPT] gauge disabled, skip\n");
+			pr_debug("[DLPT] gauge disabled, skip\n");
 		else {
 			if (dlpt_get_rgs_chrdet())
 				dlpt.imix = get_dlpt_imix_charging();
@@ -376,7 +376,7 @@ static int dlpt_notify_handler(void *unused)
 				dlpt.imix = IMAX_MAX_VALUE;
 			exec_dlpt_callback(dlpt.imix);
 
-			pr_info("[DLPT_final] %d,%d,%d,%d\n"
+			pr_debug("[DLPT_final] %d,%d,%d,%d\n"
 				, dlpt.imix, pre_ui_soc
 				, cur_ui_soc, IMAX_MAX_VALUE);
 		}

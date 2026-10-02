@@ -3,7 +3,6 @@
  * Copyright (c) 2020 MediaTek Inc.
  */
 
-#define DEBUG 1
 /* system includes */
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -782,7 +781,7 @@ int mt_ppm_main(void)
 					log_print = true;
 					if (ppm_main_info.cluster_info[i].max_freq_req != NULL &&
 					ppm_main_info.cluster_info[i].min_freq_req != NULL) {
-						pr_info("ppm update cpufreq limit ,cluster %d, min freq %d ------max freq %d\n",
+						pr_debug("ppm update cpufreq limit ,cluster %d, min freq %d ------max freq %d\n",
 							i,
 	ppm_main_info.cluster_info[i].dvfs_tbl[c_req->cpu_limit[i].min_cpufreq_idx].frequency,
 	ppm_main_info.cluster_info[i].dvfs_tbl[c_req->cpu_limit[i].max_cpufreq_idx].frequency);

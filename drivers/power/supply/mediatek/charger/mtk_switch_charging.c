@@ -317,7 +317,7 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 
 		if (pdata->charging_current_limit > info->sw_jeita.cc)
 			pdata->charging_current_limit = info->sw_jeita.cc;
-		pr_err("dhx---jeita_cc : %d\n", info->sw_jeita.cc);
+		chr_debug("dhx---jeita_cc : %d\n", info->sw_jeita.cc);
 	}
 
 	// if (pdata->thermal_charging_current_limit != -1) {
@@ -363,7 +363,7 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		if (pdata->input_current_limit > call_mode) {
 			pdata->input_current_limit = call_mode;
 			pdata->charging_current_limit = call_mode;
-			pr_err("call mode is %d\n", call_mode);
+			chr_debug("call mode is %d\n", call_mode);
 		}
 	}
 
@@ -376,7 +376,7 @@ done:
 	if (ret != -ENOTSUPP && pdata->input_current_limit < aicr1_min)
 		pdata->input_current_limit = 0;
 
-	chr_err("force:%d thermal:%d,%d pe4:%d,%d,%d setting:%d %d type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d\n",
+	chr_debug("force:%d thermal:%d,%d pe4:%d,%d,%d setting:%d %d type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d\n",
 		_uA_to_mA(pdata->force_charging_current),
 		_uA_to_mA(pdata->thermal_input_current_limit),
 		_uA_to_mA(pdata->thermal_charging_current_limit),
@@ -433,7 +433,7 @@ static void swchg_select_cv(struct charger_manager *info)
 	/* dynamic cv*/
 	constant_voltage = info->data.battery_cv;
 	mtk_get_dynamic_cv(info, &constant_voltage);
-	pr_err("dhx--set constant_voltage:%d\n", constant_voltage);
+	chr_debug("dhx--set constant_voltage:%d\n", constant_voltage);
 	charger_dev_set_constant_voltage(info->chg1_dev, constant_voltage);
 }
 

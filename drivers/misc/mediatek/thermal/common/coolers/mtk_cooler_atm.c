@@ -832,7 +832,7 @@ static void set_adaptive_cpu_power_limit(unsigned int limit)
 #endif
 		print_cunt++;
 		if (print_cunt == 5) {
-			tscpu_warn(
+			pr_debug(TSCPU_LOG_TAG
 				"%s (0x%x) %d T=%d, %d T=%d, %d T=%d, %d T=%d, %d T=%d\n",
 				__func__,
 				tscpu_get_temperature_range(),

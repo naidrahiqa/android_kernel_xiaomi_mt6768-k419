@@ -474,7 +474,7 @@ done:
 		pdata2->input_current_limit = pdata2->input_current_limit / 2;
 	}
 
-	pr_notice("force:%d %d thermal:(%d %d,%d %d)(%d %d %d)setting:(%d %d)(%d %d)",
+	chr_debug("force:%d %d thermal:(%d %d,%d %d)(%d %d %d)setting:(%d %d)(%d %d)",
 		_uA_to_mA(pdata->force_charging_current),
 		_uA_to_mA(pdata2->force_charging_current),
 		_uA_to_mA(pdata->thermal_input_current_limit),
@@ -489,7 +489,7 @@ done:
 		_uA_to_mA(pdata2->input_current_limit),
 		_uA_to_mA(pdata2->charging_current_limit));
 
-	pr_notice("type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d parallel:%d\n",
+	chr_debug("type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d parallel:%d\n",
 		info->chr_type, info->usb_unlimited,
 		IS_ENABLED(CONFIG_USBIF_COMPLIANCE), info->usb_state,
 		_uA_to_mA(pdata->input_current_limit_by_aicl),
@@ -515,11 +515,11 @@ done:
 
 	ret = charger_dev_get_min_charging_current(info->chg1_dev, &ichg1_min);
 	if (ret < 0)
-		chr_err("charger_dev_get_min_charging_current not support.");
+		chr_debug("charger_dev_get_min_charging_current not support.");
 
 	ret = charger_dev_get_min_input_current(info->chg1_dev, &aicr1_min);
 	if (ret < 0)
-		chr_err("charger_dev_get_min_charging_current not support.");
+		chr_debug("charger_dev_get_min_charging_current not support.");
 
 	/*
 	 * If thermal current limit is larger than charging IC's minimum
@@ -580,7 +580,7 @@ static void swchg_select_cv(struct charger_manager *info)
 			constant_voltage =  dynamic_cv;
 	}
 
-	chr_err("%s, constant_voltage  = %d\n", __func__,constant_voltage);
+	chr_debug("%s, constant_voltage  = %d\n", __func__,constant_voltage);
 	charger_dev_set_constant_voltage(info->chg1_dev, constant_voltage);
 	/* Set slave charger's CV to 200mV higher than master's */
 	if (chg2_chip_enabled)
@@ -812,7 +812,7 @@ static int mtk_dual_switch_chr_cc(struct charger_manager *info)
 
 	charger_dev_is_enabled(info->chg2_dev, &chg2_en);
 
-	chr_err("safety_check state:%d en:%d thermal:%d",
+	chr_debug("safety_check state:%d en:%d thermal:%d",
 		swchgalg->state,
 		chg2_en,
 		pdata->thermal_charging_current_limit);

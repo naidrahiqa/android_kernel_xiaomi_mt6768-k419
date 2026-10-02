@@ -122,12 +122,22 @@ int mt6768_fe_trigger(struct snd_pcm_substream *substream, int cmd,
 	int id = rtd->cpu_dai->id;
 	struct mtk_base_afe_memif *memif = &afe->memif[id];
 	int irq_id = memif->irq_usage;
-	struct mtk_base_afe_irq *irqs = &afe->irqs[irq_id];
-	const struct mtk_base_irq_data *irq_data = irqs->irq_data;
+	struct mtk_base_afe_irq *irqs;
+	const struct mtk_base_irq_data *irq_data;
 	unsigned int counter = runtime->period_size;
 	unsigned int rate = runtime->rate;
 	int fs;
 	int ret = 0;
+
+	/* irq_usage is -1 until hw_params acquires a dynamic irq, and is
+	 * reset to -1 in fe_shutdown: guard against OOB irqs[] access */
+	if (irq_id < 0 || irq_id >= afe->irqs_size) {
+		dev_err(afe->dev, "%s(), %s cmd %d, invalid irq_id %d\n",
+			__func__, memif->data->name, cmd, irq_id);
+		return -EINVAL;
+	}
+	irqs = &afe->irqs[irq_id];
+	irq_data = irqs->irq_data;
 
 	dev_info(afe->dev, "%s(), %s cmd %d, irq_id %d\n",
 		 __func__, memif->data->name, cmd, irq_id);

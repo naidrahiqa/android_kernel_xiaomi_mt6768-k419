@@ -304,6 +304,7 @@ static bool aw87xxx_dev_gpio_is_valid(struct aw_device *aw_dev)
 }
 
 static unsigned int g_reg_update_cnt = 0;
+static DEFINE_MUTEX(g_reg_update_lock);
 
 void aw87xxx_dev_hw_pwr_ctrl(struct aw_device *aw_dev, bool enable)
 {
@@ -311,6 +312,15 @@ void aw87xxx_dev_hw_pwr_ctrl(struct aw_device *aw_dev, bool enable)
 		AW_DEV_LOGD(aw_dev->dev, "product not have reset-pin,hardware pwd control invalid");
 		return;
 	}
+	/* already in requested state: never double-decrement the shared
+	 * refcount (would pulse the shared reset line while the other
+	 * PA is still playing) */
+	if (enable == (aw_dev->hwen_status == AW_DEV_HWEN_ON)) {
+		AW_DEV_LOGD(aw_dev->dev, "hw pwr already %s, skip",
+			    enable ? "on" : "off");
+		return;
+	}
+	mutex_lock(&g_reg_update_lock);
 	if (enable) {
 		g_reg_update_cnt++;
 		if (g_reg_update_cnt == 1) {
@@ -335,6 +345,7 @@ void aw87xxx_dev_hw_pwr_ctrl(struct aw_device *aw_dev, bool enable)
 		aw_dev->hwen_status = AW_DEV_HWEN_OFF;
 		AW_DEV_LOGI(aw_dev->dev, "hw power off (refcnt: %d)", g_reg_update_cnt);
 	}
+	mutex_unlock(&g_reg_update_lock);
 }
 
 static int aw87xxx_dev_mute_ctrl(struct aw_device *aw_dev, bool enable)

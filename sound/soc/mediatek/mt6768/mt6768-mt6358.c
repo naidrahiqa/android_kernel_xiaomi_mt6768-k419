@@ -68,7 +68,7 @@ static const char *const aw87xxx_mode_function[] = {
 };
 #else
 static const char *const aw87xxx_mode_function[] = {
-	"Off", "Music", "Voice", "Fm", "Rcv"
+	"Off", "Music", "Voice", "Fm", "Receiver"
 };
 #endif
 static SOC_ENUM_SINGLE_EXT_DECL(aw87xxx_mode, aw87xxx_mode_function);

@@ -1105,7 +1105,7 @@ static int ul_pga_set(struct snd_kcontrol *kcontrol,
 	unsigned int id = kcontrol->id.device;
 
 	dev_info(priv->dev, "%s(), id %d, index %d\n", __func__, id, index);
-	if (index > ARRAY_SIZE(ul_pga_gain)) {
+	if (index >= ARRAY_SIZE(ul_pga_gain)) {
 		dev_warn(priv->dev, "return -EINVAL\n");
 		return -EINVAL;
 	}

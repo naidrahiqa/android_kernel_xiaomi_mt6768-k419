@@ -228,6 +228,22 @@ int aw87xxx_update_profile(struct aw87xxx *aw87xxx, char *profile)
 	AW_DEV_LOGD(aw87xxx->dev, "load profile[%s] enter", profile);
 
 	mutex_lock(&aw87xxx->reg_lock);
+
+	/*
+	 * Skip redundant reloads: HALs re-write the same mixer value on
+	 * every routing change, and a full off+on cycle costs ~40 I2C
+	 * writes, 0-4 ms busy-wait and a monitor restart per device.
+	 * Force a reload by switching to "Off" first if needed.
+	 */
+	if (aw87xxx->current_profile &&
+	    aw87xxx->aw_dev.hwen_status == AW_DEV_HWEN_ON &&
+	    !strncmp(profile, aw87xxx->current_profile, AW_PROFILE_STR_MAX)) {
+		AW_DEV_LOGD(aw87xxx->dev, "profile[%s] already active, skip",
+			    profile);
+		mutex_unlock(&aw87xxx->reg_lock);
+		return 0;
+	}
+
 	aw87xxx_monitor_stop(&aw87xxx->monitor);
 	if (0 == strncmp(profile, aw87xxx->prof_off_name, AW_PROFILE_STR_MAX)) {
 		ret = aw87xxx_power_down(aw87xxx, profile);
@@ -252,10 +268,22 @@ int aw87xxx_update_profile_esd(struct aw87xxx *aw87xxx, char *profile)
 {
 	int ret = -1;
 
+	/*
+	 * Called from monitor/ESD work without reg_lock. Taking it with
+	 * trylock avoids a deadlock against aw87xxx_update_profile(), which
+	 * holds reg_lock while cancel_delayed_work_sync() waits for this
+	 * very work. If the lock is busy a profile switch is already in
+	 * progress (it re-powers the chip), so skipping is safe.
+	 */
+	if (!mutex_trylock(&aw87xxx->reg_lock))
+		return 0;
+
 	if (0 == strncmp(profile, aw87xxx->prof_off_name, AW_PROFILE_STR_MAX))
 		ret = aw87xxx_power_down(aw87xxx, profile);
 	else
 		ret = aw87xxx_power_on(aw87xxx, profile);
+
+	mutex_unlock(&aw87xxx->reg_lock);
 
 	return ret;
 }

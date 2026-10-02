@@ -2040,13 +2040,14 @@ bool RemoveMemifSubStream(enum soc_aud_digital_block MemBlock,
 	spin_lock_irqsave(&AFE_Mem_Control_context[MemBlock]->substream_lock,
 			  flags);
 
-	for (i = 0; i < MEM_TIMEOUT_CNT; i++) {
-		if (AFE_Mem_Control_context[MemBlock]->mWaitForIRQ == true) {
-			pr_debug("%s: enter udelay.\n", __func__);
-			mdelay(5);
-		} else {
+	/* Fine-grained poll instead of mdelay(5)x4: same 20ms cap, but
+	 * typical exit in microseconds once the AFE IRQ lands, instead of
+	 * burning 5ms IRQ-off per sleep (max 20ms busy-wait under irqsave).
+	 */
+	for (i = 0; i < MEM_TIMEOUT_CNT * 5000; i++) {
+		if (AFE_Mem_Control_context[MemBlock]->mWaitForIRQ != true)
 			break;
-		}
+		udelay(1);
 	}
 
 	if (AFE_Mem_Control_context[MemBlock]->MemIfNum == 0)

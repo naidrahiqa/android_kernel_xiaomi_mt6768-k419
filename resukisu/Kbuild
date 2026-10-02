@@ -62,12 +62,12 @@ KSU_SRC := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 # PawwwNunungggg local patch: resukisu/ is a direct copy (not a git submodule).
 # Upstream Kbuild hard-errors in that case; we pin version info manually.
 # Update these pins when refreshing the snapshot from ReSukiSU/ReSukiSU main.
-# Upstream commit: 94dd3c93c205 (2026-09-29)
-KSU_LOCAL_VERSION := 4487
+# Upstream commit: 34210a4 (2026-10-02)
+KSU_LOCAL_VERSION := 4495
 KSU_VERSION := $(shell expr 30000 + $(KSU_LOCAL_VERSION) + 700)
 
 KSU_TAG_NAME    := v4.2.0-rc3
-KSU_COMMIT_SHA  := 94dd3c93
+KSU_COMMIT_SHA  := 34210a4
 KSU_BRANCH_NAME := main
 
 ifdef KBUILD_EXTMOD

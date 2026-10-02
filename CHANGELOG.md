@@ -153,3 +153,11 @@ Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunu
   - Total upstream commits: 4484.
   - Pinned version in Kbuild: `KSU_LOCAL_VERSION := 4484`, `KSU_TAG_NAME := v4.2.0-rc3`, `KSU_COMMIT_SHA := fa8311f6` (`30000 + 4484 + 700 = 35184`).
   - Required Manager: ReSukiSU Manager matching KSU_VERSION `35184` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/v4.2.0-rc3)).
+
+## 2026-10-03 — ReSukiSU v4.2.0-rc3 Upstream (KSU_VERSION 35195)
+
+- **ReSukiSU v4.2.0-rc3 (`34210a4`, KSU_VERSION 35195):**
+  - Synced driver with upstream ReSukiSU `v4.2.0-rc3` + latest commits from `main` (commit `34210a4`).
+  - Total upstream commits: 4495.
+  - Pinned version in Kbuild: `KSU_LOCAL_VERSION := 4495`, `KSU_TAG_NAME := v4.2.0-rc3`, `KSU_COMMIT_SHA := 34210a4` (`30000 + 4495 + 700 = 35195`).
+  - Required Manager: ReSukiSU Manager matching KSU_VERSION `35195` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/v4.2.0-rc3)).

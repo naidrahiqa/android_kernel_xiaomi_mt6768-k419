@@ -30,7 +30,7 @@ struct ksu_driver_context {
 static int anon_ksu_release(struct inode *inode, struct file *filp)
 {
     kfree(filp->private_data);
-    pr_info("ksu fd released\n");
+    pr_debug("ksu fd released\n");
     return 0;
 }
 

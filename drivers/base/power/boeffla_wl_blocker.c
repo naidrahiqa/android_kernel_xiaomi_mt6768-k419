@@ -173,9 +173,20 @@ static struct miscdevice boeffla_wl_blocker_dev = {
 	.groups = boeffla_wl_blocker_groups,
 };
 
+static const char *default_wls[] = {
+	"wlan_ipa",
+	"wlan_pno_wl",
+	"NETLINK",
+};
+
 static int __init boeffla_wl_blocker_init(void)
 {
-	int ret;
+	int ret, i;
+
+	for (i = 0; i < ARRAY_SIZE(default_wls) && i < MAX_BLOCKED_WLS; i++) {
+		strlcpy(blocked_wls[i], default_wls[i], MAX_WL_NAME_LEN);
+		num_blocked_wls++;
+	}
 
 	ret = misc_register(&boeffla_wl_blocker_dev);
 	if (ret) {
@@ -183,8 +194,8 @@ static int __init boeffla_wl_blocker_init(void)
 		return ret;
 	}
 
-	pr_info("boeffla_wl_blocker: Generic Wakelock Blocker v%s initialized\n",
-		BOEFFLA_WL_BLOCKER_VERSION);
+	pr_info("boeffla_wl_blocker: Generic Wakelock Blocker v%s initialized (%d default wls)\n",
+		BOEFFLA_WL_BLOCKER_VERSION, num_blocked_wls);
 	return 0;
 }
 late_initcall(boeffla_wl_blocker_init);

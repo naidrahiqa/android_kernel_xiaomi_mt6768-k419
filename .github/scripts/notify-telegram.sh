@@ -247,10 +247,10 @@ function build_success() {
 		# nightly: tampilkan 5 commit terakhir (CHANGELOG.md tidak dianggap)
 		changelog_items=$(git log -5 --pretty='- %s (%h)' 2>/dev/null | compact_log 60 | html_escape)
 	elif [ -n "$changelog_file" ] && [ -f "$changelog_file" ]; then
-		changelog_items=$(grep '^- ' "$changelog_file" 2>/dev/null | head -5 | compact_log 60 | html_escape)
+		changelog_items=$(grep -E '^[-+] ' "$changelog_file" 2>/dev/null | head -5 | compact_log 60 | html_escape)
 	fi
 	if [ -z "$changelog_items" ] && [ -f "CHANGELOG.md" ]; then
-		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^- /{print}' CHANGELOG.md 2>/dev/null | head -5 | compact_log 60 | html_escape)
+		changelog_items=$(awk '/^## /{if(found)exit; found=1; next} found && /^[-+] /{print}' CHANGELOG.md 2>/dev/null | head -5 | compact_log 60 | html_escape)
 	fi
 	if [ -z "$changelog_items" ]; then
 		changelog_items=$(git log -5 --pretty='- %s (%h)' 2>/dev/null | compact_log 60 | html_escape)

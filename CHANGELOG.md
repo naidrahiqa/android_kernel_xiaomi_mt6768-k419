@@ -4,15 +4,18 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
-## 2026-10-03 — Dynamic Fsync, Boeffla WL Blocker, TCP Westwood+ & TTL Mangling
+## 2026-10-03 — Hardware KCAL, vm.swappiness 200, Dynamic Fsync & Boeffla WL Blocker
 
++ display: implement MediaTek hardware-accelerated KCAL color control (/sys/devices/platform/kcal_ctrl.0/kcal)
++ mm: allow vm.swappiness up to 200 for aggressive ZRAM swapping
++ power: pre-populate default blocked wakelocks (wlan_ipa, wlan_pno_wl, NETLINK) in Boeffla WL blocker
 + fs: implement Dynamic Fsync 2.0 (bypass fsync while screen on to eliminate I/O lag in MLBB/gaming)
 + power: add Boeffla generic wakelock blocker for MTK modem & Wi-Fi idle sleep drain
 + netfilter: enable xt_HL target (TTL/HL mangling support for tethering bypass)
 + tcp: enable TCP Westwood+ congestion control for unstable mobile connections
 + resukisu: sync upstream to v4.2.0-rc3 (commit 80c0e19, KSU_VERSION 35199)
 + drivers: expose display status via /proc/disp_state & enable DSI ESD check
-Note: Dynamic Fsync can be toggled via /sys/kernel/dyn_fsync/dyn_fsync_active. Recommended Zygisk module: Rezygisk/Brezygisk.
+Note: Hardware KCAL supports RGB gain via /sys/devices/platform/kcal_ctrl.0/kcal (compatible with Franco Kernel Manager). Recommended Zygisk module: Rezygisk/Brezygisk.
 
 ## 2026-09-27 — Fast Charge Bypass & Scheduler Tuning
 

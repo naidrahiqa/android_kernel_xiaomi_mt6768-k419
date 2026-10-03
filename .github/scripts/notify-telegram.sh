@@ -199,6 +199,9 @@ function build_features() {
 	[ "$(cfg CONFIG_SCHED_MC)" = "y" ] && active+=$' Sched MC = true\n'
 	[ "$(cfg CONFIG_ENCORE_FAS)" = "y" ] && active+=$' Encore FAS = true\n'
 	[ "$(cfg CONFIG_MQ_IOSCHED_ADIOS)" = "y" ] && active+=$' ADIOS io-sched = true\n'
+	[ "$(cfg CONFIG_DYNAMIC_FSYNC)" = "y" ] && active+=$' Dynamic Fsync = true\n'
+	[ "$(cfg CONFIG_BOEFFLA_WL_BLOCKER)" = "y" ] && active+=$' Boeffla WL Blocker = true\n'
+	[ "$(cfg CONFIG_NETFILTER_XT_TARGET_HL)" = "y" ] && active+=$' TTL/HL mangling = true\n'
 
 	cat <<EOF
  Build mode = ReSukiSU

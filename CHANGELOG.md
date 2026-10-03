@@ -2,6 +2,16 @@
 
 Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunungggg Kernel.
 
+## 2026-10-03 — ReSukiSU v4.2.0-rc3 Upstream (KSU_VERSION 35199)
+
+- **ReSukiSU v4.2.0-rc3 (`80c0e19`, KSU_VERSION 35199):**
+  - Synced driver with upstream ReSukiSU `v4.2.0-rc3` + latest commits from `main` (commit `80c0e19`).
+  - Total upstream commits: 4499.
+  - Pinned version in Kbuild: `KSU_LOCAL_VERSION := 4499`, `KSU_TAG_NAME := v4.2.0-rc3`, `KSU_COMMIT_SHA := 80c0e19` (`30000 + 4499 + 700 = 35199`).
+  - **Delta kernel sejak pin sebelumnya (`34210a4`):** `b0fa24d` — `do_ksu_load_allow_list()` kini `override_creds(ksu_cred)` saat baca allowlist (workqueue tanpa creds bisa gagal baca file root-only; file `policy/allowlist.c` disalin utuh dari upstream, tanpa konflik patch lokal).
+  - 3 commit lain bersifat userspace/ksud (bump crate Rust `libc`/`cc`, timeout boot stage scripts) — tidak memengaruhi Image kernel.
+  - Required Manager: ReSukiSU Manager matching KSU_VERSION `35199` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/v4.2.0-rc3)).
+
 ## 2026-09-27 — CI: Hentikan Broadcast Zip Sebelum Tes + Config Batch Gaming/Perf
 
 - **Notif disederhanakan jadi 4** (`.github/scripts/notify-telegram.sh`): (1) `start`, (2) `failed` = ringkasan **+ baris error pertama** (+ detail log ke `Nai Error Dump`), (3) `success` = teks singkat "✅ Build succeeded" ke CI topic, (4) file zip + changelog + SHA-256 pendek + tombol ⬇️ Download (link Actions run) ke channel private `Nai project update` — tanpa banner "belum diuji". Workflow two-phase `notify-tested.yml` + status `tested` **dihapus**. **Concurrency:** `build.yml` kini `cancel-in-progress` (push beruntun cuma build terakhir) & notif result di-guard `success() || failure()` biar run cancel tidak kirim notif.

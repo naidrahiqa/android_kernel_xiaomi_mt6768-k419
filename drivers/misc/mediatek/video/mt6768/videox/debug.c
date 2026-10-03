@@ -1909,6 +1909,26 @@ static const struct file_operations kickidle_fops = {
 	.read = kick_read,
 };
 
+static ssize_t disp_state_read(struct file *file,
+	char __user *ubuf, size_t count, loff_t *ppos)
+{
+	char p[128];
+	int len;
+
+	len = snprintf(p, sizeof(p),
+		"power_mode=%d disp_state=0x%x esd_enabled=%d esd_mode=%u lcm_connected=%u\n",
+		primary_display_get_power_mode(),
+		(unsigned int)primary_get_state(),
+		primary_display_esd_check_enabled(),
+		get_esd_check_mode(),
+		islcmconnected);
+	return simple_read_from_buffer(ubuf, count, ppos, p, len);
+}
+
+static const struct file_operations disp_state_fops = {
+	.read = disp_state_read,
+};
+
 static ssize_t partial_read(struct file *file,
 	char __user *ubuf, size_t count, loff_t *ppos)
 {
@@ -2002,6 +2022,14 @@ void DBG_Init(void)
 				&debug_fops);
 	if (!mtkfb_procfs) {
 		pr_info("[%s %d]failed to create mtkfb in /proc/disp_ddp\n",
+			__func__, __LINE__);
+		goto out;
+	}
+
+	if (!proc_create("disp_state", S_IFREG | 0444,
+				NULL,
+				&disp_state_fops)) {
+		pr_info("[%s %d]failed to create disp_state\n",
 			__func__, __LINE__);
 		goto out;
 	}

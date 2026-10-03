@@ -969,6 +969,11 @@ void primary_display_esd_check_enable(int enable)
 	}
 }
 
+int primary_display_esd_check_enabled(void)
+{
+	return esd_check_enable;
+}
+
 unsigned int need_wait_esd_eof(void)
 {
 	int ret = 1;

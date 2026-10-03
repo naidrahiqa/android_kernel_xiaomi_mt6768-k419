@@ -336,4 +336,13 @@ config NOMOUNT
 	  Virtual file injection and path redirection without mounting.
 	  Used for systemless root and moduleless modifications.
 
+config DYNAMIC_FSYNC
+	bool "Dynamic Fsync"
+	default y
+	help
+	  Dynamic Fsync allows disabling synchronous write operations (fsync)
+	  while the screen is turned on to enhance responsiveness and I/O
+	  throughput, and automatically flushes pending buffers when the screen
+	  turns off.
+
 endmenu

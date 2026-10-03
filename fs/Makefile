@@ -138,3 +138,4 @@ obj-$(CONFIG_EROFS_FS)		+= erofs/
 CFLAGS_nomount.o += -Wno-declaration-after-statement
 obj-$(CONFIG_NOMOUNT)		+= nomount.o
 CFLAGS_nomount.o		+= -std=gnu11
+obj-$(CONFIG_DYNAMIC_FSYNC)	+= dynamic_fsync.o

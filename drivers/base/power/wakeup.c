@@ -21,6 +21,7 @@
 #include <trace/events/power.h>
 
 #include "power.h"
+#include <linux/boeffla_wl_blocker.h>
 
 #ifndef CONFIG_SUSPEND
 suspend_state_t pm_suspend_target_state;
@@ -561,6 +562,11 @@ static void wakeup_source_activate(struct wakeup_source *ws)
  */
 static void wakeup_source_report_event(struct wakeup_source *ws, bool hard)
 {
+#ifdef CONFIG_BOEFFLA_WL_BLOCKER
+	if (ws && boeffla_wl_blocker_is_blocked(ws->name))
+		return;
+#endif
+
 	ws->event_count++;
 	/* This is racy, but the counter is approximate anyway. */
 	if (events_check_enabled)
@@ -585,6 +591,11 @@ void __pm_stay_awake(struct wakeup_source *ws)
 
 	if (!ws)
 		return;
+
+#ifdef CONFIG_BOEFFLA_WL_BLOCKER
+	if (boeffla_wl_blocker_is_blocked(ws->name))
+		return;
+#endif
 
 	spin_lock_irqsave(&ws->lock, flags);
 
@@ -773,6 +784,11 @@ void pm_wakeup_ws_event(struct wakeup_source *ws, unsigned int msec, bool hard)
 
 	if (!ws)
 		return;
+
+#ifdef CONFIG_BOEFFLA_WL_BLOCKER
+	if (boeffla_wl_blocker_is_blocked(ws->name))
+		return;
+#endif
 
 	spin_lock_irqsave(&ws->lock, flags);
 

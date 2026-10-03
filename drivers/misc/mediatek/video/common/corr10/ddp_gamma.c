@@ -1130,6 +1130,7 @@ int disp_ccorr_set_RGB_Gain(int r, int g, int b)
 	CCORR_DBG("r[%d], g[%d], b[%d]", r, g, b);
 	ret = disp_ccorr_write_coef_reg(NULL, CCORR0_MODULE_NAMING, 0, 0);
 	mutex_unlock(&g_gamma_global_lock);
+	disp_ccorr_trigger_refresh(DISP_CCORR0);
 	return ret;
 }
 

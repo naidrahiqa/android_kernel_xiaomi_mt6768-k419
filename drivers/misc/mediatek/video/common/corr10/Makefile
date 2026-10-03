@@ -26,6 +26,7 @@ endif
 
 obj-y += ddp_dither.o
 obj-y += ddp_gamma.o
+obj-y += kcal.o
 
 ccflags-y += \
 				-I$(srctree)/drivers/misc/mediatek/video/include     \

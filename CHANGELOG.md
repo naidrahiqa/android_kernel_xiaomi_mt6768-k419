@@ -11,6 +11,9 @@ Daftar perubahan, porting, backport security, dan update komponen pada PawwwNunu
   - **Delta kernel sejak pin sebelumnya (`34210a4`):** `b0fa24d` — `do_ksu_load_allow_list()` kini `override_creds(ksu_cred)` saat baca allowlist (workqueue tanpa creds bisa gagal baca file root-only; file `policy/allowlist.c` disalin utuh dari upstream, tanpa konflik patch lokal).
   - 3 commit lain bersifat userspace/ksud (bump crate Rust `libc`/`cc`, timeout boot stage scripts) — tidak memengaruhi Image kernel.
   - Required Manager: ReSukiSU Manager matching KSU_VERSION `35199` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/v4.2.0-rc3)).
+- **Cek upstream otomatis:**
+  - `scripts/check-resukisu.sh` (exit 0=latest / 1=outdated / 2=error, dukung `--json`) — membandingkan pin `resukisu/Kbuild` dengan `ReSukiSU/ReSukiSU@main`, termasuk delta commit + klasifikasi relevansi (`kernel/uapi` = butuh rebuild+flash, `manager` = APK saja, `userspace` = tanpa rebuild).
+  - Workflow `.github/workflows/resukisu-check.yml` — cron harian 02:00 UTC (09:00 WIB) + `workflow_dispatch`; notif Telegram topic CI **hanya saat outdated** (up-to-date senyap).
 
 ## 2026-09-27 — CI: Hentikan Broadcast Zip Sebelum Tes + Config Batch Gaming/Perf
 

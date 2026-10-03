@@ -13,6 +13,7 @@
 #include <linux/slab.h>
 #include <linux/swap.h>
 #include <linux/sched/clock.h>
+#include <linux/sched/signal.h>
 #include "ion_priv.h"
 
 static unsigned long long last_alloc_ts;
@@ -29,6 +30,9 @@ static void *ion_page_pool_alloc_pages(struct ion_page_pool *pool)
 	unsigned long long start, end;
 	struct page *page;
 	unsigned int i;
+
+	if (fatal_signal_pending(current))
+		return NULL;
 
 	start = sched_clock();
 	page = alloc_pages(pool->gfp_mask, pool->order);

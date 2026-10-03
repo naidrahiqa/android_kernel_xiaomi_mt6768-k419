@@ -58,13 +58,8 @@ EOF
         ;;
     changelog)
         cat << EOF
-## ${DATE_TODAY} — ReSukiSU ${KSU_TAG_NAME} Upstream (KSU_VERSION ${KSU_VERSION})
-
-- **ReSukiSU ${KSU_TAG_NAME} (\`${KSU_COMMIT_SHA}\`, KSU_VERSION ${KSU_VERSION}):**
-  - Synced driver with upstream ReSukiSU \`${KSU_TAG_NAME}\` + latest commits from \`${KSU_BRANCH_NAME}\` (commit \`${KSU_COMMIT_SHA}\`).
-  - Total upstream commits: ${KSU_LOCAL_VERSION}.
-  - Pinned version in Kbuild: \`KSU_LOCAL_VERSION := ${KSU_LOCAL_VERSION}\`, \`KSU_TAG_NAME := ${KSU_TAG_NAME}\`, \`KSU_COMMIT_SHA := ${KSU_COMMIT_SHA}\` (\`30000 + ${KSU_LOCAL_VERSION} + 700 = ${KSU_VERSION}\`).
-  - Required Manager: ReSukiSU Manager matching KSU_VERSION \`${KSU_VERSION}\` ([GitHub Release](https://github.com/ReSukiSU/ReSukiSU/releases/tag/${KSU_TAG_NAME})).
++ resukisu: sync upstream to ${KSU_TAG_NAME} (commit ${KSU_COMMIT_SHA}, KSU_VERSION ${KSU_VERSION})
+Note: Required Manager APK matching KSU_VERSION ${KSU_VERSION} (ReSukiSU ${KSU_TAG_NAME}).
 EOF
         ;;
     markdown|*)

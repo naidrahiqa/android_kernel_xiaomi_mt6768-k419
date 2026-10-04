@@ -155,3 +155,6 @@ dist/
 # Patch/merge leftovers (never track — .orig had conflict markers)
 *.orig
 *.rej
+
+# CI lives in naidrahiqa/kernel-ci-kit (keep source tree clean like upstream)
+.github/

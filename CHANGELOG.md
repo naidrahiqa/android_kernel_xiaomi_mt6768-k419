@@ -4,8 +4,10 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
-## 2026-10-04 — ADIOS I/O Scheduler Hardening & ReSukiSU Sync
+## 2026-10-04 — ADIOS Hardening, ReSukiSU Sync, ZRAM Default & Sched/VM Tuning
 
++ sched: tune schedutil rate limits — up 1500→500us (faster ramp, less input latency), down 500→4000us (no downclock oscillation)
++ mm: raise vfs_cache_pressure 100→150 and extra_free_kbytes 0→64MB for smoother app launches
 + block: default zram disksize at boot to min(75% total RAM, 4GB) — 6GB unit gets 4GB, 4GB unit gets ~2.7GB; vendor fstab zramsize write now hits EBUSY and is ignored, kernel value wins
 + block: harden ADIOS against request loss — drain plug list when rd pool exhausted instead of requeue+break
 + block: fall back to priority queue when dl_group allocation fails during merge, no more orphaned requests

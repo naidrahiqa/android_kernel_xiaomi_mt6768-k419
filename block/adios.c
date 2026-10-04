@@ -277,7 +277,10 @@ struct adios_data {
 	u8  bq_batch_order[ADIOS_BQ_PAGES];
 	spinlock_t bq_lock;
 
-	struct lm_buckets *aggr_buckets;
+	/* One aggregation bucket set per latency model: each model has its own
+	 * update_lock, so a single shared set would let bootstrap/reset from
+	 * sysfs or a completion race with the update timer of another model. */
+	struct lm_buckets aggr_buckets[ADIOS_OPTYPES];
 
 	struct latency_model latency_model[ADIOS_OPTYPES];
 	struct timer_list update_timer;
@@ -311,6 +314,7 @@ struct adios_rq_data {
 	u64 pred_lat;
 	u32 block_size;
 	bool managed;
+	bool counted;
 } __attribute__((aligned(64)));
 
 static const int adios_prio_to_wmult[40] = {
@@ -498,7 +502,7 @@ static void latency_model_update(
 	u64 small_weight, large_weight;
 	bool time_elapsed;
 	bool small_processed = false, large_processed = false;
-	struct lm_buckets *aggr = ad->aggr_buckets;
+	struct lm_buckets *aggr = &ad->aggr_buckets[model - ad->latency_model];
 	struct latency_bucket_small *asb;
 	struct latency_bucket_large *alb;
 	struct lm_buckets *pcpu_b, *snap;
@@ -708,6 +712,8 @@ static inline struct adios_rq_data *get_rq_data(struct request *rq) {
 }
 
 static struct adios_rq_data *adios_rq_data_init(struct request *rq);
+static void insert_to_prio_queue(struct adios_data *ad, struct request *rq,
+		bool pq_idx);
 
 static inline
 void set_adios_state(struct adios_data *ad, u32 shift, u32 idx, bool flag) {
@@ -727,7 +733,7 @@ static inline u32 eval_adios_state(struct adios_data *ad, u32 shift)
 { return eval_this_adios_state(get_adios_state(ad), shift); }
 
 // Add a request to the deadline-sorted red-black tree
-static void add_to_dl_tree(
+static bool add_to_dl_tree(
 		struct adios_data *ad, bool dl_idx, struct request *rq) {
 	struct rb_root_cached *root = &ad->dl_tree[dl_idx];
 	struct rb_node **link = &(root->rb_root.rb_node), *parent = NULL;
@@ -773,7 +779,7 @@ static void add_to_dl_tree(
 	if (!dlg || dlg->deadline != deadline) {
 		dlg = kmem_cache_zalloc(ad->dl_group_pool, GFP_ATOMIC);
 		if (!dlg)
-			return;
+			return false;
 		dlg->deadline = deadline;
 		INIT_LIST_HEAD(&dlg->rqs);
 		rb_link_node(&dlg->node, parent, link);
@@ -785,6 +791,7 @@ found:
 
 	if (was_empty)
 		set_adios_state(ad, ADIOS_STATE_DL, dl_idx, true);
+	return true;
 }
 
 // Remove a request from the deadline-sorted red-black tree
@@ -856,13 +863,26 @@ static void adios_depth_updated(struct blk_mq_hw_ctx *hctx) {
 
 // Handle request merging after a merge operation
 static void adios_request_merged(struct request_queue *q, struct request *req,
-				  enum elv_merge type) {
+			  enum elv_merge type) {
 	bool dl_idx = adios_optype_not_read(req);
 	struct adios_data *ad = q->elevator->elevator_data;
+	struct adios_rq_data *rd = get_rq_data(req);
+
+	lockdep_assert_held(&ad->lock);
 
 	// Reposition request in the deadline-sorted tree
+	if (!rd->dl_group)
+		return;
 	del_from_dl_tree(ad, dl_idx, req);
-	add_to_dl_tree(ad, dl_idx, req);
+	if (unlikely(!add_to_dl_tree(ad, dl_idx, req))) {
+		/* dl_group alloc failed: leave the merge hash like
+		 * remove_request() would and dispatch via prio_queue
+		 * instead of orphaning the request. */
+		elv_rqhash_del(q, req);
+		if (q->last_merge == req)
+			q->last_merge = NULL;
+		insert_to_prio_queue(ad, req, 1);
+	}
 }
 
 // Handle merging of requests after one has been merged into another
@@ -902,7 +922,13 @@ static bool merge_or_insert_to_dl_tree(struct adios_data *ad,
 		return true;
 
 	bool dl_idx = adios_optype_not_read(rq);
-	add_to_dl_tree(ad, dl_idx, rq);
+	if (unlikely(!add_to_dl_tree(ad, dl_idx, rq))) {
+		/* dl_group alloc failed: dispatch via prio_queue (not yet
+		 * hashed, matching the pre-stability prio requests) instead
+		 * of orphaning the request. */
+		insert_to_prio_queue(ad, rq, 1);
+		return false;
+	}
 
 	if (rq_mergeable(rq)) {
 		elv_rqhash_add(q, rq);
@@ -917,12 +943,17 @@ static void insert_to_prio_queue(struct adios_data *ad,
 		struct request *rq, bool pq_idx) {
 	struct adios_rq_data *rd = get_rq_data(rq);
 
-	/* We're sure that rd->managed == true */
-	union adios_in_flight_rqs ifr = {
-		.count          = 1,
-		.total_pred_lat = rd->pred_lat,
-	};
-	atomic64_add(ifr.scalar, &ad->in_flight_rqs.atomic);
+	/* Skip the in-flight slot if this request already carries one
+	 * (requeue reinsert after adios_requeue_request() ran, or a requeue
+	 * path that bypassed the hook). */
+	if (!rd->counted) {
+		union adios_in_flight_rqs ifr = {
+			.count          = 1,
+			.total_pred_lat = rd->pred_lat,
+		};
+		atomic64_add(ifr.scalar, &ad->in_flight_rqs.atomic);
+		rd->counted = true;
+	}
 
 	{
 		unsigned long flags;
@@ -935,6 +966,26 @@ static void insert_to_prio_queue(struct adios_data *ad,
 			set_adios_state(ad, ADIOS_STATE_PQ, pq_idx, true);
 		spin_unlock_irqrestore(&ad->pq_lock, flags);
 	}
+}
+
+/*
+ * Place a request on the priority queue without an adios_rq_data, used when
+ * the rd pool is exhausted under severe memory pressure.  No in-flight slot
+ * is taken, so completion/finish/requeue (which skip a NULL or foreign rd)
+ * leave the accounting untouched.
+ */
+static void insert_unaccounted_prio(struct adios_data *ad, struct request *rq,
+		bool pq_idx)
+{
+	unsigned long flags;
+	bool was_empty;
+
+	spin_lock_irqsave(&ad->pq_lock, flags);
+	was_empty = list_empty(&ad->prio_queue[pq_idx]);
+	list_add_tail(&rq->queuelist, &ad->prio_queue[pq_idx]);
+	if (was_empty)
+		set_adios_state(ad, ADIOS_STATE_PQ, pq_idx, true);
+	spin_unlock_irqrestore(&ad->pq_lock, flags);
 }
 
 // Insert a request into the scheduler (after Read & Write models stabilized)
@@ -1011,14 +1062,17 @@ static void adios_insert_requests(struct blk_mq_hw_ctx *hctx,
 			list_del_init(&rq->queuelist);
 			if (unlikely(!adios_rq_data_init(rq))) {
 				/*
-				 * rd pool exhausted (severe memory pressure):
-				 * park the request on the requeue list (only
-				 * q->requeue_lock, no hctx lock ordering issue)
-				 * and retry from a fresh insert cycle.
+				 * rd pool exhausted (severe memory pressure).
+				 * Core assumes insert_requests() consumes the
+				 * whole list (blk_mq_sched_insert_requests() /
+				 * blk_mq_flush_plug_list() pass a local list),
+				 * so never stop early: park this request on the
+				 * priority queue without an rd (no in-flight
+				 * slot; completion/finish/requeue guards skip a
+				 * NULL or foreign rd) and keep draining.
 				 */
-				blk_mq_add_to_requeue_list(rq, false, true);
-				stop = true;
-				break;
+				insert_unaccounted_prio(ad, rq, !at_head);
+				continue;
 			}
 			if (likely(ad->models_stable))
 				insert_request_post_stability(hctx, rq, at_head);
@@ -1197,6 +1251,7 @@ static bool fill_batch_queues(struct adios_data *ad, u64 tpl) {
 		ad->batch_count[page][optype]++;
 		optype_count[optype]++;
 		added_lat += rd->pred_lat;
+		rd->counted = true;
 		count++;
 	}
 	spin_unlock_irqrestore(&ad->lock, flags);
@@ -1399,13 +1454,14 @@ static void adios_completed_request(struct request *rq) {
 	if (unlikely(!rd || rd->rq != rq))
 		return;
 
-	if (rd->managed) {
+	if (rd->counted) {
 		union adios_in_flight_rqs ifr_to_sub = {
 			.count          = 1,
 			.total_pred_lat = rd->pred_lat,
 		};
 		ifr.scalar = atomic64_sub_return(
 			ifr_to_sub.scalar, &ad->in_flight_rqs.atomic);
+		rd->counted = false;
 	}
 	u8 optype = adios_optype(rq);
 
@@ -1456,6 +1512,26 @@ static void adios_completed_request(struct request *rq) {
 	latency_model_input(ad, &ad->latency_model[optype],
 		rd->block_size, latency, rd->pred_lat, weight);
 	timer_reduce(&ad->update_timer, jiffies + msecs_to_jiffies(100));
+}
+
+/*
+ * Requeue hook: the request gave its in-flight slot back on requeue so the
+ * reinsert (blk_mq_sched_insert_request) can take a fresh one.  A requeued
+ * request is always one that already went through insert/fill counting;
+ * requests that never took a slot (bypass insert, no rd) are skipped.
+ */
+static void adios_requeue_request(struct request *rq) {
+	struct adios_data *ad = rq->q->elevator->elevator_data;
+	struct adios_rq_data *rd = get_rq_data(rq);
+	union adios_in_flight_rqs ifr_to_sub;
+
+	if (unlikely(!rd || rd->rq != rq || !rd->counted))
+		return;
+
+	ifr_to_sub.count          = 1;
+	ifr_to_sub.total_pred_lat = rd->pred_lat;
+	atomic64_sub_return(ifr_to_sub.scalar, &ad->in_flight_rqs.atomic);
+	rd->counted = false;
 }
 
 // Clean up after a request is finished
@@ -1543,16 +1619,10 @@ static int adios_init_sched(struct request_queue *q, struct elevator_type *e) {
 		for (optype = 0; optype < ADIOS_OPTYPES; optype++)
 			INIT_LIST_HEAD(&ad->batch_queue[page][optype]);
 
-	ad->aggr_buckets = kzalloc(sizeof(*ad->aggr_buckets), GFP_KERNEL);
-	if (!ad->aggr_buckets) {
-		pr_err("adios: Failed to allocate aggregation buckets\n");
-		goto destroy_dl_group_pool;
-	}
-
 	ad->pcpu_completion = alloc_percpu(struct adios_pcpu_completion);
 	if (!ad->pcpu_completion) {
 		pr_err("adios: Failed to allocate per-CPU completion data\n");
-		goto free_aggr_buckets;
+		goto destroy_dl_group_pool;
 	}
 
 	for (optype = 0; optype < ADIOS_OPTYPES; optype++) {
@@ -1629,8 +1699,6 @@ free_buckets:
 		free_percpu(prev_model->pcpu_buckets);
 	}
 	free_percpu(ad->pcpu_completion);
-free_aggr_buckets:
-	kfree(ad->aggr_buckets);
 destroy_dl_group_pool:
 	kmem_cache_destroy(ad->dl_group_pool);
 destroy_rq_data_pool:
@@ -1667,7 +1735,6 @@ static void adios_exit_sched(struct elevator_queue *e) {
 	synchronize_rcu();
 
 	free_percpu(ad->pcpu_completion);
-	kfree(ad->aggr_buckets);
 
 	mempool_destroy(ad->rq_data_pool);
 	kmem_cache_destroy(ad->rq_data_cache);
@@ -1680,7 +1747,7 @@ static void adios_exit_sched(struct elevator_queue *e) {
 	kfree(ad);
 }
 
-static void sideload_latency_model(
+static void sideload_latency_model(struct adios_data *ad,
 		struct latency_model *model, u64 base, u64 slope) {
 	struct latency_model_params *old_params, *new_params;
 	unsigned long flags;
@@ -1707,6 +1774,9 @@ static void sideload_latency_model(
 	new_params->large_sum_bsize = 1024; /* Corresponds to 1 KiB */
 
 	lm_reset_pcpu_buckets(model);
+	/* Same model's lock, so the aggregate reset is race-free against
+	 * latency_model_update() for this model. */
+	reset_buckets(&ad->aggr_buckets[model - ad->latency_model]);
 
 	rcu_assign_pointer(model->params, new_params);
 	spin_unlock_irqrestore(&model->update_lock, flags);
@@ -1741,8 +1811,7 @@ static ssize_t adios_lat_model_##name##_store( \
 	ret = sscanf(page, "%llu %llu", &base, &slope); \
 	if (ret != 2) \
 		return -EINVAL; \
-	sideload_latency_model(model, base, slope); \
-	reset_buckets(ad->aggr_buckets); \
+	sideload_latency_model(ad, model, base, slope); \
 	return count; \
 } \
 static ssize_t adios_lat_target_##name##_show( \
@@ -1756,9 +1825,9 @@ static ssize_t adios_lat_target_##name##_store( \
 	unsigned long nsec; \
 	int ret; \
 	ret = kstrtoul(page, 10, &nsec); \
-	if (ret) \
-		return ret; \
-	sideload_latency_model(&ad->latency_model[optype], 0, 0); \
+	if (ret || nsec > 3600UL * NSEC_PER_SEC) \
+		return ret ? ret : -EINVAL; \
+	sideload_latency_model(ad, &ad->latency_model[optype], 0, 0); \
 	ad->latency_target[optype] = nsec; \
 	return count; \
 } \
@@ -1772,7 +1841,7 @@ static ssize_t adios_batch_limit_##name##_store( \
 	unsigned long max_batch; \
 	int ret; \
 	ret = kstrtoul(page, 10, &max_batch); \
-	if (ret || max_batch == 0) \
+	if (ret || max_batch == 0 || max_batch > 0xffffffffUL) \
 		return -EINVAL; \
 	struct adios_data *ad = e->elevator_data; \
 	ad->batch_limit[optype] = max_batch; \
@@ -1817,7 +1886,7 @@ static ssize_t adios_##field##_store( \
 	return count; \
 }
 
-SYSFS_ULL_DECL(global_latency_window, 0, ULLONG_MAX)
+SYSFS_ULL_DECL(global_latency_window, 0, ULLONG_MAX/100)
 SYSFS_ULL_DECL(compliance_flags, 0, ULLONG_MAX)
 
 #define SYSFS_INT_DECL(field, min_val, max_val) \
@@ -1911,7 +1980,7 @@ static ssize_t adios_reset_lat_model_store(
 
 		for (u8 i = 0; i < ADIOS_OPTYPES; i++) {
 			model = &ad->latency_model[i];
-			sideload_latency_model(model, 0, 0);
+			sideload_latency_model(ad, model, 0, 0);
 		}
 	} else {
 		// Mode 2: Load initial values for all latency models.
@@ -1927,10 +1996,9 @@ static ssize_t adios_reset_lat_model_store(
 
 		for (u8 i = ADIOS_READ; i <= ADIOS_DISCARD; i++) {
 			model = &ad->latency_model[i];
-			sideload_latency_model(model, params[i][0], params[i][1]);
+			sideload_latency_model(ad, model, params[i][0], params[i][1]);
 		}
 	}
-	reset_buckets(ad->aggr_buckets);
 
 	return count;
 }
@@ -2033,6 +2101,7 @@ static struct elevator_type mq_adios = {
 		.prepare_request	= adios_prepare_request,
 		.dispatch_request	= adios_dispatch_request,
 		.completed_request	= adios_completed_request,
+		.requeue_request	= adios_requeue_request,
 		.finish_request		= adios_finish_request,
 		.has_work			= adios_has_work,
 		.init_hctx			= adios_init_hctx,

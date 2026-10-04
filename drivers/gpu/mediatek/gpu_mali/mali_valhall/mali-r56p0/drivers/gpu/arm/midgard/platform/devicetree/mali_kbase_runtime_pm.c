@@ -27,6 +27,10 @@
 #include <linux/clk-provider.h>
 #include <linux/regulator/consumer.h>
 
+#if IS_ENABLED(CONFIG_MTK_GED_SUPPORT)
+#include <ged_dvfs.h>
+#endif
+
 #include "mali_kbase_config_platform.h"
 
 static void enable_gpu_power_control(struct kbase_device *kbdev)
@@ -112,6 +116,9 @@ static int pm_callback_power_on(struct kbase_device *kbdev)
 
 #endif /* MALI_USE_CSF */
 
+#if IS_ENABLED(CONFIG_MTK_GED_SUPPORT)
+	ged_dvfs_gpu_clock_switch_notify(1);
+#endif
 	return ret;
 }
 
@@ -145,6 +152,10 @@ static void pm_callback_power_off(struct kbase_device *kbdev)
 	disable_gpu_power_control(kbdev);
 #endif
 #endif /* MALI_USE_CSF */
+
+#if IS_ENABLED(CONFIG_MTK_GED_SUPPORT)
+	ged_dvfs_gpu_clock_switch_notify(0);
+#endif
 }
 
 #if MALI_USE_CSF && defined(KBASE_PM_RUNTIME)

@@ -5907,6 +5907,57 @@ void kbase_sysfs_term(struct kbase_device *kbdev)
 	put_device(kbdev->dev);
 }
 
+#if IS_ENABLED(CONFIG_MTK_GED_SUPPORT)
+extern void (*ged_dvfs_cal_gpu_utilization_fp)(unsigned int *pui32Loading,
+	unsigned int *pui32Block, unsigned int *pui32Idle);
+extern unsigned int (*mtk_get_gpu_freq_fp)(void);
+
+static struct kbase_device *g_malidev;
+static struct kbasep_pm_metrics g_ged_last_metrics;
+
+static unsigned int mtk_get_gpu_freq(void)
+{
+	if (g_malidev)
+		return (unsigned int)(g_malidev->current_nominal_freq / 1000);
+	return 0;
+}
+
+static void mtk_cal_gpu_utilization(unsigned int *pui32Loading,
+                                    unsigned int *pui32Block,
+                                    unsigned int *pui32Idle)
+{
+	struct kbase_device *kbdev = g_malidev;
+	u64 total_time;
+	int utilisation = 0;
+	struct kbasep_pm_metrics diff;
+
+	if (!kbdev)
+		return;
+
+	kbase_pm_get_dvfs_metrics(kbdev, &g_ged_last_metrics, &diff);
+
+	total_time = diff.time_busy + diff.time_idle;
+	if (total_time > 0)
+		utilisation = (int)((100ULL * diff.time_busy) / total_time);
+	else
+		utilisation = 0;
+
+	if (utilisation < 0)
+		utilisation = 0;
+	else if (utilisation > 100)
+		utilisation = 100;
+
+	if (pui32Loading)
+		*pui32Loading = (unsigned int)utilisation;
+
+	if (pui32Block)
+		*pui32Block = 0;
+
+	if (pui32Idle)
+		*pui32Idle = (unsigned int)(100 - utilisation);
+}
+#endif
+
 #if (KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE)
 static int kbase_platform_device_remove(struct platform_device *pdev)
 #else
@@ -5920,6 +5971,12 @@ static void kbase_platform_device_remove(struct platform_device *pdev)
 		return -ENODEV;
 #else
 		return;
+#endif
+
+#if IS_ENABLED(CONFIG_MTK_GED_SUPPORT)
+	mtk_get_gpu_freq_fp = NULL;
+	ged_dvfs_cal_gpu_utilization_fp = NULL;
+	g_malidev = NULL;
 #endif
 
 	kbase_device_term(kbdev);

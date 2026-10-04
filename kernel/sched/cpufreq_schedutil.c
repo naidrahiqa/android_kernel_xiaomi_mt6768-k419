@@ -17,8 +17,8 @@
 #include <trace/events/power.h>
 #include "cpufreq_schedutil.h"
 
-#define SUGOV_UP_RATE_LIMIT_US		500
-#define SUGOV_DOWN_RATE_LIMIT_US	4000
+#define SUGOV_UP_RATE_LIMIT_US		1500
+#define SUGOV_DOWN_RATE_LIMIT_US	500
 
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;

@@ -147,3 +147,11 @@ greenforce-clang/
 .opencode/
 AGENTS.md
 ROADMAP.md
+
+# CI packaging leftovers (kernel-ci-kit / AnyKernel3 output)
+dist/
+*.sha256
+
+# Patch/merge leftovers (never track — .orig had conflict markers)
+*.orig
+*.rej

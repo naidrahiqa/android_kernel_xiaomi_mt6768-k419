@@ -43,6 +43,8 @@ static DEFINE_MUTEX(zram_index_mutex);
 static int zram_major;
 static const char *default_compressor = "lz4";
 
+#define ZRAM_DEFAULT_DISKSIZE_MAX	(4ULL << 30)
+
 /* Module params (documentation at end) */
 static unsigned int num_devices = 1;
 /*
@@ -1711,11 +1713,32 @@ static void zram_reset_device(struct zram *zram)
 	reset_bdev(zram);
 }
 
+static int zram_init_disksize(struct zram *zram, u64 disksize)
+{
+	struct zcomp *comp;
+
+	disksize = PAGE_ALIGN(disksize);
+	if (!zram_meta_alloc(zram, disksize))
+		return -ENOMEM;
+
+	comp = zcomp_create(zram->compressor);
+	if (IS_ERR(comp)) {
+		pr_err("Cannot initialise %s compressing backend\n",
+				zram->compressor);
+		zram_meta_free(zram, disksize);
+		return PTR_ERR(comp);
+	}
+
+	zram->comp = comp;
+	zram->disksize = disksize;
+	set_capacity(zram->disk, zram->disksize >> SECTOR_SHIFT);
+	return 0;
+}
+
 static ssize_t disksize_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t len)
 {
 	u64 disksize;
-	struct zcomp *comp;
 	struct zram *zram = dev_to_zram(dev);
 	int err;
 
@@ -1730,31 +1753,15 @@ static ssize_t disksize_store(struct device *dev,
 		goto out_unlock;
 	}
 
-	disksize = PAGE_ALIGN(disksize);
-	if (!zram_meta_alloc(zram, disksize)) {
-		err = -ENOMEM;
+	err = zram_init_disksize(zram, disksize);
+	if (err)
 		goto out_unlock;
-	}
-
-	comp = zcomp_create(zram->compressor);
-	if (IS_ERR(comp)) {
-		pr_err("Cannot initialise %s compressing backend\n",
-				zram->compressor);
-		err = PTR_ERR(comp);
-		goto out_free_meta;
-	}
-
-	zram->comp = comp;
-	zram->disksize = disksize;
-	set_capacity(zram->disk, zram->disksize >> SECTOR_SHIFT);
 
 	revalidate_disk(zram->disk);
 	up_write(&zram->init_lock);
 
 	return len;
 
-out_free_meta:
-	zram_meta_free(zram, disksize);
 out_unlock:
 	up_write(&zram->init_lock);
 	return err;
@@ -2135,6 +2142,36 @@ out_error:
 	destroy_devices();
 	return ret;
 }
+
+static int __init zram_apply_default_disksize(void)
+{
+	struct zram *zram;
+	u64 disksize;
+
+	rcu_read_lock();
+	zram = idr_find(&zram_index_idr, 0);
+	rcu_read_unlock();
+	if (!zram)
+		return 0;
+
+	disksize = (u64)totalram_pages << PAGE_SHIFT;
+	disksize = disksize * 3 / 4;
+	if (disksize > ZRAM_DEFAULT_DISKSIZE_MAX)
+		disksize = ZRAM_DEFAULT_DISKSIZE_MAX;
+
+	down_write(&zram->init_lock);
+	if (!init_done(zram)) {
+		if (zram_init_disksize(zram, disksize))
+			pr_err("Failed to set default disksize for %s\n",
+					zram->disk->disk_name);
+		else
+			pr_info("%s: default disksize %llu\n",
+					zram->disk->disk_name, disksize);
+	}
+	up_write(&zram->init_lock);
+	return 0;
+}
+late_initcall(zram_apply_default_disksize);
 
 static void __exit zram_exit(void)
 {

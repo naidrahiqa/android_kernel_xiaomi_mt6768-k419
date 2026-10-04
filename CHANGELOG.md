@@ -4,6 +4,15 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
+## 2026-10-04 — ADIOS I/O Scheduler Hardening & ReSukiSU Sync
+
++ block: harden ADIOS against request loss — drain plug list when rd pool exhausted instead of requeue+break
++ block: fall back to priority queue when dl_group allocation fails during merge, no more orphaned requests
++ block: track in-flight ownership with rd->counted and add missing .requeue_request hook (fixes MMC requeue leak that stalls batch refill)
++ block: give each latency model its own aggregation buckets, reset under its own update_lock
++ block: clamp batch_limit, lat_target, and global_latency_window sysfs stores against truncation/overflow
++ resukisu: sync upstream to v4.2.0-rc3 (commit 4c5c8ce, KSU_VERSION 35202) — avtab removal length & xperms fix
+
 ## 2026-10-03 — Hardware KCAL, vm.swappiness 200, Dynamic Fsync & Boeffla WL Blocker
 
 + display: implement MediaTek hardware-accelerated KCAL color control (/sys/devices/platform/kcal_ctrl.0/kcal)

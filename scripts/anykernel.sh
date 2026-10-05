@@ -34,13 +34,13 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 } # end attributes
 
 ## boot shell variables
-block=auto;
-is_slot_device=auto;
-ramdisk_compression=auto;
-# CRITICAL for MediaTek:
+BLOCK=auto;
+IS_SLOT_DEVICE=auto;
+RAMDISK_COMPRESSION=auto;
+# CRITICAL for MediaTek (AK3 >= cea8f97 pakai nama UPPERCASE):
 # Do NOT patch vbmeta — HyperOS/MIUI validates boot chain.
 # Patching vbmeta can cause verification failure → brick.
-patch_vbmeta_flag=0;
+PATCH_VBMETA_FLAG=0;
 
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;

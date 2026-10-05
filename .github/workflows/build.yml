@@ -32,6 +32,6 @@ jobs:
       kernel_ref: PawwwNunungggg24.0
       defconfig: selene_defconfig
       device_name: selene
-      toolchain: aosp-clang
+      toolchain: greenforce-clang
       extra_make_args: LLVM=1 LLVM_IAS=1
     secrets: inherit

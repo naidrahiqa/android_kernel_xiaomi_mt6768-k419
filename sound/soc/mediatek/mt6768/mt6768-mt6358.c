@@ -272,37 +272,6 @@ static int aw87389_mode_set(struct snd_kcontrol *kcontrol,
 }
 #endif
 
-// ALPS05007528 begin
-#if defined(CONFIG_TARGET_PRODUCT_SELENE) && \
-	defined(CONFIG_SND_SOC_DSPK_LOL_HP)
-static int rcv_amp_mode;
-static const char *rcv_amp_type_str[] = {"SPEAKER_MODE", "RECIEVER_MODE"};
-static const struct soc_enum rcv_amp_type_enum =
-	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(rcv_amp_type_str), rcv_amp_type_str);
-
-static int mt6768_rcv_amp_mode_get(struct snd_kcontrol *kcontrol,
-				   struct snd_ctl_elem_value *ucontrol)
-{
-	pr_info("%s() = %d\n", __func__, rcv_amp_mode);
-	ucontrol->value.integer.value[0] = rcv_amp_mode;
-	return 0;
-}
-
-static int mt6768_rcv_amp_mode_set(struct snd_kcontrol *kcontrol,
-				   struct snd_ctl_elem_value *ucontrol)
-{
-	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-
-	if (ucontrol->value.enumerated.item[0] >= e->items)
-		return -EINVAL;
-
-	rcv_amp_mode = ucontrol->value.integer.value[0];
-	pr_info("%s() = %d\n", __func__, rcv_amp_mode);
-	return 0;
-}
-#endif
-// ALPS05007528 end
-
 static int mt6768_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {

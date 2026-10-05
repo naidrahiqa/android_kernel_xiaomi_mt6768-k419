@@ -64,7 +64,9 @@ else
 fi
 
 PIN_LOCAL="$(grep '^KSU_LOCAL_VERSION' "$KBUILD" | head -1 | sed 's/.*:= *//' | tr -d ' ')"
+# shellcheck disable=SC2016 # literal $(shell ...) dari upstream Kbuild
 PIN_TAG="$(grep '^KSU_TAG_NAME' "$KBUILD" | head -1 | sed 's/.*:= *//' | sed 's/\$(shell .*)//; s/^ *//; s/ *$//')"
+# shellcheck disable=SC2016 # literal $(shell ...) dari upstream Kbuild
 PIN_SHA="$(grep '^KSU_COMMIT_SHA' "$KBUILD" | head -1 | sed 's/.*:= *//' | sed 's/\$(shell .*)//; s/^ *//; s/ *$//')"
 
 if ! [[ "$PIN_LOCAL" =~ ^[0-9]+$ ]]; then
@@ -107,7 +109,10 @@ BEHIND=0
 DELTA_COMMITS=""
 DELTA_FILES=""
 COMPARE_NOTE=""
-if [ "$PIN_SHA" != "?" ] && { [ "$UP_SHA" = "$PIN_SHA"* ] || [ "$PIN_SHA" = "$UP_SHA"* ]; }; then
+# [[ ]] wajib di sini: `[ ]` POSIX tidak melakukan globbing, jadi cek prefix
+# ini tidak akan pernah match (shellcheck SC2081) dan tiap run selalu buang
+# satu API /compare extra. Bash sudah dijamin oleh shebang.
+if [ "$PIN_SHA" != "?" ] && { [[ "$UP_SHA" == "$PIN_SHA"* ]] || [[ "$PIN_SHA" == "$UP_SHA"* ]]; }; then
 	AHEAD=0
 else
 	# resolve pin ke SHA penuh

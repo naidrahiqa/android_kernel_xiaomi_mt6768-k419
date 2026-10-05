@@ -156,5 +156,10 @@ dist/
 *.orig
 *.rej
 
-# CI lives in naidrahiqa/kernel-ci-kit (keep source tree clean like upstream)
-.github/
+# CI: the heavy lifting lives in naidrahiqa/kernel-ci-kit, so only the thin
+# push-trigger wrapper is tracked here (keep the source tree like upstream).
+# Legacy local workflows live in .github/legacy/ and must stay untracked.
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/build.yml

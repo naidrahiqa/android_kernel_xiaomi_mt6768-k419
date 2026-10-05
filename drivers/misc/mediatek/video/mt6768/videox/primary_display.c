@@ -263,7 +263,7 @@ void _primary_path_lock(const char *caller)
 
 void _primary_path_unlock(const char *caller)
 {
-	u64 mutex_time_period;
+	pgc->mutex_locker = NULL;
 
 	disp_sw_mutex_unlock(&(pgc->lock));
 

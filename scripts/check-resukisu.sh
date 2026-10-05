@@ -1,18 +1,23 @@
 #!/bin/bash
 # ==============================================================================
 # check-resukisu.sh — Bandingkan pin ReSukiSU lokal (resukisu/Kbuild)
-#                     dengan upstream ReSukiSU/ReSukiSU@main
+#                     dengan upstream Baka-SU/BakaSU@main (dulunya ReSukiSU)
 # ==============================================================================
 # Usage : scripts/check-resukisu.sh [--json]
 # Exit  : 0 = sudah latest | 1 = outdated | 2 = error (jaringan/API/Kbuild)
 # Deps  : curl, jq
-# CI    : .github/workflows/resukisu-check.yml (cron harian + workflow_dispatch)
-# Sync  : kalau exit 1 -> ikuti workflow di skill ksu-version-management
+# CI    : kernel-ci-kit .github/workflows/resukisu-check.yml (cron mingguan)
+# Sync  : kalau exit 1 -> kernel-ci-kit .github/workflows/resukisu-updater.yml
+#         (atau manual: skill ksu-version-management)
 # ==============================================================================
 set -uo pipefail
 
-REPO_OWNER="ReSukiSU"
-REPO_NAME="ReSukiSU"
+# NB: repo ini di-rename GitHub menjadi Baka-SU/BakaSU (2026-10-05). Nama lama
+# ReSukiSU/ReSukiSU masih redirect, tapi pakai nama baru supaya tidak bergantung
+# pada redirect (nama lama bisa di-squat) — dan tetap pakai -L di http_get supaya
+# rename berikutnya tidak mematikan script (301 -> exit 2 -> cron error).
+REPO_OWNER="Baka-SU"
+REPO_NAME="BakaSU"
 API="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}"
 
 JSON_MODE=0
@@ -38,8 +43,11 @@ BODY="$TMP/body"
 HDRS="$TMP/headers"
 
 # http_get <path> -> print HTTP code; body di $BODY, header di $HDRS
+# -L wajib: API membalas 301 untuk repo yang pernah di-rename, dan tanpa -L
+# code-nya 301 -> script exit 2. awk di bawah mengambil status HTTP terakhir,
+# jadi blok header redirect tidak mengganggu.
 http_get() {
-	curl -sS --max-time 30 -H "Accept: application/vnd.github+json" \
+	curl -sSL --max-time 30 -H "Accept: application/vnd.github+json" \
 		${AUTH[@]+"${AUTH[@]}"} -D "$HDRS" -o "$BODY" "${API}$1" >/dev/null 2>&1
 	awk 'toupper($1) ~ /^HTTP\// { c = $2 } END { print c }' "$HDRS" 2>/dev/null
 }

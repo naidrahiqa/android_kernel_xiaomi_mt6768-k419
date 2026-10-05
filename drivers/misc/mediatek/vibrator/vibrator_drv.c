@@ -118,7 +118,7 @@ static void vibrator_enable(unsigned int dur, unsigned int activate)
 
 static void vibrator_oc_handler(void)
 {
-	pr_info(VIB_TAG "%s: disable vibr for oc intr happened\n", __func__);
+	pr_debug(VIB_TAG "%s: disable vibr for oc intr happened\n", __func__);
 	vibrator_enable(0, 0);
 }
 
@@ -328,7 +328,7 @@ static int vib_probe(struct platform_device *pdev)
 	vibr->reg = devm_regulator_get(&pdev->dev, "vibr");
 	if (IS_ERR(vibr->reg)) {
 		ret = PTR_ERR(vibr->reg);
-		pr_info("Error load dts: get regulator return %d\n", ret);
+		pr_debug("Error load dts: get regulator return %d\n", ret);
 		return ret;
 	}
 #endif
@@ -389,7 +389,7 @@ static int vib_suspend(struct device *dev)
 	if (atomic_read(&vibr->vibr_state)) {
 		atomic_set(&vibr->vibr_state, 0);
 		ret = vibr_Disable();
-		pr_info("vibr disbale vibr ret=%d, enter suspend.", ret);
+		pr_debug("vibr disbale vibr ret=%d, enter suspend.", ret);
 	}
 
 	return ret;

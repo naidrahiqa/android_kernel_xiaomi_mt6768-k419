@@ -62,4 +62,3 @@ obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
 obj-$(CONFIG_HQ_SYSFS_SUPPORT) 	+= hqsysfs/
 obj-y				+= mediatek/
 obj-$(CONFIG_KAERU_COMM)	+= kaeru_comm.o
-obj-$(CONFIG_ENCORE_FAS)	+= encore_fas/

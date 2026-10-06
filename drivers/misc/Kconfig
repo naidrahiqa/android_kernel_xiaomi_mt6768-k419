@@ -544,7 +544,6 @@ source "drivers/misc/ocxl/Kconfig"
 source "drivers/misc/cardreader/Kconfig"
 source "drivers/misc/mediatek/Kconfig"
 source "drivers/misc/hqsysfs/Kconfig"
-source "drivers/misc/encore_fas/Kconfig"
 
 config KAERU_COMM
 	bool "Kaeru bootloader communication"

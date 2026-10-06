@@ -158,4 +158,4 @@ endif
 
 #for AWINIC AW87XXX Smart K PA
 obj-$(CONFIG_SND_SOC_AW87XXX) += aw87xxx/
-obj-$(CONFIG_SND_SOC_FS18XX) += fs1815n/
+obj-$(CONFIG_SND_SOC_FS16XX) += fs1815n/

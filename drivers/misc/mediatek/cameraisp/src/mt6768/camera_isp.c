@@ -385,7 +385,7 @@ const struct ISR_TABLE IRQ_CB_TBL[ISP_IRQ_TYPE_AMOUNT] = {
 #else
 	{ISP_Irq_CAM_A,     0,  "cam2"},
 	{ISP_Irq_CAM_B,     0,  "cam3"},
-	{ISP_Irq_DIP_A,     0,  "dip1"},
+	{ISP_Irq_DIP_A,     0,  "dip"},
 	{ISP_Irq_CAMSV_0,   0,  "camsv1"},
 	{ISP_Irq_CAMSV_1,   0,  "camsv2"},
 	{ISP_Irq_CAMSV_2,   0,  "camsv3"},
@@ -834,6 +834,7 @@ struct ISP_IRQ_ERR_WAN_CNT_STRUCT {
 };
 
 static signed int FirstUnusedIrqUserKey = 1;
+#define USERKEY_STR_LEN 128
 
 struct UserKeyInfo {
 	/* for the user that register a userKey */
@@ -4529,8 +4530,7 @@ static signed int ISP_WriteReg(struct ISP_REG_IO_STRUCT *pRegIo)
 	/* unsigned char* pData = NULL; */
 	struct ISP_REG_STRUCT *pData = NULL;
 
-	if (((pRegIo->Count * sizeof(struct ISP_REG_STRUCT)) > 0xFFFFF000) ||
-		(pRegIo->Count == 0)) {
+	if ((pRegIo->Count * sizeof(struct ISP_REG_STRUCT)) > 0xFFFFF000) {
 		LOG_NOTICE("pRegIo->Count error");
 		Ret = -EFAULT;
 		goto EXIT;
@@ -14863,7 +14863,7 @@ LB_CAMA_SOF_IGNORE:
 	spin_unlock(&(IspInfo.SpinLockIrq[module]));
 	/*  */
 	if (IrqStatus & SOF_INT_ST) {
-			wake_up_interruptible(&IspInfo.WaitQHeadCam
+		wake_up_interruptible(&IspInfo.WaitQHeadCam
 			[ISP_GetWaitQCamIndex(module)]
 			[ISP_WAITQ_HEAD_IRQ_SOF]);
 	}

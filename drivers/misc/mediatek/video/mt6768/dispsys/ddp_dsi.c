@@ -297,7 +297,6 @@ static const char *_dsi_vdo_mode_parse_state(unsigned int state)
 
 enum DSI_STATUS DSI_DumpRegisters(enum DISP_MODULE_ENUM module, int level)
 {
-#ifdef CONFIG_TRACING
 	u32 i = 0;
 	u32 k = 0;
 
@@ -380,7 +379,6 @@ enum DSI_STATUS DSI_DumpRegisters(enum DISP_MODULE_ENUM module, int level)
 #endif
 		}
 	}
-#endif
 
 	return DSI_STATUS_OK;
 }

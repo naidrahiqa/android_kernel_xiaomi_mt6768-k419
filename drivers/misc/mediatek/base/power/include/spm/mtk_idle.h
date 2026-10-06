@@ -75,6 +75,8 @@ extern int mtk_idle_enter_dvt(int cpu);
 extern struct timeval pre_dpidle_time;
 extern bool mtk_dpidle_is_active(void);
 
+/* Call as disp driver is ready */
+extern void mtk_idle_disp_is_ready(bool enable);
 
 
 /* --------------------------------------------------------

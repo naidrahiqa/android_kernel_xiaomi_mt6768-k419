@@ -1544,8 +1544,23 @@ static void adios_finish_request(struct request *rq) {
 	 * corrupt the slab freelist), but always detach priv[0] so the
 	 * next occupant of this request slot starts clean.
 	 */
-	if (rd && rd->rq == rq)
+	if (rd && rd->rq == rq) {
+		/*
+		 * A request has to leave the deadline tree before it is
+		 * finished: remove_request() clears rd->dl_group on the way
+		 * out.  If it is still linked, freeing rd here would leave a
+		 * dangling node in dlg->rqs; fill_batch_queues() would then
+		 * take rd->rq (possibly a recycled slot) and dispatch
+		 * remove_request() on a request that is not on any adios list
+		 * -> NULL write in list_del_init(), the
+		 * "remove_request+0x38" oops from adios_dispatch_request.
+		 * Unlink first so the tree can never outlive its rd.  This
+		 * is the single mempool_free() path for rq_data_pool.
+		 */
+		if (WARN_ON_ONCE(rd->dl_group))
+			del_from_dl_tree(ad, adios_optype_not_read(rq), rq);
 		mempool_free(rd, ad->rq_data_pool);
+	}
 	rq->elv.priv[0] = NULL;
 }
 

@@ -194,6 +194,8 @@ struct net_device_stats {
 	unsigned long	tx_compressed;
 };
 
+#define DEV_STATS_INC(_dev, _field)		((_dev)->stats._field++)
+
 
 #include <linux/cache.h>
 #include <linux/skbuff.h>

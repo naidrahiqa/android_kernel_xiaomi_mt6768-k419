@@ -393,11 +393,40 @@ static void request_wait_answer(struct fuse_req *req)
 	}
 
 	if (!test_bit(FR_FORCE, &req->flags)) {
-		/* Only fatal signals may interrupt this */
-		err = wait_event_killable(req->waitq,
-					test_bit(FR_FINISHED, &req->flags));
-		if (!err)
-			return;
+		/*
+		 * Only fatal signals may interrupt this wait.  The freezer
+		 * is a special case: it wakes us with a non-fatal fake
+		 * signal, so if the FUSE daemon freezes between reading a
+		 * request and writing its reply (FR_SENT set, FR_FINISHED
+		 * clear) a plain wait_event_killable() re-sleeps forever.
+		 * The requester then stays in TASK_KILLABLE, the freezer
+		 * counts it as refusing, and suspend aborts with
+		 * "Freezing of tasks failed" (see docs/issues/0004).
+		 *
+		 * Sleep interruptibly and re-sleep on benign signals so
+		 * killable semantics are preserved, but let the freezer
+		 * out and refrigerate here: the request stays pending and
+		 * completes normally after thaw.
+		 */
+		while (!test_bit(FR_FINISHED, &req->flags)) {
+			err = wait_event_interruptible(req->waitq,
+					test_bit(FR_FINISHED, &req->flags) ||
+					freezing(current));
+			/*
+			 * err == 0 means the condition held: if FR_FINISHED is
+			 * still clear it can only be the freezer, which must
+			 * refrigerate us rather than return from here.
+			 */
+			if (test_bit(FR_FINISHED, &req->flags))
+				return;
+			if (!err || freezing(current)) {
+				try_to_freeze();
+				continue;
+			}
+			if (__fatal_signal_pending(current))
+				break;
+			/* benign signal: keep waiting (killable semantics) */
+		}
 
 		spin_lock(&fiq->lock);
 		/* Request is not yet in userspace, bail out */

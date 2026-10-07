@@ -17,7 +17,7 @@
 #include "mt6768-afe-gpio.h"
 #include "../../codecs/mt6358.h"
 #include "../common/mtk-sp-spk-amp.h"
-#ifdef CONFIG_SND_SOC_FS16XX
+#ifdef CONFIG_SND_SOC_FS18XX
 #include "../fs1815n/fsm_public.h"
 #include "../fs1815n/fsm-dev.h"
 #endif
@@ -201,6 +201,77 @@ static int mt6768_spk_amp_mode_set(struct snd_kcontrol *kcontrol,
 #endif
 // ALPS05007528 end
 
+#if defined(CONFIG_SND_SOC_AW87559)
+static const char *const mode_function[] = { "Off", "Music", "Voice", "Fm", "Rcv" };
+static SOC_ENUM_SINGLE_EXT_DECL(aw87xxx_mode, mode_function);
+
+enum aw87xxx_scene_mode {
+	AW87XXX_OFF_MODE = 0,
+	AW87XXX_MUSIC_MODE = 1,
+	AW87XXX_VOICE_MODE = 2,
+	AW87XXX_FM_MODE = 3,
+	AW87XXX_RCV_MODE = 4,
+	AW87XXX_MODE_MAX = 5,
+};
+enum {
+	AW87XXX_LEFT_CHANNEL = 0,
+	AW87XXX_RIGHT_CHANNEL = 1,
+};
+
+extern unsigned char aw87xxx_show_current_mode(int32_t channel);
+extern int aw87xxx_audio_scene_load(uint8_t mode, int32_t channel);
+
+static int aw87559_mode_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned char current_mode;
+	current_mode = aw87xxx_show_current_mode(AW87XXX_LEFT_CHANNEL);
+	ucontrol->value.integer.value[0] = current_mode;
+	pr_info("%s: get mode:%d\n", __func__, current_mode);
+	return 0;
+}
+
+static int aw87559_mode_set(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	unsigned char set_mode;
+	set_mode = ucontrol->value.integer.value[0];
+	ret = aw87xxx_audio_scene_load(set_mode, AW87XXX_LEFT_CHANNEL);
+	if (ret < 0) {
+		pr_err("%s: mode:%d set failed\n", __func__, set_mode);
+		return -EPERM;
+	}
+	pr_info("%s: set mode:%d success", __func__, set_mode);
+	return 0;
+}
+
+static int aw87389_mode_get(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	unsigned char current_mode;
+	current_mode = aw87xxx_show_current_mode(AW87XXX_RIGHT_CHANNEL);
+	ucontrol->value.integer.value[0] = current_mode;
+	pr_info("%s: get mode:%d\n", __func__, current_mode);
+	return 0;
+}
+
+static int aw87389_mode_set(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	int ret = 0;
+	unsigned char set_mode;
+	set_mode = ucontrol->value.integer.value[0];
+	ret = aw87xxx_audio_scene_load(set_mode, AW87XXX_RIGHT_CHANNEL);
+	if (ret < 0) {
+		pr_err("%s: mode:%d set failed\n", __func__, set_mode);
+		return -EPERM;
+	}
+	pr_info("%s: set mode:%d success", __func__, set_mode);
+	return 0;
+}
+#endif
+
 static int mt6768_spk_type_get(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
@@ -244,7 +315,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 	case SND_SOC_DAPM_POST_PMU:
 	#if defined(CONFIG_SND_SOC_DSPK_LOL_HP)
 		if (spk_amp_mode == 1) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_RCV);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -252,7 +323,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_RCV_MODE]);
 			#endif
 		} else if (spk_amp_mode == 2) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_MUSIC);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -260,7 +331,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_FM_MODE]);
 			#endif
 		} else if (spk_amp_mode == 3) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_VOICE);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -268,7 +339,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_VOICE_MODE]);
 			#endif
 		} else {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_MUSIC);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -281,7 +352,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 		aw87xxx_set_profile(AW87XXX_LEFT_CHANNEL,
 				    (char *)aw87xxx_mode_function[AW87XXX_MUSIC_MODE]);
 		#endif
-		#if defined(CONFIG_SND_SOC_FS16XX)
+		#if defined(CONFIG_SND_SOC_FS18XX)
 		fsm_speaker_onn(FSM_SCENE_MUSIC);
 		#endif
 	#endif
@@ -295,7 +366,7 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 				    (char *)aw87xxx_mode_function[AW87XXX_OFF_MODE]);
 		#endif
 		#endif
-		#if defined(CONFIG_SND_SOC_FS16XX)
+		#if defined(CONFIG_SND_SOC_FS18XX)
 		fsm_speaker_off();
 		#endif
 		break;
@@ -320,7 +391,7 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		if (1 == rcv_amp_mode) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_RCV);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -328,7 +399,7 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_RCV_MODE]);
 			#endif
 		} else if (2 == rcv_amp_mode) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_MUSIC);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -336,7 +407,7 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_FM_MODE]);
 			#endif
 		} else if (3 == rcv_amp_mode) {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_VOICE);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -344,7 +415,7 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 					    (char *)aw87xxx_mode_function[AW87XXX_VOICE_MODE]);
 			#endif
 		} else {
-			#if defined(CONFIG_SND_SOC_FS16XX)
+			#if defined(CONFIG_SND_SOC_FS18XX)
 			fsm_speaker_onn(FSM_SCENE_MUSIC);
 			#endif
 			#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -354,7 +425,7 @@ static int mt6768_mt6358_rcv_amp_event(struct snd_soc_dapm_widget *w,
 		}
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
-	#if defined(CONFIG_SND_SOC_FS16XX)
+	#if defined(CONFIG_SND_SOC_FS18XX)
 		fsm_speaker_off();
 	#endif
 	#if defined(CONFIG_SND_SOC_AW87XXX)
@@ -920,7 +991,7 @@ static struct snd_soc_dai_link mt6768_mt6358_dai_links[] = {
 	{
 		.name = "I2S3",
 		.cpu_dai_name = "I2S3",
-#ifdef CONFIG_SND_SOC_FS16XX
+#ifdef CONFIG_SND_SOC_FS18XX
 		.codec_dai_name = "fs16xx-aif",
 		.codec_name = "fs16xx",
 #else
@@ -935,7 +1006,7 @@ static struct snd_soc_dai_link mt6768_mt6358_dai_links[] = {
 	{
 		.name = "I2S0",
 		.cpu_dai_name = "I2S0",
-#ifdef CONFIG_SND_SOC_FS16XX
+#ifdef CONFIG_SND_SOC_FS18XX
 		.codec_dai_name = "fs16xx-aif",
 		.codec_name = "fs16xx",
 #else

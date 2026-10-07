@@ -66,6 +66,46 @@ config THERMAL_OF
 	  Say 'Y' here if you need to build thermal infrastructure
 	  based on device tree.
 
+config THERMAL_XM_FREQ_FLOOR
+	bool "Enforce a floor on Xiaomi (XM_THERM) CPU frequency caps"
+	depends on MTK_THERMAL
+	help
+	  On Xiaomi/MediaTek builds mi_thermald writes CPU frequency caps
+	  into
+	  /sys/devices/virtual/thermal/thermal_message/cpu_limits and the
+	  kernel forwards them to PPM as BOOST_BY_XM_THERMAL.  When the SoC
+	  is warm (for example while charging) the daemon rewrites that
+	  node several times per second and pins both clusters at the OPP
+	  just above 1.1 GHz, which the kernel cannot undo: writing
+	  scaling_max_freq directly returns -EPERM because PPM owns it.
+
+	  Enabling this clamps every XM_THERM cap from below, so the
+	  configured floor always wins no matter what userspace asks for.
+	  PPM still clamps against the real hardware maximum.
+
+	  WARNING: raising the floor bypasses the CPU thermal throttling
+	  path.  The remaining backstop is thermal shutdown
+	  (mtktscpu-sysrst), which reboots the device, so keep the values
+	  below the hardware maximum and validate on hardware before
+	  enabling by default.  Say N if in doubt.
+
+config THERMAL_XM_FREQ_FLOOR_CLUSTER0
+	int "Little cluster floor in kHz"
+	depends on THERMAL_XM_FREQ_FLOOR
+	default 1800000
+	help
+	  MT6768 little cluster tops out at 1800000 kHz.  This is the
+	  lowest frequency the little cluster may be limited to by
+	  XM_THERM.
+
+config THERMAL_XM_FREQ_FLOOR_CLUSTER1
+	int "Big cluster floor in kHz"
+	depends on THERMAL_XM_FREQ_FLOOR
+	default 2000000
+	help
+	  MT6768 big cluster tops out at 2000000 kHz.  This is the lowest
+	  frequency the big cluster may be limited to by XM_THERM.
+
 config THERMAL_WRITABLE_TRIPS
 	bool "Enable writable trip points"
 	help

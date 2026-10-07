@@ -1321,6 +1321,26 @@ cpu_limits_store(struct device *dev,
 	else
 		cpu = 1;
 
+#if IS_ENABLED(CONFIG_THERMAL_XM_FREQ_FLOOR)
+	{
+		unsigned int floor = cpu ?
+			CONFIG_THERMAL_XM_FREQ_FLOOR_CLUSTER1 :
+			CONFIG_THERMAL_XM_FREQ_FLOOR_CLUSTER0;
+
+		/*
+		 * mi_thermald rewrites this node sub-second whenever the
+		 * SoC runs warm, pinning both clusters at the OPP just above
+		 * 1.1 GHz.  Clamp from below so the floor wins; PPM still
+		 * clamps against the real hardware maximum.
+		 */
+		if (max < floor) {
+			pr_warn_ratelimited("cpu_limits: cluster %u cap %u kHz raised to floor %u kHz\n",
+					    cpu, max, floor);
+			max = floor;
+		}
+	}
+#endif
+
 	mt_ppm_sysboost_set_freq_limit(BOOST_BY_XM_THERMAL, cpu, -1, max);
 
 	return len;

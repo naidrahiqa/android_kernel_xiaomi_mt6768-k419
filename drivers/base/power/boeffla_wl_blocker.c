@@ -13,36 +13,45 @@
 #include <linux/fs.h>
 #include <linux/string.h>
 #include <linux/slab.h>
-#include <linux/spinlock.h>
+#include <linux/rcupdate.h>
+#include <linux/mutex.h>
 #include <linux/uaccess.h>
 #include <linux/boeffla_wl_blocker.h>
 
-#define BOEFFLA_WL_BLOCKER_VERSION "1.1.0"
+#define BOEFFLA_WL_BLOCKER_VERSION "1.2.0"
 #define MAX_BLOCKED_WLS 64
 #define MAX_WL_NAME_LEN 64
 
-static DEFINE_SPINLOCK(wl_lock);
-static char blocked_wls[MAX_BLOCKED_WLS][MAX_WL_NAME_LEN];
-static int num_blocked_wls = 0;
+struct boeffla_wl_table {
+	int count;
+	char names[MAX_BLOCKED_WLS][MAX_WL_NAME_LEN];
+	struct rcu_head rcu;
+};
+
+static struct boeffla_wl_table __rcu *wl_table;
+static DEFINE_MUTEX(wl_update_mutex);
 static bool debug_log = false;
 
 bool boeffla_wl_blocker_is_blocked(const char *name)
 {
-	unsigned long flags;
-	int i;
+	struct boeffla_wl_table *tbl;
 	bool blocked = false;
+	int i;
 
-	if (!name || num_blocked_wls == 0)
+	if (!name)
 		return false;
 
-	spin_lock_irqsave(&wl_lock, flags);
-	for (i = 0; i < num_blocked_wls; i++) {
-		if (strcmp(name, blocked_wls[i]) == 0) {
-			blocked = true;
-			break;
+	rcu_read_lock();
+	tbl = rcu_dereference(wl_table);
+	if (tbl) {
+		for (i = 0; i < tbl->count; i++) {
+			if (strcmp(name, tbl->names[i]) == 0) {
+				blocked = true;
+				break;
+			}
 		}
 	}
-	spin_unlock_irqrestore(&wl_lock, flags);
+	rcu_read_unlock();
 
 	if (blocked && debug_log)
 		pr_info("boeffla_wl_blocker: blocked wakelock '%s'\n", name);
@@ -55,16 +64,19 @@ static ssize_t wakelock_blocker_show(struct device *dev,
 				     struct device_attribute *attr,
 				     char *buf)
 {
-	unsigned long flags;
+	struct boeffla_wl_table *tbl;
 	int i, len = 0;
 
-	spin_lock_irqsave(&wl_lock, flags);
-	for (i = 0; i < num_blocked_wls; i++) {
-		len += scnprintf(buf + len, PAGE_SIZE - len, "%s%s",
-				 blocked_wls[i],
-				 (i < num_blocked_wls - 1) ? ";" : "");
+	rcu_read_lock();
+	tbl = rcu_dereference(wl_table);
+	if (tbl) {
+		for (i = 0; i < tbl->count; i++) {
+			len += scnprintf(buf + len, PAGE_SIZE - len, "%s%s",
+					 tbl->names[i],
+					 (i < tbl->count - 1) ? ";" : "");
+		}
 	}
-	spin_unlock_irqrestore(&wl_lock, flags);
+	rcu_read_unlock();
 
 	len += scnprintf(buf + len, PAGE_SIZE - len, "\n");
 	return len;
@@ -74,18 +86,16 @@ static ssize_t wakelock_blocker_store(struct device *dev,
 				      struct device_attribute *attr,
 				      const char *buf, size_t count)
 {
+	struct boeffla_wl_table *new_tbl, *old_tbl;
 	char *tmp, *orig, *token;
-	unsigned long flags;
 	int count_new = 0;
-	typedef char wl_name_t[MAX_WL_NAME_LEN];
-	wl_name_t *new_wls;
 
 	orig = kstrdup(buf, GFP_KERNEL);
 	if (!orig)
 		return -ENOMEM;
 
-	new_wls = kzalloc(sizeof(wl_name_t) * MAX_BLOCKED_WLS, GFP_KERNEL);
-	if (!new_wls) {
+	new_tbl = kzalloc(sizeof(*new_tbl), GFP_KERNEL);
+	if (!new_tbl) {
 		kfree(orig);
 		return -ENOMEM;
 	}
@@ -99,7 +109,7 @@ static ssize_t wakelock_blocker_store(struct device *dev,
 				continue;
 
 			if (count_new < MAX_BLOCKED_WLS) {
-				strlcpy(new_wls[count_new], token, MAX_WL_NAME_LEN);
+				strlcpy(new_tbl->names[count_new], token, MAX_WL_NAME_LEN);
 				count_new++;
 			} else {
 				break;
@@ -107,14 +117,16 @@ static ssize_t wakelock_blocker_store(struct device *dev,
 		}
 	}
 
+	new_tbl->count = count_new;
 	kfree(orig);
 
-	spin_lock_irqsave(&wl_lock, flags);
-	num_blocked_wls = count_new;
-	memcpy(blocked_wls, new_wls, sizeof(wl_name_t) * MAX_BLOCKED_WLS);
-	spin_unlock_irqrestore(&wl_lock, flags);
+	mutex_lock(&wl_update_mutex);
+	old_tbl = rcu_dereference_protected(wl_table, lockdep_is_held(&wl_update_mutex));
+	rcu_assign_pointer(wl_table, new_tbl);
+	mutex_unlock(&wl_update_mutex);
 
-	kfree(new_wls);
+	if (old_tbl)
+		kfree_rcu(old_tbl, rcu);
 
 	pr_info("boeffla_wl_blocker: updated blocker list (%d items)\n", count_new);
 	return count;
@@ -181,21 +193,28 @@ static const char *default_wls[] = {
 
 static int __init boeffla_wl_blocker_init(void)
 {
+	struct boeffla_wl_table *tbl;
 	int ret, i;
 
+	tbl = kzalloc(sizeof(*tbl), GFP_KERNEL);
+	if (!tbl)
+		return -ENOMEM;
+
 	for (i = 0; i < ARRAY_SIZE(default_wls) && i < MAX_BLOCKED_WLS; i++) {
-		strlcpy(blocked_wls[i], default_wls[i], MAX_WL_NAME_LEN);
-		num_blocked_wls++;
+		strlcpy(tbl->names[i], default_wls[i], MAX_WL_NAME_LEN);
+		tbl->count++;
 	}
+	RCU_INIT_POINTER(wl_table, tbl);
 
 	ret = misc_register(&boeffla_wl_blocker_dev);
 	if (ret) {
 		pr_err("boeffla_wl_blocker: failed to register misc device\n");
+		kfree(tbl);
 		return ret;
 	}
 
 	pr_info("boeffla_wl_blocker: Generic Wakelock Blocker v%s initialized (%d default wls)\n",
-		BOEFFLA_WL_BLOCKER_VERSION, num_blocked_wls);
+		BOEFFLA_WL_BLOCKER_VERSION, tbl->count);
 	return 0;
 }
 late_initcall(boeffla_wl_blocker_init);

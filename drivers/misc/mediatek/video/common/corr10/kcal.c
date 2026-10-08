@@ -40,6 +40,12 @@ static void kcal_apply(void)
 	g = clamp(kcal_g * 4, 0, 1024);
 	b = clamp(kcal_b * 4, 0, 1024);
 
+	if (kcal_invert) {
+		r = 1024 - r;
+		g = 1024 - g;
+		b = 1024 - b;
+	}
+
 	disp_ccorr_set_RGB_Gain(r, g, b);
 }
 
@@ -58,9 +64,9 @@ static ssize_t kcal_store(struct device *dev,
 	if (sscanf(buf, "%d %d %d", &r, &g, &b) != 3)
 		return -EINVAL;
 
-	kcal_r = clamp(r, 0, 256);
-	kcal_g = clamp(g, 0, 256);
-	kcal_b = clamp(b, 0, 256);
+	kcal_r = clamp(r, kcal_min, 256);
+	kcal_g = clamp(g, kcal_min, 256);
+	kcal_b = clamp(b, kcal_min, 256);
 
 	kcal_apply();
 	return count;
@@ -102,6 +108,10 @@ static ssize_t kcal_min_store(struct device *dev,
 		return -EINVAL;
 
 	kcal_min = clamp_t(int, val, 0, 256);
+	kcal_r = max(kcal_r, kcal_min);
+	kcal_g = max(kcal_g, kcal_min);
+	kcal_b = max(kcal_b, kcal_min);
+	kcal_apply();
 	return count;
 }
 
@@ -121,6 +131,7 @@ static ssize_t kcal_invert_store(struct device *dev,
 		return -EINVAL;
 
 	kcal_invert = (val != 0);
+	kcal_apply();
 	return count;
 }
 

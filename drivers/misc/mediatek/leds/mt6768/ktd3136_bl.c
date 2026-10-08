@@ -32,7 +32,7 @@ int ktd_hbm_mode;
 #define LOG_DBG(fmt, args...) ((void)0)
 #endif
 
-int ktd3137_brightness_table_reg4[256] = {0x01, 0x02, 0x04, 0x04, 0x07,
+static const u8 ktd3137_brightness_table_reg4[256] = {0x01, 0x02, 0x04, 0x04, 0x07,
 	0x02, 0x00, 0x06, 0x04, 0x02, 0x03, 0x04, 0x05, 0x06, 0x02,
 	0x06, 0x02, 0x06, 0x02, 0x06, 0x02, 0x06, 0x02, 0x04, 0x05,
 	0x06, 0x05, 0x03, 0x00, 0x05, 0x02, 0x06, 0x02, 0x06, 0x02,
@@ -59,7 +59,7 @@ int ktd3137_brightness_table_reg4[256] = {0x01, 0x02, 0x04, 0x04, 0x07,
 	0x03, 0x05, 0x07, 0x01, 0x03, 0x05, 0x07, 0x01, 0x03, 0x05,
 	0x07, 0x01, 0x03, 0x05, 0x07, 0x01, 0x03, 0x04, 0x05, 0x06,
 	0x07};
-int ktd3137_brightness_table_reg5[256] = {0x00, 0x06, 0x0C, 0x11, 0x15,
+static const u8 ktd3137_brightness_table_reg5[256] = {0x00, 0x06, 0x0C, 0x11, 0x15,
 	0x1A, 0x1E, 0x21, 0x25, 0x29, 0x2C, 0x2F, 0x32, 0x35, 0x38, 0x3A,
 	0x3D, 0x3F, 0x42, 0x44, 0x47, 0x49, 0x4C, 0x4E, 0x50, 0x52, 0x54,
 	0x56, 0x58, 0x59, 0x5B, 0x5C, 0x5E, 0x5F, 0x61, 0x62, 0x64, 0x65,
@@ -119,18 +119,21 @@ static int ktd3137_masked_write(struct i2c_client *client,
 	int rc;
 	u8 temp = 0;
 
+	if (mask == 0xff)
+		return ktd3137_write_reg(client, reg, val);
+
 	rc = ktd3137_read_reg(client, reg, &temp);
 	if (rc < 0) {
 		dev_err(&client->dev, "failed to read reg\n");
-	} else {
-		temp &= ~mask;
-		temp |= val & mask;
-		rc = ktd3137_write_reg(client, reg, temp);
-		if (rc < 0)
-			dev_err(&client->dev, "failed to write masked data\n");
+		return rc;
 	}
 
-	ktd3137_read_reg(client, reg, &temp);
+	temp &= ~mask;
+	temp |= val & mask;
+	rc = ktd3137_write_reg(client, reg, temp);
+	if (rc < 0)
+		dev_err(&client->dev, "failed to write masked data\n");
+
 	return rc;
 }
 
@@ -565,7 +568,6 @@ static void ktd3137_pwm_control(struct ktd3137_chip *chip, int brightness)
 void ktd3137_brightness_set_workfunc(struct ktd3137_chip *chip, int brightness)
 {
 	struct ktd3137_bl_pdata *pdata = chip->pdata;
-	u8 value;
 
 	if (brightness == 0) {
 		ktd3137_write_reg(chip->client, 0x07, 0x44);
@@ -606,13 +608,6 @@ void ktd3137_brightness_set_workfunc(struct ktd3137_chip *chip, int brightness)
 				ktd3137_brightness_table_reg5[brightness]);
 		}
 	}
-
-	ktd3137_read_reg(chip->client, 0x02, &value);
-	ktd3137_read_reg(chip->client, 0x03, &value);
-	ktd3137_read_reg(chip->client, 0x04, &value);
-	ktd3137_read_reg(chip->client, 0x05, &value);
-	ktd3137_read_reg(chip->client, 0x06, &value);
-	ktd3137_read_reg(chip->client, 0x08, &value);
 }
 
 int ktd_hbm_set(enum backlight_hbm_mode hbm_mode)

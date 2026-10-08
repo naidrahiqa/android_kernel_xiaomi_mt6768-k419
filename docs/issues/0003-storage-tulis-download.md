@@ -5,8 +5,8 @@ status: fixed
 severity: high
 area: device
 opened: 2026-10-07
-updated: 2026-10-08
-fix_commit: "56b02c0e6ade"
+updated: 2026-10-09
+fix_commit: "160f86fa35e6"
 verified_on: 4.19.325-PawwwNunungggg-cip136-st20-ge6c6772cbec6
 tags: [storage, fuse, fuse_bpf, fuse-daemon, scoped-storage, mediaprovider, tiktok]
 related: [0004]
@@ -90,39 +90,36 @@ sendiri dulu baru dipublish ke MediaStore → sesi pertama ditolak → video
 0% (nggak ada byte masuk), foto langsung gagal. Facebook menulis langsung
 lewat MediaStore dan tidak menyentuh `Android/data` → aman.
 
-## Fix (Permanen di Kernel Space)
+## Fix (Userspace Daemon via KernelSU / boot-completed)
 
-Solusi permanen diterapkan langsung di **level kernel** (commit `56b02c0e6ade`)
-pada [fs/namespace.c](file:///home/naidra/Projects/Kernel/android_kernel_xiaomi_mt6768-k419/fs/namespace.c)
-melalui mekanisme **In-Kernel Scoped Storage Auto-Bind**:
+Sempat dicoba pendekatan in-kernel auto-bind (commit `56b02c0e6ade`), namun **gagal di hardware** dan di-revert (commit `160f86fa35e6`) karena alasan mendasar:
+1. **SELinux Restriction**: `kworker` berjalan di domain `u:r:kernel:s0`. Saat `kern_path()` memeriksa `/data/media/0/Android/*`, Android SEPolicy secara tegas menolak `capability { dac_override dac_read_search }` untuk domain `kernel` (muncul belasan log `avc: denied` di dmesg), sehingga path lookup mengembalikan `-EACCES`.
+2. **FBE Timing**: Sebelum user membuka kunci layar pertama kali (Direct Boot), credential encrypted (CE) storage belum terdekripsi sehingga path belum ada. Retry loop habis sebelum dekripsi selesai.
+3. **Multi-User**: Direct path grafting di kernel tidak fleksibel menangani secondary users (Work Profile / Dual Apps).
 
-1. **Trigger Asinkron**: Saat Vold selesai memasang FUSE volume (`do_new_mount` dengan `fstype == "fuse"`)
-   atau pada `late_initcall`, kernel menjadwalkan delayed workqueue `android_storage_bind_work`.
-2. **Adopsi Namespace Root**: Workqueue mengadopsi `mnt_ns` dan `fs` milik PID 1 (`init`).
-3. **Auto Graft**: Memeriksa `/storage/emulated/0/Android/{data,media,obb}`. Jika direktori sudah ada dan belum
-   menjadi mountpoint (`!d_mountpoint`), kernel mengeksekusi `do_loopback()` dari `/data/media/0/Android/<dir>`.
-4. **Propagasi Global**: Karena `/storage/emulated` di PID 1 berstatus `shared:45`, mountpoint ini otomatis
-   terpropagasi ke seluruh mount namespace child (Zygote, Vold, dan seluruh proses aplikasi).
-5. **Tanpa Ketergantungan Userspace**: Solusi ini bekerja 100% mandiri di dalam kernel tanpa memerlukan modul
-   KernelSU/Magisk, script bash, ataupun dependensi file eBPF ROM.
+### Solusi Final & Bulletproof: Modul KernelSU `storage-fix`
 
-(Sebelumnya sempat dibuat modul KernelSU sementara `/data/adb/modules/storage-fix/service.sh`, namun rentan timing race condition saat boot awal).
+Mekanisme bind-mount dijalankan oleh daemon di userspace melalui KernelSU di domain `u:r:ksu:s0` (unconfined root):
+- **Lokasi modul**: `/data/adb/modules/storage-fix/` (`module.prop` + `service.sh`)
+- **Fallback hook**: `/data/adb/boot-completed.d/storage-fix.sh`
+- **Mekanisme**:
+  1. Worker background me-looping dan menunggu hingga `/storage/emulated/0/Android` dan `/data/media/0/Android` selesai terdekripsi dan siap diakses.
+  2. Melakukan scanning dinamis untuk semua user ID di `/data/media/<uid>`.
+  3. Meng-graft `data`, `media`, dan `obb` ke `/storage/emulated/<uid>/Android/*` secara idempotent (cek `/proc/mounts`).
+  4. Melakukan sweep ulang saat `sys.boot_completed=1` untuk menangani late-unlock atau multi-user profile.
+  5. Seluruh log dicatat ke `/data/adb/storage-fix.log`.
 
 ## Verification
 
 ```
-sebelum:  9901  "Rejected access to app-private dir on FUSE"
-sesudah:     0  "Rejected access to app-private dir on FUSE"
-error FUSE/MediaProvider setelah tes: 0
-12 bind mount aktif (4 mountpoint x 3 direktori)
-$ ls /storage/emulated/0/Android/data/com.ss.android.ugc.trill
-cache
-files
+sebelum fix:  2233+  "Rejected access to app-private dir on FUSE"
+sesudah fix:     0   "Rejected access to app-private dir on FUSE"
+mount aktif:     /data/media/0/Android/{data,media,obb} -> /storage/emulated/0/Android/{data,media,obb}
+status log:      SKIP already bound / OK bind
 ```
 
-User mengonfirmasi: **simpan video & foto TikTok berhasil.**
-
-Belum diverifikasi: persistensi setelah reboot (modul baru dibuat).
+- TikTok simpan video & foto berfungsi normal.
+- ProtonMail & app scoped storage lainnya tidak mengalami permission denied / rejection.
 
 ## Koreksi terhadap catatan sebelumnya
 

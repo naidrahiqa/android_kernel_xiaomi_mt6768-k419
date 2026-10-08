@@ -2172,8 +2172,6 @@ err_fw:
 	gf_spi_clk_enable(gf_dev, 0);
 	kfree(gf_dev->spi_buffer);
 err_freqbuff:
-
-err_buf:
 	mutex_destroy(&gf_dev->buf_lock);
 	mutex_destroy(&gf_dev->release_lock);
 	//spi_set_drvdata(spi, NULL);

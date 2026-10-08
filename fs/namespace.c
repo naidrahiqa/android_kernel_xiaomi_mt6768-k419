@@ -2321,6 +2321,111 @@ out:
 	return err;
 }
 
+#ifdef CONFIG_ANDROID_DEFAULT_SETTING
+/*
+ * In-kernel auto-bind mount for Android Scoped Storage.
+ * Automatically grafts /data/media/0/Android/{data,media,obb} onto
+ * /storage/emulated/0/Android/{data,media,obb} inside the root mount
+ * namespace so that shared storage propagation provides uninhibited
+ * f2fs access for apps, bypassing FUSE daemon rejections.
+ */
+static void android_storage_bind_fn(struct work_struct *work);
+static DECLARE_DELAYED_WORK(android_storage_bind_work, android_storage_bind_fn);
+static int android_storage_bind_retry;
+
+static void android_storage_bind_fn(struct work_struct *work)
+{
+	struct task_struct *init_task_ptr;
+	struct mnt_namespace *target_ns = NULL;
+	struct fs_struct *target_fs = NULL;
+	struct mnt_namespace *orig_ns;
+	struct fs_struct *orig_fs;
+	static const char * const subdirs[] = { "data", "media", "obb" };
+	int i, bound_count = 0;
+
+	rcu_read_lock();
+	init_task_ptr = find_task_by_vpid(1);
+	if (init_task_ptr) {
+		task_lock(init_task_ptr);
+		if (init_task_ptr->nsproxy && init_task_ptr->nsproxy->mnt_ns) {
+			target_ns = init_task_ptr->nsproxy->mnt_ns;
+			get_mnt_ns(target_ns);
+		}
+		if (init_task_ptr->fs)
+			target_fs = init_task_ptr->fs;
+		task_unlock(init_task_ptr);
+	}
+	rcu_read_unlock();
+
+	if (!target_ns || !target_fs) {
+		if (target_ns)
+			put_mnt_ns(target_ns);
+		if (android_storage_bind_retry++ < 30)
+			schedule_delayed_work(&android_storage_bind_work, msecs_to_jiffies(2000));
+		return;
+	}
+
+	/* Adopt init (PID 1) mount namespace and root filesystem */
+	orig_ns = current->nsproxy->mnt_ns;
+	orig_fs = current->fs;
+	current->nsproxy->mnt_ns = target_ns;
+	current->fs = target_fs;
+
+	for (i = 0; i < ARRAY_SIZE(subdirs); i++) {
+		char dst_path_buf[64];
+		char src_path_buf[64];
+		struct path dst_path;
+		int err;
+
+		snprintf(dst_path_buf, sizeof(dst_path_buf),
+			 "/storage/emulated/0/Android/%s", subdirs[i]);
+		snprintf(src_path_buf, sizeof(src_path_buf),
+			 "/data/media/0/Android/%s", subdirs[i]);
+
+		err = kern_path(dst_path_buf, LOOKUP_FOLLOW | LOOKUP_DIRECTORY, &dst_path);
+		if (err)
+			continue;
+
+		if (d_mountpoint(dst_path.dentry)) {
+			bound_count++;
+			path_put(&dst_path);
+			continue;
+		}
+
+		err = do_loopback(&dst_path, src_path_buf, 0);
+		if (!err) {
+			pr_info("android_storage: in-kernel bound %s -> %s\n",
+				src_path_buf, dst_path_buf);
+			bound_count++;
+		}
+		path_put(&dst_path);
+	}
+
+	/* Restore caller context */
+	current->fs = orig_fs;
+	current->nsproxy->mnt_ns = orig_ns;
+	put_mnt_ns(target_ns);
+
+	if (bound_count < ARRAY_SIZE(subdirs) && android_storage_bind_retry++ < 30) {
+		schedule_delayed_work(&android_storage_bind_work, msecs_to_jiffies(2000));
+	} else if (bound_count == ARRAY_SIZE(subdirs)) {
+		pr_info("android_storage: all scoped storage directories bound successfully in-kernel\n");
+	}
+}
+
+static void android_storage_trigger_bind(void)
+{
+	schedule_delayed_work(&android_storage_bind_work, msecs_to_jiffies(2000));
+}
+
+static int __init android_storage_bind_init(void)
+{
+	android_storage_trigger_bind();
+	return 0;
+}
+late_initcall(android_storage_bind_init);
+#endif
+
 /*
  * Don't allow locked mount flags to be cleared.
  *
@@ -2668,6 +2773,11 @@ static int do_new_mount(struct path *path, const char *fstype, int sb_flags,
 		err = vfs_get_tree(fc);
 	if (!err)
 		err = do_new_mount_fc(fc, path, mnt_flags);
+
+#ifdef CONFIG_ANDROID_DEFAULT_SETTING
+	if (!err && fstype && !strcmp(fstype, "fuse"))
+		android_storage_trigger_bind();
+#endif
 
 	put_fs_context(fc);
 	return err;

@@ -454,9 +454,14 @@ static const struct file_operations msdc_proc_fops = {
 #endif
 int msdc_debug_proc_init(void)
 {
+	static bool init_done;
 	kuid_t uid;
 	kgid_t gid;
 	struct proc_dir_entry *prEntry;
+
+	if (init_done)
+		return 0;
+	init_done = true;
 
 #ifdef USER_BUILD_KERNEL
 	enable_msdc_debug = 0;

@@ -658,13 +658,16 @@ static const struct file_operations rg_usb20_rev6_fops = {
 	.release = single_release,
 };
 
+extern struct proc_dir_entry *mtk_usb_proc_root;
+
 int usb20_phy_init_debugfs(void)
 {
 	struct proc_dir_entry *root;
 	struct proc_dir_entry *file;
 	int ret;
 
-	proc_mkdir("mtk_usb", NULL);
+	if (!mtk_usb_proc_root)
+		mtk_usb_proc_root = proc_mkdir("mtk_usb", NULL);
 
 	root = proc_mkdir("mtk_usb/usb20_phy", NULL);
 	if (!root) {

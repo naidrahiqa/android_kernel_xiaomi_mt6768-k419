@@ -594,11 +594,15 @@ static const struct file_operations musb_speed_fops = {
 	.release = single_release,
 };
 
+struct proc_dir_entry *mtk_usb_proc_root;
+EXPORT_SYMBOL(mtk_usb_proc_root);
+
 int musb_init_debugfs(struct musb *musb)
 {
 	int ret, idx = 0;
 
-	proc_mkdir(PROC_DIR_MTK_USB, NULL);
+	if (!mtk_usb_proc_root)
+		mtk_usb_proc_root = proc_mkdir(PROC_DIR_MTK_USB, NULL);
 
 	proc_files[idx] = proc_create_data(PROC_FILE_REGDUMP, 0444,
 			NULL, &musb_regdump_fops, musb);
@@ -765,8 +769,6 @@ static const struct file_operations musb_vbus_fops = {
 void musb_dr_debugfs_init(struct musb *musb)
 {
 	int idx = 0;
-
-	proc_mkdir(PROC_DIR_MTK_USB, NULL);
 
 	proc_dr_files[idx++] = proc_create_data(PROC_FILE_MODE, 0644,
 			NULL, &musb_mode_fops, musb);

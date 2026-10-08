@@ -170,3 +170,30 @@ mengubah hasil akhir.
   dibuat (sebelumnya `Android/media` gagal dibuat).
 - Tulis dari shell tetap sehat: `/sdcard/Download` (shared storage, FUSE)
   tidak boleh ikut terganggu oleh bind mount.
+
+---
+
+## Kasus Lanjutan: Galeri & Media Terkunci (WhatsApp Gagal Kirim Foto)
+
+### Gejala
+- WhatsApp (`com.whatsapp`, uid 10457) tidak bisa mengirim foto/media.
+- Saat memilih gambar atau mengambil foto dari kamera WhatsApp, `MediaComposerActivity` terbuka sekejap lalu tertutup otomatis dalam hitungan detik.
+- Internet terasa macet / upload gambar tidak berjalan.
+
+### Root Cause
+1. **DAC Permission Lockout di Shared Storage**:
+   Folder media publik (`/data/media/0/DCIM`, `/data/media/0/Pictures`, `/data/media/0/Download`, dll.) serta file foto di dalamnya dimiliki oleh UID lama/MediaProvider (`u0_a367:media_rw`) dengan permission **`drwxrws---` (770)** dan file **`-rw-rw----` (660)** akibat restore SwiftBackup / DAC inherit.
+   Karena bit `others` adalah `---` (tanpa izin baca/masuk), WhatsApp (UID `10457`) mendapatkan error **`Permission denied (EACCES)`** saat mencoba membaca file sumber foto.
+2. **TCP Congestion Control Westwood**:
+   Kernel yang berjalan menggunakan default `westwood` yang sangat rentan drop throughput saat jitter hotspot Wi-Fi.
+
+### Solusi & Verifikasi
+1. Ubah ownership direktori media bersama ke `media_rw:media_rw`:
+   ```sh
+   chown -R media_rw:media_rw /data/media/0/{DCIM,Pictures,Download,Documents,Movies,Music,...}
+   chmod -R u=rwX,g=rwX,o=rX /data/media/0/{DCIM,Pictures,Download,Documents,Movies,Music,...}
+   ```
+2. Restart `com.android.providers.media.module` untuk membersihkan cache atribut FUSE.
+3. Otomatisasi disematkan ke modul KernelSU `/data/adb/modules/storage-fix/service.sh` agar auto-heal berjalan setiap boot.
+4. Set TCP congestion control ke `bbr` via `sysctl -w net.ipv4.tcp_congestion_control=bbr`.
+5. **Hasil**: WhatsApp sukses mengirim gambar dan galeri dapat diakses normal tanpa hambatan.

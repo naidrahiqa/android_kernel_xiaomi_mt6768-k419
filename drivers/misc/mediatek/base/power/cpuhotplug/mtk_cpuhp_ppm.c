@@ -97,6 +97,10 @@ Retry_ON:
 
 		/* process the request of down each CPUs from PPM */
 		for_each_possible_cpu(i) {
+#if IS_ENABLED(CONFIG_HOTPLUG_LOCK_BIG_CLUSTER)
+			if (i >= 6)
+				continue;
+#endif
 			request_cpu_up = cpumask_test_cpu(i, &ppm_cpus_req);
 
 			if (!request_cpu_up && cpu_online(i)) {
@@ -136,6 +140,10 @@ static void ppm_limit_callback(struct ppm_client_req req)
 {
 	mutex_lock(&ppm_mutex);
 	cpumask_copy(&ppm_online_cpus, &req.online_core[0]);
+#if IS_ENABLED(CONFIG_HOTPLUG_LOCK_BIG_CLUSTER)
+	cpumask_set_cpu(6, &ppm_online_cpus);
+	cpumask_set_cpu(7, &ppm_online_cpus);
+#endif
 	mutex_unlock(&ppm_mutex);
 
 	wake_up_process(ppm_kthread);

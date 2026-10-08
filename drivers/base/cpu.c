@@ -69,6 +69,17 @@ static int cpu_subsys_online(struct device *dev)
 
 static int cpu_subsys_offline(struct device *dev)
 {
+#if IS_ENABLED(CONFIG_HOTPLUG_LOCK_BIG_CLUSTER)
+	/*
+	 * Keep big cluster (Cortex-A75 cores 6 and 7) online.
+	 * Userspace thermal daemons (e.g. mi_thermald) must not shut down big cores.
+	 */
+	if (dev->id >= 6) {
+		pr_warn_ratelimited("cpu%d: refusing sysfs offline request\n",
+				    dev->id);
+		return -EPERM;
+	}
+#endif
 	return cpu_down(dev->id);
 }
 

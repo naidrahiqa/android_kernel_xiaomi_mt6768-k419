@@ -106,6 +106,19 @@ config THERMAL_XM_FREQ_FLOOR_CLUSTER1
 	  MT6768 big cluster tops out at 2000000 kHz.  This is the lowest
 	  frequency the big cluster may be limited to by XM_THERM.
 
+config HOTPLUG_LOCK_BIG_CLUSTER
+	bool "Prevent offlining big cluster cores (CPU 6 and 7)"
+	depends on HOTPLUG_CPU
+	default y
+	help
+	  When thermal frequency capping is restricted, Xiaomi thermal daemons
+	  (mi_thermald) escalate by writing '0' to /sys/devices/system/cpu/cpu{6,7}/online,
+	  shutting down the performance Cortex-A75 cores.  This leaves the system
+	  heavily lagging on little cores alone.
+
+	  Saying Y prevents sysfs and hotplug managers from taking down big
+	  cluster cores (CPU 6 and 7 on MT6768), keeping the UI smooth and responsive.
+
 config THERMAL_WRITABLE_TRIPS
 	bool "Enable writable trip points"
 	help

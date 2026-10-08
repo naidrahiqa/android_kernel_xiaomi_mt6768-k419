@@ -49,14 +49,14 @@ static int dyn_fsync_notifier_callback(struct notifier_block *this,
 
 	switch (*blank) {
 	case FB_BLANK_UNBLANK:
-		dyn_fsync_suspended = false;
+		WRITE_ONCE(dyn_fsync_suspended, false);
 		break;
 	case FB_BLANK_POWERDOWN:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_NORMAL:
-		dyn_fsync_suspended = true;
-		if (dyn_fsync_active && dyn_fsync_wq)
+		WRITE_ONCE(dyn_fsync_suspended, true);
+		if (READ_ONCE(dyn_fsync_active) && dyn_fsync_wq)
 			queue_work(dyn_fsync_wq, &dyn_fsync_work);
 		break;
 	}
@@ -72,7 +72,7 @@ static ssize_t dyn_fsync_active_show(struct kobject *kobj,
 				     struct kobj_attribute *attr,
 				     char *buf)
 {
-	return sprintf(buf, "%u\n", dyn_fsync_active ? 1 : 0);
+	return sprintf(buf, "%u\n", READ_ONCE(dyn_fsync_active) ? 1 : 0);
 }
 
 static ssize_t dyn_fsync_active_store(struct kobject *kobj,
@@ -87,11 +87,11 @@ static ssize_t dyn_fsync_active_store(struct kobject *kobj,
 	if (val > 1)
 		return -EINVAL;
 
-	if (dyn_fsync_active && !val) {
-		dyn_fsync_active = false;
+	if (READ_ONCE(dyn_fsync_active) && !val) {
+		WRITE_ONCE(dyn_fsync_active, false);
 		ksys_sync();
 	} else {
-		dyn_fsync_active = (val != 0);
+		WRITE_ONCE(dyn_fsync_active, (val != 0));
 	}
 
 	return count;

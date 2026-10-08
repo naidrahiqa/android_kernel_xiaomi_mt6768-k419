@@ -220,7 +220,7 @@ static int do_fsync(unsigned int fd, int datasync)
 	int ret = -EBADF;
 
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (dyn_fsync_active && !dyn_fsync_suspended)
+	if (READ_ONCE(dyn_fsync_active) && !READ_ONCE(dyn_fsync_suspended))
 		return 0;
 #endif
 

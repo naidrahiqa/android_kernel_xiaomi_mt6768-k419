@@ -6,7 +6,7 @@ severity: high
 area: device
 opened: 2026-10-07
 updated: 2026-10-08
-fix_commit: ""
+fix_commit: "56b02c0e6ade"
 verified_on: 4.19.325-PawwwNunungggg-cip136-st20-ge6c6772cbec6
 tags: [storage, fuse, fuse_bpf, fuse-daemon, scoped-storage, mediaprovider, tiktok]
 related: [0004]
@@ -90,23 +90,23 @@ sendiri dulu baru dipublish ke MediaStore → sesi pertama ditolak → video
 0% (nggak ada byte masuk), foto langsung gagal. Facebook menulis langsung
 lewat MediaStore dan tidak menyentuh `Android/data` → aman.
 
-## Fix
+## Fix (Permanen di Kernel Space)
 
-Bind-mount direktori app-private dari backing store langsung ke jalur FUSE,
-sehingga **FUSE dilewati sepenuhnya**. Diterapkan sebagai modul KernelSU
-`storage-fix` (bukan perubahan kernel — kernel sudah benar):
+Solusi permanen diterapkan langsung di **level kernel** (commit `56b02c0e6ade`)
+pada [fs/namespace.c](file:///home/naidra/Projects/Kernel/android_kernel_xiaomi_mt6768-k419/fs/namespace.c)
+melalui mekanisme **In-Kernel Scoped Storage Auto-Bind**:
 
-```
-/data/adb/modules/storage-fix/
-  module.prop
-  service.sh      # bind /data/media/<u>/Android/{data,media,obb}
-                  #   -> /storage/emulated/<u>/Android/{...}
-                  #   -> /mnt/user/<u>/emulated/<u>/Android/{...}
-```
+1. **Trigger Asinkron**: Saat Vold selesai memasang FUSE volume (`do_new_mount` dengan `fstype == "fuse"`)
+   atau pada `late_initcall`, kernel menjadwalkan delayed workqueue `android_storage_bind_work`.
+2. **Adopsi Namespace Root**: Workqueue mengadopsi `mnt_ns` dan `fs` milik PID 1 (`init`).
+3. **Auto Graft**: Memeriksa `/storage/emulated/0/Android/{data,media,obb}`. Jika direktori sudah ada dan belum
+   menjadi mountpoint (`!d_mountpoint`), kernel mengeksekusi `do_loopback()` dari `/data/media/0/Android/<dir>`.
+4. **Propagasi Global**: Karena `/storage/emulated` di PID 1 berstatus `shared:45`, mountpoint ini otomatis
+   terpropagasi ke seluruh mount namespace child (Zygote, Vold, dan seluruh proses aplikasi).
+5. **Tanpa Ketergantungan Userspace**: Solusi ini bekerja 100% mandiri di dalam kernel tanpa memerlukan modul
+   KernelSU/Magisk, script bash, ataupun dependensi file eBPF ROM.
 
-Script menunggu `/storage/emulated/0`, sleep 20 s agar vold selesai,
-memproses semua user yang ada, skip yang sudah ter-mount (`mountpoint -q`),
-dan log ke `/data/adb/storage-fix.log`.
+(Sebelumnya sempat dibuat modul KernelSU sementara `/data/adb/modules/storage-fix/service.sh`, namun rentan timing race condition saat boot awal).
 
 ## Verification
 

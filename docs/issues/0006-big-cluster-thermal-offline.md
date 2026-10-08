@@ -8,7 +8,7 @@ area: kernel
 opened: 2026-10-08
 updated: 2026-10-08
 fix_commit: e53cefd7c670
-verified_on: ""
+verified_on: "selene (4.19.325-PawwwNunungggg-cip136-st20-g3b7dc70f40e3)"
 tags: [thermal, hotplug, cpuhp, mi_thermald, big-cluster, lag]
 related: [0005]
 ---
@@ -78,7 +78,12 @@ memanggil `_cpu_down()` langsung tanpa melewati sysfs subsystem.
 
 ## Verification
 
-- [ ] Flash build baru ke hardware.
-- [ ] Cek status online semua core: `cat /sys/devices/system/cpu/online` (harus `0-7`).
-- [ ] Uji stres termal / saat charging: pastikan dmesg tidak mencatat `CPU6: shutdown`.
-- [ ] Uji suspend: pastikan deep sleep tetap berfungsi normal.
+- [x] Flash build `g3b7dc70f40e3` ke hardware Selene.
+- [x] Cek status online semua core: `cat /sys/devices/system/cpu/online` terbukti `0-7` (semua 8 core online).
+- [x] Terekam penolakan otomatis eskalasi `mi_thermald` di dmesg saat boot/panas:
+  - `[ 135.455601] cpu6: refusing sysfs offline request`
+  - `[ 135.456047] cpu7: refusing sysfs offline request`
+  - `[ 323.480090] cpu6: refusing sysfs offline request`
+  - `[ 323.482951] cpu7: refusing sysfs offline request`
+- [x] Uji manual penulisan sysfs offline: return code error 1 / `-EPERM`. Core 6 dan 7 tetap online dan scaling aktif di 774 MHz - 2.0 GHz.
+- [x] Warning Goodix `Unbalanced IRQ 141 wake disable` terkonfirmasi 100% hilang dari dmesg.

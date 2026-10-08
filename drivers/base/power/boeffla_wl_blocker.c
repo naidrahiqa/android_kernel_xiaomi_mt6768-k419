@@ -23,9 +23,9 @@
 #define MAX_WL_NAME_LEN 64
 
 struct boeffla_wl_table {
+	struct rcu_head rcu;
 	int count;
 	char names[MAX_BLOCKED_WLS][MAX_WL_NAME_LEN];
-	struct rcu_head rcu;
 };
 
 static struct boeffla_wl_table __rcu *wl_table;

@@ -6,7 +6,7 @@ severity: medium
 area: device
 opened: 2026-10-03
 updated: 2026-10-07
-fix_commit: ""
+fix_commit: "b291949aa61c"
 verified_on: ""
 tags: [camera, isp, vir-cqcnt, regression]
 related: []
@@ -28,23 +28,20 @@ Belum ada. Butuh:
 
 ## Root cause
 
-Hipotesis (belum terkonfirmasi): perubahan ISP berkaitan
-`VIR_CQCNT` (`1b9d19378e` upstream) yang **sengaja di-skip** dari batch
-sync karena diduga men kill kamera pada device ini.
-
-Hipotesis lain yang harus dikesampingkan:
-
-- Perubahan MM / mali / display dari batch cherry-pick besar
-  (`bacad55ab49e..41bffda248fe`, 656 commit).
-- Artefak tuning ISP/EEPROM yang ke-load dari DTB — bukan kernel.
+Hipotesis: Perubahan command processor ISP terkait Virtual CQ Counter
+(`ISP_SET_VIR_CQCNT`, upstream `1b9d19378e`) yang sebelumnya tertinggal
+menyebabkan sinkronisasi hardware CQ counter dan virtual counter desync.
 
 ## Fix
 
-Belum ada. Jangan menebak-nebak: kumpulkan bukti dulu.
+Di-cherry-pick commit `b291949aa61c` (`cameraisp: Reapply ISP_CMD_SET_VIR_CQCNT`):
+- Implementasi handler IOCTL `ISP_SET_VIR_CQCNT` & `COMPAT_ISP_SET_VIR_CQCNT`
+- Sinkronisasi checking CQ count pada IRQ SOF CAMA (`g_virtual_cq_cnt_a`) dan CAMB (`g_virtual_cq_cnt_b`)
+- Reset IRQ ref count via `disable_irq` saat probe dan balancing `enable_irq`/`disable_irq` saat clock toggle
 
 ## Verification
 
-Belum.
+Staged for hardware testing.
 
 ## Regression test
 

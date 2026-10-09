@@ -134,6 +134,9 @@ all.config
 # Kdevelop4
 *.kdev4
 
+*.orig
+*.rej
+
 # Build directories
 out/
 ak3/

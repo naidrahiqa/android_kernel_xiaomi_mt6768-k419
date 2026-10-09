@@ -10,6 +10,10 @@ kernelsu-objs += feature/selinux_hide.o
 kernelsu-objs += feature/module_load_filter.o
 kernelsu-objs += hook/setuid_hook.o
 
+ifeq ($(CONFIG_KSU_HOSTSREDIRECT),y)
+kernelsu-objs += feature/hostsredirect.o
+endif
+
 ifndef CONFIG_KSU_DISABLE_MANAGER
 kernelsu-objs += feature/dynamic_manager.o
 kernelsu-objs += manager/apk_sign.o
@@ -51,7 +55,7 @@ ccflags-y += -I$(src) -I$(src)/include
 
 obj-$(CONFIG_KSU) += kernelsu.o
 
-REPO_NAME := BakaSU
+REPO_NAME := FolkSU
 
 KDIR := $(KDIR)
 
@@ -59,16 +63,16 @@ GIT_BIN := /usr/bin/env PATH="$$PATH":/usr/bin:/usr/local/bin git
 
 KSU_SRC := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-# PawwwNunungggg local patch: resukisu/ is a direct copy (not a git submodule).
+# PawwwNunungggg local patch: folksu/ is a direct copy (not a git submodule).
 # Upstream Kbuild hard-errors in that case; we pin version info manually.
-# Update these pins when refreshing the snapshot from Baka-SU/BakaSU main.
-# Upstream commit: 9dbce02 (2026-10-05)
-KSU_LOCAL_VERSION := 4505
-KSU_VERSION := $(shell expr 30000 + $(KSU_LOCAL_VERSION) + 700)
+# Upstream FolkSU: LyraVoid/FolkSU@master
+# Tag: v0.1.0-pre6, Version code: 32742, Commit: 409b2ef
+KSU_LOCAL_VERSION := 2742
+KSU_VERSION := $(shell expr 30000 + $(KSU_LOCAL_VERSION))
 
-KSU_TAG_NAME := v4.2.0-rc3
-KSU_COMMIT_SHA := 9dbce02
-KSU_BRANCH_NAME := main
+KSU_TAG_NAME := v0.1.0-pre6
+KSU_COMMIT_SHA := 1946112
+KSU_BRANCH_NAME := master
 
 ifdef KBUILD_EXTMOD
 include $(KSU_SRC)/tools/ddk_compatible.mk
@@ -89,7 +93,7 @@ ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
 
 ifdef CONFIG_KSU_MULTI_MANAGER_SUPPORT
-$(info -- Supported Managers: KernelSU Official, KOWSU, BakaSU )
+$(info -- Supported Managers: FolkSU, xxKSU, KernelSU Official, KowSU, Next, SukiSU, MKSU, RKSU, BakaSU )
 endif
 
 KERNEL_VERSION := $(VERSION).$(PATCHLEVEL)

@@ -414,6 +414,7 @@ CONFIG_WIREGUARD=y
 # Critical features
 CONFIG_KSU=y
 CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
+CONFIG_KSU_HOSTSREDIRECT=y
 # Hook method = manual hook (SUSFS inline mode dibuang: bootloop logo->reboot, ga ada log)
 CONFIG_KSU_MANUAL_HOOK=y
 CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK=y

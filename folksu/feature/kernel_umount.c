@@ -23,9 +23,12 @@
 #include "policy/feature.h"
 #include "runtime/ksud_boot.h"
 #include "ksu.h"
+#ifdef CONFIG_KSU_HOSTSREDIRECT
+#include "feature/hostsredirect.h"
+#endif
 #include "feature/sucompat.h"
 
-static bool ksu_kernel_umount_enabled = true;
+bool ksu_kernel_umount_enabled = true;
 
 static int kernel_umount_feature_get(u64 *value)
 {
@@ -126,6 +129,10 @@ int ksu_handle_umount(uid_t old_uid, uid_t new_uid)
 
     // umount the target mnt
     pr_info("handle umount for uid: %d, pid: %d\n", new_uid, current->pid);
+
+#ifdef CONFIG_KSU_HOSTSREDIRECT
+    set_thread_flag(TIF_KSU_UNMOUNTABLE);
+#endif
 
     saved = override_creds(ksu_cred);
 

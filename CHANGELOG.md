@@ -4,6 +4,14 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
+## 2026-10-09 — FolkSU Integration & xxKSU Hosts Redirect
+
++ folksu: migrate root driver from ReSukiSU to FolkSU (LyraVoid/FolkSU@master, v0.1.0-pre6, KSU_VERSION 32742) in manual hook mode
++ xxksu: cherry-pick CONFIG_KSU_HOSTSREDIRECT — in-kernel systemless /system/etc/hosts redirection to /data/adb/hosts for bindhosts mode 3 / AdAway
++ folksu: add FolkSU release key and xxKSU manager key to multi-manager verification table
++ ci: update Telegram release notifications to provide FolkSU Manager APK, NoMount v20, and kernel zip download links
++ scripts: provide scripts/check-folksu.sh and update generate-ksu-notes.sh for FolkSU version management
+
 ## 2026-10-04 — ADIOS Hardening, ReSukiSU Sync & ZRAM Default
 
 - mm/sched: revert schedutil rate limits and vm cache tweaks (vfs_cache_pressure, extra_free_kbytes) — caused lag in daily use, A/B verified

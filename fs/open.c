@@ -1112,6 +1112,16 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	if (fd)
 		return fd;
 
+#ifdef CONFIG_KSU_HOSTSREDIRECT
+	{
+		extern void ksu_hosts_file_redirect(const char __user *filename, int flags, int *fd_ptr);
+		int redirect_fd = -1;
+		ksu_hosts_file_redirect(filename, flags, &redirect_fd);
+		if (redirect_fd >= 0)
+			return redirect_fd;
+	}
+#endif
+
 	tmp = getname(filename);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);

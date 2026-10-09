@@ -97,17 +97,25 @@ Sempat dicoba pendekatan in-kernel auto-bind (commit `56b02c0e6ade`), namun **ga
 2. **FBE Timing**: Sebelum user membuka kunci layar pertama kali (Direct Boot), credential encrypted (CE) storage belum terdekripsi sehingga path belum ada. Retry loop habis sebelum dekripsi selesai.
 3. **Multi-User**: Direct path grafting di kernel tidak fleksibel menangani secondary users (Work Profile / Dual Apps).
 
-### Solusi Final & Bulletproof: Modul KernelSU `storage-fix`
+### Solusi Final & Bulletproof: Modul KernelSU `storage-fix` (v1.2)
 
 Mekanisme bind-mount dijalankan oleh daemon di userspace melalui KernelSU di domain `u:r:ksu:s0` (unconfined root):
-- **Lokasi modul**: `/data/adb/modules/storage-fix/` (`module.prop` + `service.sh`)
+- **Lokasi modul**: `/data/adb/modules/storage-fix/` (`module.prop`, `service.sh`, `auto_mount`)
+- **Zip installer**: `storage-fix-v1.2.zip` (tersedia di `/sdcard/Download/` dan `/sdcard/Download/Telegram/`)
 - **Fallback hook**: `/data/adb/boot-completed.d/storage-fix.sh`
 - **Mekanisme**:
   1. Worker background me-looping dan menunggu hingga `/storage/emulated/0/Android` dan `/data/media/0/Android` selesai terdekripsi dan siap diakses.
   2. Melakukan scanning dinamis untuk semua user ID di `/data/media/<uid>`.
-  3. Meng-graft `data`, `media`, dan `obb` ke `/storage/emulated/<uid>/Android/*` secara idempotent (cek `/proc/mounts`).
-  4. Melakukan sweep ulang saat `sys.boot_completed=1` untuk menangani late-unlock atau multi-user profile.
-  5. Seluruh log dicatat ke `/data/adb/storage-fix.log`.
+  3. Meng-graft `data`, `media`, dan `obb` ke `/storage/emulated/<uid>/Android/*` secara idempotent (cek `/proc/mounts`) dengan `--make-shared`.
+  4. **Watchdog Daemon Anti-Drop**: Loop setiap 5 detik memverifikasi mountpoint; jika proses MediaProvider me-restart dan me-remount storage, daemon langsung meng-graft ulang dalam hitungan detik.
+  5. Auto-heal permissions: Memulihkan kepemilikan direktori publik (`DCIM`, `Pictures`, dll) ke `media_rw:media_rw` (775/664) dan folder cache app TikTok ke `ext_data_rw`.
+  6. TCP Congestion Control otomatis di-tune ke `bbr`.
+  7. Seluruh log dicatat ke `/data/adb/storage-fix.log`.
+
+### Bukti Assembly Disassembly (`libfuse_jni.so`)
+- `0xb85b0`: `adr x8, 0x3e940` (`/sys/fs/bpf/prog_fuseMedia_fuse_media`)
+- `0xb85f4`: `bl syscall(bpf, BPF_OBJ_GET)` -> mengembalikan -ENOENT karena ROM tidak punya `fuse_bpf.o`.
+- `0xb865c`: `mov w4, wzr` -> parameter `bpf_enabled` dipaksa ke `0` (false), memicu fallback ke blok penolakan `Rejected access to app-private dir on FUSE: ...`.
 
 ## Verification
 

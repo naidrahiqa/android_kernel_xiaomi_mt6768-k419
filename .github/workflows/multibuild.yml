@@ -9,7 +9,6 @@ on:
     paths-ignore:
       - '**.md'
       - '.opencode/**'
-      - '.github/**'
   workflow_dispatch:
 
 permissions:

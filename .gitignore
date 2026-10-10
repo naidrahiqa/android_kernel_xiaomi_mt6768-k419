@@ -164,4 +164,3 @@ dist/
 # Legacy local workflows live in .github/legacy/ and must stay untracked.
 !.github/workflows/
 .github/workflows/*
-!.github/workflows/multibuild.yml

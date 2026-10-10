@@ -17,17 +17,18 @@
 #   adb shell su -c 'sh /data/local/tmp/bench-tune.sh --dry-run set vm.swappiness 60'
 #   adb shell su -c 'sh /data/local/tmp/bench-tune.sh restore-check'
 #
-# SELinux / akses:
-#   Di ROM Selene terpasang, domain `shell` maupun `su`/`ksu` TIDAK boleh
-#   read/write /proc/sys/vm/* (bukan file permission — mode swappiness 0644).
-#   Avc-nya tidak muncul di dmesg karena audit logging dimatikan ROM.
-#   Konsekuensi: workflow runtime A-B TIDAK bisa jalan di device ini.
-#   Semua tuning harus lewat defconfig -> rebuild -> flash.
-#   Script tetap berguna untuk: snapshot, mengukur swap/reclaim rate, dan
-#   proving bahwa mekanisme restore-nya benar (--selftest).
+# Akses:
+#   /proc/sys/vm/* bisa read/write dari domain `ksu` (uid=0). Dari shell
+#   biasa (uid=2000) akan Permission denied — itu normal, bukan bug.
 #
-#   Kalau "Permission denied" muncul: cek `cat /proc/self/attr/current` —
-#   `su -c` pada ROM ini TIDAK berganti SELinux context.
+#   Dua jebakan yang pernah bikin dikira "SELinux memblokir":
+#   1. Path sysctl pakai slash, bukan titik: key `vm.swappiness` ->
+#      file /proc/sys/vm/swappiness. /proc/sys/vm.swappiness tidak ada.
+#   2. `su -c 'a; b; c'` dengan nested quote bisa jatuh ke shell biasa,
+#      lalu uid=2000 dan context=u:r:shell:s0 terlihat seperti
+#      transition rusak. Untuk multi-perintah, push script file.
+#
+#   su -c sendiri benar: uid=0, context=u:r:ksu:s0.
 
 set -u
 
@@ -39,7 +40,16 @@ DANGER_KEYS="vm.min_free_kbytes vm.overcommit_memory vm.dirty_ratio vm.dirty_bac
 # Semua key yang boleh diutak-atik. Anything else ditolak.
 ALLOWED_KEYS="vm.swappiness vm.vfs_cache_pressure vm.page-cluster vm.watermark_scale_factor vm.min_free_kbytes vm.dirty_ratio vm.dirty_background_ratio vm.overcommit_memory"
 
+# Sysctl keys are addressed as vm/foo, not vm.foo — /proc/sys/vm.swappiness
+# does not exist, /proc/sys/vm/swappiness does. Convert on every use.
 SYSCTL_BASE=/proc/sys
+
+sysctl_path() {
+	case "$1" in
+		/*) printf '%s' "$1" ;;
+		*)  printf '%s/%s' "$SYSCTL_BASE" "$(printf '%s' "$1" | tr '.' '/')" ;;
+	esac
+}
 
 # Global untuk restore
 RESTORE_LIST=""
@@ -56,10 +66,7 @@ cleanup() {
 	echo "$RESTORE_LIST" | awk 'NF{print}' | tac | while read -r key old; do
 		[ -z "$key" ] && continue
 		# key absolut (selftest) vs key sysctl relatif (vm.*)
-		case "$key" in
-			/*) target="$key" ;;
-			*)  target="$SYSCTL_BASE/$key" ;;
-		esac
+		target="$(sysctl_path "$key")"
 		printf '  restore %-34s = %s\n' "$target" "$old"
 		echo "$old" > "$target" 2>/dev/null \
 			|| echo "    GAGAL restore $target (cek manual)"
@@ -84,7 +91,9 @@ in_list() {
 }
 
 read_key() {
-	cat "$SYSCTL_BASE/$1" 2>/dev/null || echo "DENIED"
+	_p="$(sysctl_path "$1")"
+	if [ ! -r "$_p" ]; then echo "DENIED"; return; fi
+	cat "$_p" 2>/dev/null || echo "READ-FAIL"
 }
 
 # ---------------------------------------------------------------------------
@@ -159,10 +168,9 @@ apply() {
 		echo "  !! ZONA BERBAHAYA dipaksa: $key -> $val"
 	fi
 
-	if [ ! -e "$SYSCTL_BASE/$key" ]; then
-		echo "DITOLAK: $SYSCTL_BASE/$key tidak ada di device ini."
-		echo "  (Kemungkinan besar diblokir SELinux, bukan file permission.)"
-		echo "  Cek: cat /proc/self/attr/current"
+	_p="$(sysctl_path "$key")"
+	if [ ! -e "$_p" ]; then
+		echo "DITOLAK: $_p tidak ada di device ini."
 		return 2
 	fi
 
@@ -178,7 +186,7 @@ apply() {
 		return 0
 	fi
 
-	if ! echo "$val" > "$SYSCTL_BASE/$key" 2>/dev/null; then
+	if ! echo "$val" > "$(sysctl_path "$key")" 2>/dev/null; then
 		echo "GAGAL menulis $key = $val (permission / nilai di luar rentang)."
 		return 5
 	fi

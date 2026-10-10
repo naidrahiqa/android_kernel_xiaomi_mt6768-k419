@@ -19,7 +19,15 @@
 // 4: add KSU_GET_INFO_FLAG_BUNDLED
 // 5: add EVENT_SERVICES with a start/skip result
 // 6: add dynamic-manager commands
-static const __u32 KERNEL_SU_UAPI_VERSION = 6;
+//
+// Reported as 5 on purpose. The xxKSU manager we ship (v3.3.0-70) implements
+// up to uapi 5 and refuses a driver that reports a higher number, which shows
+// up as "manager needs update". The driver still contains the uapi 6
+// dynamic-manager code and still builds it; only the advertised number moves.
+// Nothing in the kernel branches on this constant — dispatch.c only ever
+// writes it into the get-info reply — so the change is inert driver-side.
+// See docs/issues/0008-manager-version-mismatch.md.
+static const __u32 KERNEL_SU_UAPI_VERSION = 5;
 
 /* Magic numbers for reboot hook to install fd */
 DEFINE_KSU_UAPI_CONST(__u32, KSU_INSTALL_MAGIC1, 0xDEADBEEF)

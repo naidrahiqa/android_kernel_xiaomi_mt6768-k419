@@ -67,7 +67,21 @@ KSU_SRC := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 # Upstream Kbuild hard-errors in that case; we pin version info manually.
 # Upstream FolkSU: LyraVoid/FolkSU@master
 # Tag: v0.1.0-pre6, Version code: 32742, Commit: 409b2ef
-KSU_LOCAL_VERSION := 2742
+#
+# Version code is lowered from 32742 to 32600 so the xxKSU manager we ship
+# (v3.3.0-70, versionCode 32671) stops refusing the kernel with "manager needs
+# update". See docs/issues/0008-manager-version-mismatch.md.
+#
+# This is deliberate, not an oversight. Both KSU_VERSION and
+# KERNEL_SU_UAPI_VERSION are write-only as far as the driver is concerned:
+# dispatch.c copies them into the get-info struct and copy_to_user()s them to
+# the manager, and never reads them back. Nothing in the kernel branches on
+# either number, so the only observable effect is which managers consider this
+# kernel new enough.
+#
+# To restore upstream behaviour, set this back to 2742 and put
+# KERNEL_SU_UAPI_VERSION back to 6 in uapi/supercall.h.
+KSU_LOCAL_VERSION := 2600
 KSU_VERSION := $(shell expr 30000 + $(KSU_LOCAL_VERSION))
 
 KSU_TAG_NAME := v0.1.0-pre6

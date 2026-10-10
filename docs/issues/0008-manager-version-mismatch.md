@@ -109,7 +109,7 @@ Ini **kompatibilitas**, bukan upgrade. Konsekuensinya:
 
 ## Verification
 
-- [x] build — `make` → → `-- FolkSU version code: 32600`
+- [x] build — `make` → `-- FolkSU version code: 32600`
 - [ ] `dmesg | grep KernelSU` → `driver version: 32600`
 - [ ] manager terbuka tanpa "manager needs update"
 - [ ] `su` dari manager tetap berfungsi

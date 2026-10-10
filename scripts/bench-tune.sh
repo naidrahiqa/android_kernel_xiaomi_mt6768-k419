@@ -219,9 +219,9 @@ measure() {
 	dt="$((s1 - s0))"; [ "$dt" -le 0 ] && dt=1
 
 	echo "window            : ${dt}s"
-	echo "pswpout    rate   : $(( (m1_out - m0_out) * 4 / dt )) MB/s   (total $(( (m1_out - m0_out) * 4 / 1024 )) MB)"
-	echo "pswpin     rate   : $(( (m1_in - m0_in) * 4 / dt )) MB/s   (total $(( (m1_in - m0_in) * 4 / 1024 )) MB)"
-	echo "pgscan_kswd rate  : $(( (m1_scan - m0_scan) * 4 / dt / 1024 )) MB/s"
+	echo "pswpout    rate   : $(( (m1_out - m0_out) * 4 / dt )) KB/s   (total $(( (m1_out - m0_out) * 4 / 1024 )) MB)"
+	echo "pswpin     rate   : $(( (m1_in - m0_in) * 4 / dt )) KB/s   (total $(( (m1_in - m0_in) * 4 / 1024 )) MB)"
+	echo "pgscan_kswd rate  : $(( (m1_scan - m0_scan) * 4 / dt )) KB/s   (total $(( (m1_scan - m0_scan) * 4 / 1024 )) MB)"
 	echo "MemFree          : ${m0_free} kB -> ${m1_free} kB"
 	if [ "$m1_free" -lt "$m0_free" ]; then
 		echo "  TREN: MemFree MENURUN (thrashing?)"
@@ -292,14 +292,23 @@ selftest() {
 # main
 # ---------------------------------------------------------------------------
 ACTION=""
-ARGS=""
+ARG1=""
+ARG2=""
+ARG3=""
+n=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--dry-run) DRY_RUN=1 ;;
 		--force-danger) FORCE_DANGER=1 ;;
 		-h|--help) usage; exit 0 ;;
 		*)
-			if [ -z "$ACTION" ]; then ACTION="$1"; else ARGS="$ARGS $1"; fi
+			n=$((n + 1))
+			case "$n" in
+				1) ACTION="$1" ;;
+				2) ARG1="$1" ;;
+				3) ARG2="$1" ;;
+				4) ARG3="$1" ;;
+			esac
 			;;
 	esac
 	shift
@@ -309,16 +318,18 @@ DRY_RUN="${DRY_RUN:-0}"
 
 case "$ACTION" in
 	snapshot)       snapshot ;;
-	set)             set -- $ARGS
-	               if [ $# -lt 2 ]; then echo "Usage: set <key> <value> [measure_secs]"; exit 1; fi
-	               secs="${3:-0}"
-	               echo "===== APPLY ====="
-	               # shellcheck disable=SC2086
-	               apply "$1" "$2" || exit $?
-	               echo "===== APPLY SELESAI (restoreotomatis saat keluar) ====="
-	               if [ "$secs" -gt 0 ] 2>/dev/null; then measure "$secs"; fi
-	               ;;
-	measure)        secs="${ARGS:-60}"; measure "$secs" ;;
+	set)
+		[ -z "$ARG1" ] || [ -z "$ARG2" ] && { echo "Usage: set <key> <value> [measure_secs]"; exit 1; }
+		secs="${ARG3:-0}"
+		echo "===== APPLY ====="
+		apply "$ARG1" "$ARG2" || exit $?
+		echo "===== APPLY SELESAI (restore otomatis saat keluar) ====="
+		case "$secs" in
+			''|*[!0-9]*) ;;
+			*) [ "$secs" -gt 0 ] && measure "$secs" ;;
+		esac
+		;;
+	measure)        measure "${ARG1:-60}" ;;
 	restore-check)  restore_check ;;
 	selftest)       selftest ;;
 	"")             usage ;;

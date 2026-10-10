@@ -108,10 +108,17 @@ KSU_EXPECTED_HASH := c371061b19d8c7d7d6133c6a9bafe198fa944e50c1b31c9d8daa8d7f1fc
 menerima kernel ini **tanpa** perlu lowering manual seperti yang dilakukan
 di issue 0008.
 
+Versi upstream yang diintegrasikan adalah tag `v3.3.0-70` (dirilis 10 Oktober 2026),
+dengan versionCode 32670 dan UAPI versi 5 (`KERNEL_SU_UAPI_VERSION = 5`).
+Metadata versi dicatat di `drivers/kernelsu/VERSION` (`v3.3.0-70`) dan `KSU_TAG_NAME := v3.3.0-70`
+di Makefile, serta skrip deteksi `kernel-ci-kit` telah disinkronkan agar tidak lagi jatuh ke fallback
+FolkSU (`v0.1.0-pre6`).
+
 `apk_sign.c` upstream hanya memuat satu manager — tidak ada
 `EXPECTED_SIZE_XXKSU`. Jadi driver ini memang single-manager by design, dan
 hanya mengenali APK xxKSU. Ini sesuai tujuan, tapi menutup jalan ke manager
 lain.
+
 
 ## Yang berubah perilaku
 

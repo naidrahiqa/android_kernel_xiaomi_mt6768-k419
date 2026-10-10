@@ -4,6 +4,18 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
+## 2026-10-11 — Multibuild 4 Varian (xxKSU/BakaSU × NoMount) + Release Otomatis
+
++ ci: multibuild 4 varian per push (xxksu-nomount, xxksu, bakasu-nomount, bakasu) via matrix build
++ ci: release otomatis ke `naidrahiqa/selene-releases` dengan nama `R##` (urutan via API)
++ ci: kit enhancement — `config_overrides` input untuk toggle Kconfig per varian
++ bakasu: import BakaSU v4.2.0-rc3 (KSU_VERSION 35223) ke `drivers/bakasu/`
++ bakasu: port hostsredirect (CONFIG_KSU_HOSTSREDIRECT) dari xxKSU/FolkSU
++ bakasu: Kconfig choice ROOT_SOLUTION (KSU_XXKSU / KSU_BAKASU) di `drivers/Kconfig`
++ bakasu: conditional build via `drivers/Makefile` (obj-$(CONFIG_KSU_XXKSU) / obj-$(CONFIG_KSU_BAKASU))
++ scripts: `check-bakasu.sh` — upstream version check mirror `check-xxksu.sh`
++ zip naming: `PawwwNunungggg-{variant}-R{run_number}-{sha7}-{YYYYMMDD}.zip`
+
 ## 2026-10-09 — FolkSU Integration & xxKSU Hosts Redirect
 
 + folksu: migrate root driver from ReSukiSU to FolkSU (LyraVoid/FolkSU@master, v0.1.0-pre6, KSU_VERSION 32742) in manual hook mode

@@ -193,4 +193,5 @@ obj-$(CONFIG_GNSS)		+= gnss/
 obj-$(CONFIG_INTERCONNECT)     += interconnect/
 obj-$(CONFIG_SWITCH)            += switch/
 obj-$(CONFIG_NXP_P73_DEVICES) += p73-spi/
-obj-$(CONFIG_KSU)		+= kernelsu/
+obj-$(CONFIG_KSU_XXKSU)		+= kernelsu/
+obj-$(CONFIG_KSU_BAKASU)	+= bakasu/

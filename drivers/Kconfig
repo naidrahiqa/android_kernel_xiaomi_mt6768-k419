@@ -231,7 +231,20 @@ source "drivers/switch/Kconfig"
 
 source "drivers/nfc/Kconfig"
 
+choice
+	prompt "Root solution driver"
+	default KSU_XXKSU
+
+config KSU_XXKSU
+	bool "xxKSU (backslashxx/KernelSU)"
+
+config KSU_BAKASU
+	bool "BakaSU (Baka-SU/BakaSU)"
+
+endchoice
+
 source "drivers/kernelsu/Kconfig"
+source "drivers/bakasu/Kconfig"
 
 source "drivers/p73-spi/Kconfig"
 endmenu

@@ -7,7 +7,7 @@ severity: medium
 area: kernel
 opened: 2026-10-10
 updated: 2026-10-10
-fix_commit: [fe325d369c3e, 19504fa65101]
+fix_commit: [fe325d369c3e]
 verified_on: ""
 tags: [mm, zram, lmkd, swap, thermal, keystore, gms, whatsapp]
 related: [0005, 0006]
@@ -182,11 +182,117 @@ jadi ~2,9 GB; unit 4 GB jadi ~1,85 GB (sebelumnya 2,8 GB).
 **Klaim yang tidak dibuat:** nilai lama tidak terbukti menyebabkan gejala
 apa pun. Ini alignment ke standar, bukan fix terverifikasi.
 
-### 2. Thermal floor ke OPP step valid di bawah puncak — `19504fa65101`
+### 2. Thermal floor ke OPP step valid di bawah puncak — (thermal commit, sudah di-revert)
 
 1800/2000 → **1500/1800 kHz**, default Kconfig ikut turun. Keduanya step OPP yang valid (lihat di bawah).
 
 Lihat bagian "Temuan terpisah" di bawah.
+
+## Temuan terpisah
+
+### Thermal floor: alasan kuat, angka tanpa sumber
+
+`e74df8e5ee9b` menaruh floor tepat di max, padahal commit itu sendiri
+memperingatkan hal itu dan menyebut satu-satunya backstop adalah
+`mtktscpu-sysrst` yang **reboot device**. `docs/issues/0006` juga menyebut
+floor inilah yang memicu eskalasi mi_thermald ke core hotplugging (gejalanya
+dihold oleh `e53cefd7c670`, floornya tidak).
+
+**Temuan tambahan: nilai lama 1800 MHz untuk little cluster bahkan
+melebihi OPP table.** Dari `arch/arm64/boot/dts/mediatek/mt6768.dts`:
+
+```
+cluster0_opp (little): 500 774 850 900 950 999 1050 1100 1175
+                       1275 1325 1375 1450 1500 1625 1700 MHz
+cluster1_opp (big):    850 909 998 1087 1176 1295 1354 1443
+                       1532 1621 1710 1800 1850 1900 1950 2000 MHz
+```
+
+Jadi little topped out di **1700 MHz**, bukan 1800. Nilai 1800 yang dipasang
+`e74df8e5ee9b` di-clamp PPM ke max sebenarnya — jadi "throttling mati" tetap
+benar, tapi mekanismenya clamp, bukan benar-benar 1800.
+
+Nilai 1400 dan 1600 (kandidat pertama) **tidak ada di OPP table** — little
+lompat 1375 → 1450, big lompat 1532 → 1621. Nilai yang tidak representable
+akan di-fallback PPM ke step di bawahnya, jadi hasilnya tidak deterministik
+dan tidak sesuai yang ditulis.
+
+Akhirnya dipakai step yang valid: **little 1500 MHz** (sisa: 1625, 1700) dan
+**big 1800 MHz** (sisa: 1850, 1900, 1950, 2000). Keduanya jauh di atas titik
+choke ~1,1 GHz dari issue 0005.
+
+Prinsip "jangan di puncak tabel" **berdasar** — dari pesan commit aslinya dan
+dari praktik driver MTK lain yang menulis `cpu_limits` dengan nilai di bawah
+maks. Angka spesifiknya masih pilihan beralasan: tidak ada dokumentasi
+MTK/Xiaomi untuk XM_THERM floor tuning. Wajib
+soak test charge + load sebelum dianggap selesai.
+
+### `mi_thermald` kena SELinux denial
+
+```
+avc: denied { read } for comm="mi_thermald" name="brightness" dev="sysfs"
+     scontext=u:r:mi_thermald:s0
+     tcontext=u:object_r:sys_lcd_brightness_file:s0
+```
+
+Thermal HAL tidak bisa membaca brightness → cooling berbasis beban layar
+tidak bekerja. **Di luar repo ini** — tidak ada `.te`/`file_contexts` di kernel
+tree. Perlu `allow mi_thermald sysfs:sysfs_file { read };` di vendor sepolicy
+(repo device tree).
+
+### `/proc/sys/vm/*` tidak bisa diakses sama sekali
+
+Domain `shell` maupun `ksu` **tidak boleh** read/write `/proc/sys/vm/*`. Bukan
+file permission (`vm.swappiness` mode 0644) dan avc-nya tidak muncul di dmesg
+karena audit logging dimatikan ROM. `su -c` juga tidak berganti SELinux context
+(`/proc/self/attr/current` tetap `u:r:shell:s0`).
+
+Konsekuensi: **A/B tuning runtime mustahil di device ini.** Semua tuning lewat
+defconfig → rebuild → flash.
+
+## Verification
+
+Belum diuji di hardware. Setelah flash:
+
+- [ ] `cat /sys/block/zram0/disksize` → ~`3066473472` (50% dari 5,85 GB)
+- [ ] `ro.lmk.thrashing_limit` — **cek dulu** apakah ROM memang sengaja pakai
+      profil low-RAM; kalau iya, ini kandidat yang lebih relevan daripada zram
+- [ ] `ro.lmk.swap_free_low_percentage` — naikkan ke 20 (high-end default) dan
+      bandingkan jumlah kill
+- [ ] Thermal soak: cas + load 1 jam, `mtktscpu` di dmesg, pastikan ada throttle
+      nyata dan tidak sampai `mtktscpu-sysrst` (reboot)
+- [ ] `workingset_refault_file` — pastikan tetap 0 (kalau naik, baru memang
+      thrashing)
+- [ ] WhatsApp/GMS 24 jam tanpa clear data
+- [ ] `scripts/bench-tune.sh snapshot` + `measure 120`
+
+## Catatan metodologi
+
+Semua angka diambil dari device **live** (adb root aktif), bukan dump lama.
+
+Repo ini `SHALLOW` — `git log -- <path>` bisa menyesatkan karena commit di
+`.git/shallow` tampil seolah "menambah file" utuh (efeknya `c2d027b81ed1`
+terlihat seperti seluruh `kernel/sys.c` baru). Semua SHA diverifikasi dengan
+`git cat-file -e`.
+
+Pelajaran: metrik harus diambil dari definisi resmi, bukan dari counter yang
+"terlihat menakutkan". `pswpout` yang besar terlihat seperti bukti; menurut
+dokumentasi AOSP, ia bukan indikator thrashing.
+
+### 2. Thermal floor — DIBATALKAN, dikembalikan ke 1800/2000
+
+Saya sempat menurunkan floor ke 1500/1800 (step OPP valid, bukan di puncak
+tabel). **Perubahan itu dibatalkan** dan `selene_defconfig` dikembalikan ke
+1800/2000.
+
+Alasannya bukan karena tekniknya salah — OPP step-nya memang valid, dan
+bug "floor = puncak tabel" itu nyata. Tapi ini area *danger zone* per skill
+`tuning-guard`, belum ada validasi hardware, dan sekarang diketahui ada
+regresi lain yang lebih prioritas di device. Tidak advisable bring
+perubahan thermal bersamaan dengan pencarian regresi lain.
+
+Temuan OPP-nya tetap dicatat di bawah karena bukan salah saya: nilai 1800
+untuk little cluster tidak ada di `cluster0_opp` (tops out di 1700 MHz).
 
 ## Temuan terpisah
 

@@ -7,7 +7,7 @@ severity: medium
 area: root
 opened: 2026-10-10
 updated: 2026-10-10
-fix_commit: [685b5838ab8c]
+fix_commit: [5291804a5dee]
 verified_on: ""
 tags: [ksu, folksu, xxksu, uapi, manager]
 related: [0007]
@@ -109,7 +109,7 @@ Ini **kompatibilitas**, bukan upgrade. Konsekuensinya:
 
 ## Verification
 
-- [x] build): `make` → `-- FolkSU version code: 32600`
+- [x] build — `make` → → `-- FolkSU version code: 32600`
 - [ ] `dmesg | grep KernelSU` → `driver version: 32600`
 - [ ] manager terbuka tanpa "manager needs update"
 - [ ] `su` dari manager tetap berfungsi

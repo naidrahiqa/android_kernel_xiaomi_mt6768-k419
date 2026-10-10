@@ -1,0 +1,12 @@
+name: test-call2
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+    secrets: inherit

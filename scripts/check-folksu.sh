@@ -48,12 +48,13 @@ if [ -f folksu/Kbuild ]; then
 	KBUILD="folksu/Kbuild"
 elif [ -f folksu/kernel/Kbuild ]; then
 	KBUILD="folksu/kernel/Kbuild"
-elif [ -f resukisu/Kbuild ]; then
-	KBUILD="resukisu/Kbuild"
+elif [ -f drivers/kernelsu/Makefile ]; then
+	exec "$ROOT_DIR/scripts/check-xxksu.sh" "$@"
 else
-	echo "Error: folksu/Kbuild tidak ditemukan" >&2
+	echo "Error: driver root tidak ditemukan (folksu/Kbuild atau drivers/kernelsu/Makefile)" >&2
 	exit 2
 fi
+
 
 PIN_LOCAL="$(grep '^KSU_LOCAL_VERSION' "$KBUILD" | head -1 | sed 's/.*:= *//' | tr -d ' ')"
 # shellcheck disable=SC2016 # literal $(shell ...) dari upstream Kbuild

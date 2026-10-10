@@ -2154,8 +2154,15 @@ static int __init zram_apply_default_disksize(void)
 	if (!zram)
 		return 0;
 
+	/*
+	 * AOSP/CAF default is 50% of RAM, capped at 4 GB.
+	 * Source: system/core/rootdir/init.*.post_boot.sh ("For >= 2 GB
+	 * Non-Go devices, size = 50% of RAM size. Limit the size to 4GB.")
+	 * and source.android.com/docs/core/perf/mmd (mmd.zram.size
+	 * default 50%).  On a 5.85 GB unit this yields ~2.9 GB.
+	 */
 	disksize = (u64)totalram_pages << PAGE_SHIFT;
-	disksize = disksize * 3 / 4;
+	disksize >>= 1;
 	if (disksize > ZRAM_DEFAULT_DISKSIZE_MAX)
 		disksize = ZRAM_DEFAULT_DISKSIZE_MAX;
 

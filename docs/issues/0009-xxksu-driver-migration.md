@@ -2,12 +2,12 @@
 id: 0009
 slug: xxksu-driver-migration
 title: Migrasi driver root dari LyraVoid/FolkSU ke backslashxx/KernelSU
-status: unverified
+status: unverified (build verified, hardware belum)
 severity: high
 area: root
 opened: 2026-10-10
 updated: 2026-10-10
-fix_commit: []
+fix_commit: [4a50eef39cf4]
 verified_on: ""
 tags: [ksu, xxksu, migration, driver, root]
 related: [0008]

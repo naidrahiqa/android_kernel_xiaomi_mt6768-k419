@@ -1,0 +1,34 @@
+name: multibuild2
+
+on:
+  push:
+    branches: [PawwwNunungggg24.0]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: multibuild2-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: xxksu-nomount
+            config_overrides: ""
+            zip_suffix: "xxksu-nomount"
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: ${{ matrix.config_overrides }}
+      zip_name_template: 'PawwwNunungggg-${{ matrix.zip_suffix }}-R${{ github.run_number }}-{hash}-{date}'
+    secrets: inherit

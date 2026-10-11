@@ -16,23 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - variant: xxksu-nomount
-            config_overrides: ""
-            zip_suffix: "xxksu-nomount"
-          - variant: xxksu
-            config_overrides: "CONFIG_NOMOUNT=n"
-            zip_suffix: "xxksu"
-          - variant: bakasu-nomount
-            config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
-            zip_suffix: "bakasu-nomount"
-          - variant: bakasu
-            config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
-            zip_suffix: "bakasu"
+  xxksu-nomount:
     uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
     with:
       kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
@@ -41,12 +25,51 @@ jobs:
       device_name: selene
       toolchain: greenforce-clang
       extra_make_args: "LLVM=1 LLVM_IAS=1"
-      config_overrides: ${{ matrix.config_overrides }}
-      zip_name_template: 'PawwwNunungggg-${{ matrix.zip_suffix }}-R${{ github.run_number }}-{hash}-{date}'
+      config_overrides: ""
+      zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
+    secrets: inherit
+
+  xxksu:
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: "CONFIG_NOMOUNT=n"
+      zip_name_template: 'PawwwNunungggg-xxksu-R${{ github.run_number }}-{hash}-{date}'
+    secrets: inherit
+
+  bakasu-nomount:
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
+      zip_name_template: 'PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-{hash}-{date}'
+    secrets: inherit
+
+  bakasu:
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
+      zip_name_template: 'PawwwNunungggg-bakasu-R${{ github.run_number }}-{hash}-{date}'
     secrets: inherit
 
   release:
-    needs: build
+    needs: [xxksu-nomount, xxksu, bakasu-nomount, bakasu]
     if: success()
     runs-on: ubuntu-24.04
     permissions:

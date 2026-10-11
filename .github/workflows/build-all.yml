@@ -12,82 +12,86 @@ permissions:
   contents: write
 
 jobs:
-  build-xxksu-nomount:
+  build-and-release:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    timeout-minutes: 120
     steps:
-      - name: Build xxksu-nomount
-        uses: naidrahiqa/kernel-ci-kit@main
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
         with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: ""
-          zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
+          fetch-depth: 0
 
-  build-xxksu:
-    needs: build-xxksu-nomount
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Build xxksu
-        uses: naidrahiqa/kernel-ci-kit@main
+      - name: Checkout kernel-ci-kit
+        uses: actions/checkout@v4
         with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_NOMOUNT=n"
-          zip_name_template: 'PawwwNunungggg-xxksu-R${{ github.run_number }}-{hash}-{date}'
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
 
-  build-bakasu-nomount:
-    needs: build-xxksu
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Build bakasu-nomount
-        uses: naidrahiqa/kernel-ci-kit@main
-        with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
-          zip_name_template: 'PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-{hash}-{date}'
+      - name: Setup toolchain
+        run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
+        env:
+          TOOLCHAIN: greenforce-clang
 
-  build-bakasu:
-    needs: build-bakasu-nomount
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Build bakasu
-        uses: naidrahiqa/kernel-ci-kit@main
-        with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
-          zip_name_template: 'PawwwNunungggg-bakasu-R${{ github.run_number }}-{hash}-{date}'
+      - name: Build all 4 variants sequentially
+        id: build_all
+        run: |
+          set -euo pipefail
+          cd "${{ github.workspace }}"
+          mkdir -p artifacts
+          
+          # Variants: name|config_overrides|zip_suffix
+          variants=(
+            "xxksu-nomount|||xxksu-nomount"
+            "xxksu|CONFIG_NOMOUNT=n|xxksu"
+            "bakasu-nomount|CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y|bakasu-nomount"
+            "bakasu|CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n|bakasu"
+          )
+          
+          for v in "${variants[@]}"; do
+            IFS='|' read -r variant config_override zip_suffix <<< "$v"
+            echo "=== Building $variant ==="
+            
+            # Build using kit script with config overrides
+            DEFCONFIG=selene_defconfig \
+            EXTRA_MAKE_ARGS="LLVM=1 LLVM_IAS=1" \
+            CONFIG_OVERRIDES="$config_override" \
+            ARCH=arm64 \
+            KERNEL_PATH=. \
+            TOOLCHAIN=greenforce-clang \
+            USE_CCACHE=true \
+            CCACHE_SIZE=2G \
+            JOBS=$(nproc) \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            OUT_DIR=out_${variant} \
+            BUILD_LOG=build_${variant}.log \
+            "${{ github.workspace }}/kit/scripts/build-kernel.sh"
+            
+            # Package AnyKernel3
+            DEVICE_NAME=selene \
+            KERNEL_PATH=. \
+            KERNEL_VERSION=$(make -s O=out_${variant} ARCH=arm64 kernelrelease 2>>build_${variant}.log | tail -n1) \
+            ANYKERNEL_BRANCH=dca9dc3 \
+            ZIP_NAME_TEMPLATE="PawwwNunungggg-${zip_suffix}-R${{ github.run_number }}-{hash}-{date}" \
+            TOOLCHAIN=greenforce-clang \
+            "${{ github.workspace }}/kit/scripts/package-anykernel.sh"
+            
+            # Move artifacts
+            mv "${{ github.workspace }}/"*.zip artifacts/ 2>/dev/null || true
+            mv "${{ github.workspace }}/"*.zip.sha256 artifacts/ 2>/dev/null || true
+          done
+          
+          echo "zips=$(ls artifacts/*.zip | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
 
-  release:
-    needs: [build-xxksu-nomount, build-xxksu, build-bakasu-nomount, build-bakasu]
-    if: success()
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Upload all zips as artifacts
+        uses: actions/upload-artifact@v4
         with:
-          pattern: PawwwNunungggg-*-R${{ github.run_number }}-*-*.zip
-          path: artifacts/
-          merge-multiple: true
+          name: multibuild-zips
+          path: artifacts/*.zip
+          retention-days: 30
 
       - name: Determine release number (R##)
         id: relnum

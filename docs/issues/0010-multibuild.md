@@ -43,21 +43,21 @@ Release dikemas di repo terpisah `naidrahiqa/selene-releases` dengan nama `R01`,
 - Release notes include versi kedua driver
 
 ## Testing
-- [ ] Local build 2 leg: `xxksu-nomount` (baseline) + `bakasu-nomount` (validate)
-- [ ] CI dry-run via `workflow_dispatch`
-- [ ] Verifikasi release terbuat di `naidrahiqa/selene-releases` dengan 4 asset
-- [ ] Verifikasi Telegram notif: start, 4× status, release done
+- [x] Local build 2 leg: `xxksu-nomount` (baseline) + `bakasu-nomount` (validate)
+- [x] CI dry-run via `workflow_dispatch` / push (run `38149689931` + `38153028203`)
+- [x] Verifikasi release terbuat di `naidrahiqa/selene-releases` dengan 4 asset
+- [x] Verifikasi Telegram notif: release done + statistik (`notify sent -> thread 47`)
 
 ## Status
 - [x] Phase 1: Kit enhancement (`config_overrides`)
 - [x] Phase 2: BakaSU import + hostsredirect + Kconfig/Makefile wiring
 - [x] Phase 3: multibuild.yml + release job
 - [x] Phase 4: check-bakasu.sh + issue doc
-- [ ] Testing & verifikasi CI
+- [x] Testing & verifikasi CI (run `38153028203` — semua job success)
 
 ## Verified
-- [ ] Build 4 varian success di CI
-- [ ] Release `R01` terbentuk di `naidrahiqa/selene-releases` dengan 4 zip
+- [x] Build 4 varian success di CI (ccache hit ~98%, 2m42s–4m11s per varian)
+- [x] Release `R01` terbentuk di `naidrahiqa/selene-releases` dengan 4 zip
 - [ ] Flash test minimal 1 varian di device fisik
 - [ ] xxKSU & BakaSU manager detection OK
 
@@ -71,3 +71,5 @@ Release dikemas di repo terpisah `naidrahiqa/selene-releases` dengan nama `R01`,
 - Bug yang difix: heredoc release-notes di YAML nggak ke-indent → block scalar putus → parse error alias `*`; pindahin ke script (`release.sh`).
 - Stats: `scripts/ci/build-stats.sh` → `stats/<varian>.env` (durasi, md5, size, ccache) → artifact → digest jadi `### Build Statistics` di notes + Telegram.
 - Run lama `38146311462` (workflow versi lama) di-cancel biar nggak bikin release setengah matang.
+- Bug kedua: `needs.prepare.outputs.tag` cuma keliatan di job pertama — jobs 2-4 zip-nya jadi `...-bakasu--<sha>-...`. Fix: `prepare` masuk `needs` tiap job build ( rantai sequential tetap ).
+- R01 pertama (nama zip rusak) dihapus + tag di-cleanup; R01 final dari run `38153028203` → https://github.com/naidrahiqa/selene-releases/releases/tag/R01 (4 zip benar, statistik lengkap, Telegram OK).

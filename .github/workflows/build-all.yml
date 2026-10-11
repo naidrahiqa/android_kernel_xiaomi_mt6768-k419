@@ -12,58 +12,193 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-xxksu-nomount:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-    timeout-minutes: 120
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}
-      TELEGRAM_TOPIC_CI: "47"
-      TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID || '-1003752197403' }}
-      KCK_SOURCE_REPO: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-      KCK_SOURCE_BRANCH: PawwwNunungggg24.0
-      KCK_SOURCE_SHA: ${{ github.sha }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Checkout kernel-ci-kit
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: naidrahiqa/kernel-ci-kit
           ref: main
           path: kit
-
       - name: Setup toolchain
         run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
         env:
           TOOLCHAIN: greenforce-clang
+      - name: Build xxksu-nomount
+        uses: naidrahiqa/kernel-ci-kit@main
+        with:
+          defconfig: selene_defconfig
+          device_name: selene
+          toolchain: greenforce-clang
+          extra_make_args: "LLVM=1 LLVM_IAS=1"
+          config_overrides: ""
+          zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
 
-      - name: Build all 4 variants
-        run: bash scripts/ci/build-all.sh
+  build-xxksu:
+    needs: build-xxksu-nomount
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
+      - name: Setup toolchain
+        run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
         env:
-          GITHUB_WORKSPACE: ${{ github.workspace }}
-          GITHUB_RUN_NUMBER: ${{ github.run_number }}
-          GITHUB_OUTPUT: ${{ github.output }}
+          TOOLCHAIN: greenforce-clang
+      - name: Build xxksu
+        uses: naidrahiqa/kernel-ci-kit@main
+        with:
+          defconfig: selene_defconfig
+          device_name: selene
+          toolchain: greenforce-clang
+          extra_make_args: "LLVM=1 LLVM_IAS=1"
+          config_overrides: "CONFIG_NOMOUNT=n"
+          zip_name_template: 'PawwwNunungggg-xxksu-R${{ github.run_number }}-{hash}-{date}'
 
-      - name: Release
+  build-bakasu-nomount:
+    needs: build-xxksu
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
+      - name: Setup toolchain
+        run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
+        env:
+          TOOLCHAIN: greenforce-clang
+      - name: Build bakasu-nomount
+        uses: naidrahiqa/kernel-ci-kit@main
+        with:
+          defconfig: selene_defconfig
+          device_name: selene
+          toolchain: greenforce-clang
+          extra_make_args: "LLVM=1 LLVM_IAS=1"
+          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
+          zip_name_template: 'PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-{hash}-{date}'
+
+  build-bakasu:
+    needs: build-bakasu-nomount
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
+      - name: Setup toolchain
+        run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
+        env:
+          TOOLCHAIN: greenforce-clang
+      - name: Build bakasu
+        uses: naidrahiqa/kernel-ci-kit@main
+        with:
+          defconfig: selene_defconfig
+          device_name: selene
+          toolchain: greenforce-clang
+          extra_make_args: "LLVM=1 LLVM_IAS=1"
+          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
+          zip_name_template: 'PawwwNunungggg-bakasu-R${{ github.run_number }}-{hash}-{date}'
+
+  release:
+    needs: [build-xxksu-nomount, build-xxksu, build-bakasu-nomount, build-bakasu]
+    if: success()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: PawwwNunungggg-*-R${{ github.run_number }}-*-*.zip
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Determine release number (R##)
+        id: relnum
+        run: |
+          releases=$(gh api repos/naidrahiqa/selene-releases/releases --paginate --jq '.[].tag_name' 2>/dev/null || echo "")
+          max_num=0
+          for tag in $releases; do
+            if [[ $tag =~ ^R([0-9]+)$ ]]; then
+              num=${BASH_REMATCH[1]}
+              if [ $num -gt $max_num ]; then max_num=$num; fi
+            fi
+          done
+          next=$((max_num + 1))
+          printf "num=%02d\n" "$next" >> "$GITHUB_OUTPUT"
+          printf "tag=R%02d\n" "$next" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release notes
+        run: |
+          KERNEL_VER="4.19.325-PawwwNunungggg-cip136-st20"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT_SHA:0:8}"
+          DATE_UTC=$(date -u '+%Y-%m-%d %H:%M UTC')
+          cat > release-notes.md <<NOTES
+## PawwwNunungggg ${{ steps.relnum.outputs.tag }}
+
+**Kernel:** \`${KERNEL_VER}\`  
+**Commit:** \`${COMMIT_SHORT}\` (PawwwNunungggg24.0)  
+**Date:** ${DATE_UTC}  
+**Toolchain:** Greenforce Clang 24.0.0
+
+### Root Drivers
+- **xxKSU** \`v3.3.0-70\` · \`KSU_VERSION=32670\` · UAPI v5
+- **BakaSU** \`v4.2.0-rc3\` · \`KSU_VERSION=35223\` · manual hook
+
+### Variants (4 assets)
+| Asset | Driver | NoMount | Size |
+|---|---|---|---|
+| \`PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-*.zip\` | xxKSU | YES | ~15 MB |
+| \`PawwwNunungggg-xxksu-R${{ github.run_number }}-*.zip\` | xxKSU | NO | ~15 MB |
+| \`PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-*.zip\` | BakaSU | YES | ~15 MB |
+| \`PawwwNunungggg-bakasu-R${{ github.run_number }}-*.zip\` | BakaSU | NO | ~15 MB |
+
+### Changelog
+*(auto dari CHANGELOG.md header terbaru)*
+NOTES
+          cat release-notes.md
+
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_RUN_NUMBER: ${{ github.run_number }}
-          GITHUB_OUTPUT: ${{ github.output }}
-        run: bash scripts/ci/release.sh
+        run: |
+          gh release create ${{ steps.relnum.outputs.tag }} \
+            --repo naidrahiqa/selene-releases \
+            --title "${{ steps.relnum.outputs.tag }}" \
+            --notes-file release-notes.md \
+            artifacts/*.zip
 
       - name: Notify Telegram
-        if: success()
         run: |
-          ./kit/scripts/notify-telegram.sh success "Release R$(printf %02d $(gh api repos/naidrahiqa/selene-releases/releases --paginate --jq '.[].tag_name' 2>/dev/null | grep -E '^R[0-9]+$' | sed 's/R//' | sort -n | tail -1)) created with 4 variants"
+          ./kit/scripts/notify-telegram.sh success "Release ${{ steps.relnum.outputs.tag }} created with 4 variants"
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}

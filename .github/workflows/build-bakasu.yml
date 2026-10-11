@@ -1,6 +1,10 @@
 name: build-bakasu
 on:
-  workflow_dispatch:
+  push:
+    branches: [PawwwNunungggg24.0]
+    paths-ignore:
+      - '**.md'
+      - '.opencode/**'
 permissions:
   contents: write
 jobs:

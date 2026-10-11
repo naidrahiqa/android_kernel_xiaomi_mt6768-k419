@@ -15,26 +15,21 @@ permissions:
 
 jobs:
   release:
-    # Only run if all 4 builds succeeded for the same commit
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'PawwwNunungggg24.0'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - name: Check if all 4 builds succeeded for this commit
         id: check
+        if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'PawwwNunungggg24.0'
         run: |
           SHA="${{ github.event.workflow_run.head_sha }}"
           echo "Checking commit $SHA"
           
-          # Check each workflow
           workflows=("build-xxksu-nomount" "build-xxksu" "build-bakasu-nomount" "build-bakasu")
           all_success=true
           
           for wf in "${workflows[@]}"; do
-            # Get latest run for this workflow on this commit
             run=$(gh api repos/naidrahiqa/android_kernel_xiaomi_mt6768-k419/actions/workflows/$wf.yml/runs \
               --paginate --jq ".workflow_runs[] | select(.head_sha == \"$SHA\") | .conclusion" | head -1)
             echo "$wf: $run"

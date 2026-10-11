@@ -14,6 +14,9 @@ for v in "${variants[@]}"; do
   IFS='|' read -r variant config_override zip_suffix <<< "$v"
   echo "=== Building $variant ==="
   
+  OUT_DIR="out_${variant}"
+  
+  # Build kernel
   DEFCONFIG=selene_defconfig \
   EXTRA_MAKE_ARGS="LLVM=1 LLVM_IAS=1" \
   CONFIG_OVERRIDES="$config_override" \
@@ -25,20 +28,32 @@ for v in "${variants[@]}"; do
   JOBS=$(nproc) \
   CROSS_COMPILE=aarch64-linux-gnu- \
   CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-  OUT_DIR=out_${variant} \
+  OUT_DIR="${OUT_DIR}" \
   BUILD_LOG=build_${variant}.log \
   "${GITHUB_WORKSPACE}/kit/scripts/build-kernel.sh"
   
+  # Copy image to default out/ for package-anykernel.sh
+  mkdir -p out
+  cp -f "${OUT_DIR}/arch/arm64/boot/Image.gz-dtb" out/ 2>/dev/null || \
+  cp -f "${OUT_DIR}/arch/arm64/boot/Image.gz" out/ 2>/dev/null || \
+  cp -f "${OUT_DIR}/arch/arm64/boot/Image" out/ 2>/dev/null
+  cp -f "${OUT_DIR}/kck-images.txt" out/ 2>/dev/null || true
+  
+  # Package AnyKernel3
   DEVICE_NAME=selene \
   KERNEL_PATH=. \
-  KERNEL_VERSION=$(make -s O=out_${variant} ARCH=arm64 kernelrelease 2>>build_${variant}.log | tail -n1) \
+  KERNEL_VERSION=$(make -s O="${OUT_DIR}" ARCH=arm64 kernelrelease 2>>build_${variant}.log | tail -n1) \
   ANYKERNEL_BRANCH=dca9dc3 \
   ZIP_NAME_TEMPLATE="PawwwNunungggg-${zip_suffix}-R${GITHUB_RUN_NUMBER}-{hash}-{date}" \
   TOOLCHAIN=greenforce-clang \
   "${GITHUB_WORKSPACE}/kit/scripts/package-anykernel.sh"
   
+  # Move artifacts
   mv *.zip artifacts/ 2>/dev/null || true
   mv *.zip.sha256 artifacts/ 2>/dev/null || true
+  
+  # Cleanup for next variant
+  rm -rf out
 done
 
 echo "zips=$(ls artifacts/*.zip | tr '\n' ' ')" >> "$GITHUB_OUTPUT"

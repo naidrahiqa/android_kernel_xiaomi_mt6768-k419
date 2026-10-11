@@ -233,3 +233,4 @@ $(info -- KernelSU Manager package name: $(KSU_MANAGER_PACKAGE))
 endif
 
 # Keep a new line here!! Because someone may append config
+// trigger

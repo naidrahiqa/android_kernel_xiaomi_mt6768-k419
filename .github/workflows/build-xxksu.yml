@@ -1,7 +1,5 @@
 name: build-xxksu
 on:
-      - '**.md'
-      - '.opencode/**'
   workflow_dispatch:
 permissions:
   contents: write

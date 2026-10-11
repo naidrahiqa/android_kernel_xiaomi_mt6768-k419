@@ -1,7 +1,5 @@
 name: build-bakasu-nomount
 on:
-      - '**.md'
-      - '.opencode/**'
   workflow_dispatch:
 permissions:
   contents: write

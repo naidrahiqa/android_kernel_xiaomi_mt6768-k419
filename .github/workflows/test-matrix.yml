@@ -1,0 +1,20 @@
+name: test-matrix
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - variant: test1
+            config_overrides: ""
+          - variant: test2
+            config_overrides: "CONFIG_NOMOUNT=n"
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: ${{ matrix.config_overrides }}
+    secrets: inherit

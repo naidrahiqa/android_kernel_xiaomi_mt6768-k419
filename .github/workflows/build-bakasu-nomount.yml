@@ -1,8 +1,5 @@
 name: build-bakasu-nomount
 on:
-  push:
-    branches: [PawwwNunungggg24.0]
-    paths-ignore:
       - '**.md'
       - '.opencode/**'
   workflow_dispatch:

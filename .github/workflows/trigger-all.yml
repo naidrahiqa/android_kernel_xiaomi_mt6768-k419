@@ -1,0 +1,25 @@
+name: trigger-all-builds
+
+on:
+  push:
+    branches: [PawwwNunungggg24.0]
+    paths-ignore:
+      - '**.md'
+      - '.opencode/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Trigger all 4 builds
+        run: |
+          gh workflow run build-xxksu-nomount.yml -R naidrahiqa/android_kernel_xiaomi_mt6768-k419
+          gh workflow run build-xxksu.yml -R naidrahiqa/android_kernel_xiaomi_mt6768-k419
+          gh workflow run build-bakasu-nomount.yml -R naidrahiqa/android_kernel_xiaomi_mt6768-k419
+          gh workflow run build-bakasu.yml -R naidrahiqa/android_kernel_xiaomi_mt6768-k419
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

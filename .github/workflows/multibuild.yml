@@ -16,71 +16,85 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
-  xxksu-nomount:
-    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
-    with:
-      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-      kernel_ref: PawwwNunungggg24.0
-      defconfig: selene_defconfig
-      device_name: selene
-      toolchain: greenforce-clang
-      extra_make_args: "LLVM=1 LLVM_IAS=1"
-      config_overrides: ""
-      zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
-    secrets: inherit
-
-  xxksu:
-    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
-    with:
-      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-      kernel_ref: PawwwNunungggg24.0
-      defconfig: selene_defconfig
-      device_name: selene
-      toolchain: greenforce-clang
-      extra_make_args: "LLVM=1 LLVM_IAS=1"
-      config_overrides: "CONFIG_NOMOUNT=n"
-      zip_name_template: 'PawwwNunungggg-xxksu-R${{ github.run_number }}-{hash}-{date}'
-    secrets: inherit
-
-  bakasu-nomount:
-    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
-    with:
-      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-      kernel_ref: PawwwNunungggg24.0
-      defconfig: selene_defconfig
-      device_name: selene
-      toolchain: greenforce-clang
-      extra_make_args: "LLVM=1 LLVM_IAS=1"
-      config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
-      zip_name_template: 'PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-{hash}-{date}'
-    secrets: inherit
-
-  bakasu:
-    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
-    with:
-      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-      kernel_ref: PawwwNunungggg24.0
-      defconfig: selene_defconfig
-      device_name: selene
-      toolchain: greenforce-clang
-      extra_make_args: "LLVM=1 LLVM_IAS=1"
-      config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
-      zip_name_template: 'PawwwNunungggg-bakasu-R${{ github.run_number }}-{hash}-{date}'
-    secrets: inherit
-
-  release:
-    needs: [xxksu-nomount, xxksu, bakasu-nomount, bakasu]
-    if: success()
+  build-and-release:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    timeout-minutes: 120
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout kernel source
+        uses: actions/checkout@v4
         with:
-          pattern: PawwwNunungggg-*-R${{ github.run_number }}-*-*.zip
-          path: artifacts/
-          merge-multiple: true
+          fetch-depth: 0
+
+      - name: Checkout kernel-ci-kit
+        uses: actions/checkout@v4
+        with:
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
+
+      - name: Setup toolchain
+        run: '"${{ github.workspace }}/kit/scripts/setup-toolchain.sh"'
+        env:
+          TOOLCHAIN: greenforce-clang
+
+      - name: Build all 4 variants
+        id: build_all
+        run: |
+          set -euo pipefail
+          cd "${{ github.workspace }}"
+          mkdir -p artifacts
+          
+          variants=(
+            "xxksu-nomount|||xxksu-nomount"
+            "xxksu|CONFIG_NOMOUNT=n|xxksu"
+            "bakasu-nomount|CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y|bakasu-nomount"
+            "bakasu|CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n|bakasu"
+          )
+          
+          for v in "${variants[@]}"; do
+            IFS='|' read -r variant config_override zip_suffix <<< "$v"
+            echo "=== Building $variant ==="
+            
+            # Build with kernel-ci-kit scripts
+            DEFCONFIG=selene_defconfig \
+            EXTRA_MAKE_ARGS="LLVM=1 LLVM_IAS=1" \
+            CONFIG_OVERRIDES="$config_override" \
+            ARCH=arm64 \
+            KERNEL_PATH=. \
+            TOOLCHAIN=greenforce-clang \
+            USE_CCACHE=true \
+            CCACHE_SIZE=2G \
+            JOBS=$(nproc) \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            OUT_DIR=out_${variant} \
+            BUILD_LOG=build_${variant}.log \
+            "${{ github.workspace }}/kit/scripts/build-kernel.sh"
+            
+            # Package AnyKernel3
+            DEVICE_NAME=selene \
+            KERNEL_PATH=. \
+            KERNEL_VERSION=$(make -s O=out_${variant} ARCH=arm64 kernelrelease 2>>build_${variant}.log | tail -n1) \
+            ANYKERNEL_BRANCH=dca9dc3 \
+            ZIP_NAME_TEMPLATE="PawwwNunungggg-${zip_suffix}-R${{ github.run_number }}-{hash}-{date}" \
+            TOOLCHAIN=greenforce-clang \
+            "${{ github.workspace }}/kit/scripts/package-anykernel.sh"
+            
+            # Move artifacts
+            mv "${{ github.workspace }}/"*.zip artifacts/ 2>/dev/null || true
+            mv "${{ github.workspace }}/"*.zip.sha256 artifacts/ 2>/dev/null || true
+          done
+          
+          echo "zips=$(ls artifacts/*.zip | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload all zips as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: multibuild-zips
+          path: artifacts/*.zip
+          retention-days: 30
 
       - name: Determine release number (R##)
         id: relnum
@@ -133,6 +147,7 @@ NOTES
           cat release-notes.md
 
       - name: Create GitHub Release
+        if: always()
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
@@ -154,3 +169,4 @@ NOTES
           KCK_SOURCE_REPO: naidrahiqa/android_kernel_xiaomi_mt6768-k419
           KCK_SOURCE_BRANCH: PawwwNunungggg24.0
           KCK_SOURCE_SHA: ${{ github.sha }}
+

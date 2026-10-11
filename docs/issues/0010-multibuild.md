@@ -65,3 +65,9 @@ Release dikemas di repo terpisah `naidrahiqa/selene-releases` dengan nama `R01`,
 - `RELEASES_TOKEN` (classic PAT) harus dibuat manual di GitHub Settings → Secrets → Actions
 - Kit changes backward-compat: `config_overrides` default kosong → behavior lama tidak berubah
 - BakaSU `KSU_VERSION` pin statis via `BAKASU_REV_COUNT`; update via script saat sync upstream
+
+## Update 2026-10-11 (CI rework final)
+- Satu file `build-all.yml`: `prepare` (R## via API count) → 4 job build sequential (kit composite action per varian, `zip_name_template` pakai tag R##) → `release` (download zip+stats, `scripts/ci/release.sh`, notif `notify-release.sh`) → `notify-failure` (status per job).
+- Bug yang difix: heredoc release-notes di YAML nggak ke-indent → block scalar putus → parse error alias `*`; pindahin ke script (`release.sh`).
+- Stats: `scripts/ci/build-stats.sh` → `stats/<varian>.env` (durasi, md5, size, ccache) → artifact → digest jadi `### Build Statistics` di notes + Telegram.
+- Run lama `38146311462` (workflow versi lama) di-cancel biar nggak bikin release setengah matang.

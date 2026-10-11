@@ -9,18 +9,14 @@ permissions:
   contents: write
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Stagger start
-        run: sleep 10
-      - uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
-        with:
-          kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
-          kernel_ref: PawwwNunungggg24.0
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: ""
-          zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
-        secrets: inherit
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+      config_overrides: ""
+      zip_name_template: 'PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-{hash}-{date}'
+    secrets: inherit

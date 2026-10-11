@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: build-xxksu-nomount-${{ github.ref }}
+  group: build-xxksu-nomount-${{ github.ref }}-${{ github.event_name }}
 jobs:
   build:
     uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main

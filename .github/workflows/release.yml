@@ -1,0 +1,135 @@
+name: release
+
+on:
+  workflow_run:
+    workflows:
+      - build-xxksu-nomount
+      - build-xxksu
+      - build-bakasu-nomount
+      - build-bakasu
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Only run if all 4 builds succeeded for the same commit
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'PawwwNunungggg24.0'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check if all 4 builds succeeded for this commit
+        id: check
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          echo "Checking commit $SHA"
+          
+          # Check each workflow
+          workflows=("build-xxksu-nomount" "build-xxksu" "build-bakasu-nomount" "build-bakasu")
+          all_success=true
+          
+          for wf in "${workflows[@]}"; do
+            # Get latest run for this workflow on this commit
+            run=$(gh api repos/naidrahiqa/android_kernel_xiaomi_mt6768-k419/actions/workflows/$wf.yml/runs \
+              --paginate --jq ".workflow_runs[] | select(.head_sha == \"$SHA\") | .conclusion" | head -1)
+            echo "$wf: $run"
+            if [ "$run" != "success" ]; then
+              all_success=false
+            fi
+          done
+          
+          if [ "$all_success" = "true" ]; then
+            echo "all_success=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "all_success=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all artifacts
+        if: steps.check.outputs.all_success == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: PawwwNunungggg-*-R*-*-*.zip
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Determine release number (R##)
+        if: steps.check.outputs.all_success == 'true'
+        id: relnum
+        run: |
+          releases=$(gh api repos/naidrahiqa/selene-releases/releases --paginate --jq '.[].tag_name' 2>/dev/null || echo "")
+          max_num=0
+          for tag in $releases; do
+            if [[ $tag =~ ^R([0-9]+)$ ]]; then
+              num=${BASH_REMATCH[1]}
+              if [ $num -gt $max_num ]; then
+                max_num=$num
+              fi
+            fi
+          done
+          next=$((max_num + 1))
+          printf "num=%02d\n" "$next" >> "$GITHUB_OUTPUT"
+          printf "tag=R%02d\n" "$next" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release notes
+        if: steps.check.outputs.all_success == 'true'
+        id: notes
+        run: |
+          KERNEL_VER="4.19.325-PawwwNunungggg-cip136-st20"
+          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          COMMIT_SHORT="${COMMIT_SHA:0:8}"
+          DATE_UTC=$(date -u '+%Y-%m-%d %H:%M UTC')
+          
+          cat > release-notes.md <<NOTES
+## PawwwNunungggg ${{ steps.relnum.outputs.tag }}
+
+**Kernel:** \`${KERNEL_VER}\`  
+**Commit:** \`${COMMIT_SHORT}\` (PawwwNunungggg24.0)  
+**Date:** ${DATE_UTC}  
+**Toolchain:** Greenforce Clang 24.0.0
+
+### Root Drivers
+- **xxKSU** \`v3.3.0-70\` · \`KSU_VERSION=32670\` · UAPI v5
+- **BakaSU** \`v4.2.0-rc3\` · \`KSU_VERSION=35223\` · manual hook
+
+### Variants (4 assets)
+| Asset | Driver | NoMount | Size |
+|---|---|---|---|
+| \`PawwwNunungggg-xxksu-nomount-R${{ github.run_number }}-*.zip\` | xxKSU | ✅ | ~15 MB |
+| \`PawwwNunungggg-xxksu-R${{ github.run_number }}-*.zip\` | xxKSU | ❌ | ~15 MB |
+| \`PawwwNunungggg-bakasu-nomount-R${{ github.run_number }}-*.zip\` | BakaSU | ✅ | ~15 MB |
+| \`PawwwNunungggg-bakasu-R${{ github.run_number }}-*.zip\` | BakaSU | ❌ | ~15 MB |
+
+### Changelog
+*(auto dari CHANGELOG.md header terbaru)*
+NOTES
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.all_success == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          gh release create ${{ steps.relnum.outputs.tag }} \
+            --repo naidrahiqa/selene-releases \
+            --title "${{ steps.relnum.outputs.tag }}" \
+            --notes-file release-notes.md \
+            artifacts/*.zip
+
+      - name: Notify Telegram (release created)
+        if: steps.check.outputs.all_success == 'true'
+        run: |
+          ./kit/scripts/notify-telegram.sh success "Release ${{ steps.relnum.outputs.tag }} created with 4 variants"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}
+          TELEGRAM_TOPIC_CI: "47"
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID || '-1003752197403' }}
+          KCK_SOURCE_REPO: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+          KCK_SOURCE_BRANCH: PawwwNunungggg24.0
+          KCK_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+

@@ -1,0 +1,16 @@
+name: test-single
+on:
+  push:
+    branches: [PawwwNunungggg24.0]
+  workflow_dispatch:
+jobs:
+  build:
+    uses: naidrahiqa/kernel-ci-kit/.github/workflows/example-build.yml@main
+    with:
+      kernel_repo: naidrahiqa/android_kernel_xiaomi_mt6768-k419
+      kernel_ref: PawwwNunungggg24.0
+      defconfig: selene_defconfig
+      device_name: selene
+      toolchain: greenforce-clang
+      extra_make_args: "LLVM=1 LLVM_IAS=1"
+    secrets: inherit

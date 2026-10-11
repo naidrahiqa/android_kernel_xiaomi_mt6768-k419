@@ -11,6 +11,8 @@ set -euo pipefail
 
 TAG="${RELEASE_TAG:?RELEASE_TAG is required}"
 URL="${RELEASE_URL:?RELEASE_URL is required}"
+# post to the CI topic AND the release channel — the channel is where users watch
+export KCK_CUSTOM_ALL=1
 STATS_DIR="${STATS_DIR:-stats}"
 KCK_NOTIFY="${KCK_NOTIFY:-kit/scripts/notify-telegram.sh}"
 VARIANT_ORDER="xxksu-nomount xxksu bakasu-nomount bakasu"

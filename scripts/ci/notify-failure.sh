@@ -8,6 +8,8 @@
 set -euo pipefail
 
 KCK_NOTIFY="${KCK_NOTIFY:-kit/scripts/notify-telegram.sh}"
+# post to the CI topic AND the release channel — the channel is where users watch
+export KCK_CUSTOM_ALL=1
 
 row() {
   local name="$1" result="$2" mark

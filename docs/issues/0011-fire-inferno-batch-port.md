@@ -49,13 +49,31 @@ Bukan bug — ini porting fitur baru dari referensi device lain.
 
 ## Fix
 
-(diisi per commit saat port berjalan)
+Semua 6 batch sudah di-port sebagai commit lokal (urut):
+
+| Batch | Commit | Isi |
+|---|---|---|
+| 1 | `9f4f9dd9362c` + `fbfa39fcdcd8` | copy_page (zram/zsmalloc/f2fs/swap) + defconfig hygiene |
+| 2 | `2cbadcef9565` | lz4 upstream 1.10.0 |
+| 3 | `0a008d0795ef` | RCU_BOOST + RCU_EXPERT, gp workers WQ_UNBOUND |
+| 4 | `c041feaa256f` | logspam silencing (28 commit fire; teei/m4u di-skip) |
+| 5 | `5334a3fc420b` + `929538d6480e` | CPQ I/O scheduler + default di selene_defconfig (kyber off) |
+| 6 | `71b0d6fbc9f8` | MGLRU (LRU_GEN + LRU_GEN_ENABLED) |
+
+Catatan adaptasi: logspam `focaltech_FT8720` dipetakan ke
+`focaltech_touch_k19a` (driver panel selene); binder ioctl print ikut
+state akhir Fire (`pr_debug`, condition tetap `-ERESTARTSYS`); MGLRU
+konflik di `fuse/dev.c` (dump_page kita dipertahankan + mask MGLRU),
+`workingset.c` (token rework Fire), `vmscan.c` (blok LRU_GEN diambil
+verbatim, GMO `scan_anon_priority` ikut).
 
 ## Verification
 
-- Build lokal (defconfig + full build) harus lulus.
-- CI `build.yml` hijau, artifact AK3 ter-flash.
-- MGLRU & CPQ: A/B test di hardware (drain/perf/I/O) sebelum boleh `verified`.
+- Build lokal batch 1–3 + cmdq: lulus (`MAKE_EXIT=0`).
+- Build lokal final batch 1–6 + cmdq: LULUS (`MAKE_EXIT=0`, Image.gz-dtb 13.4MB, defconfig regen `CC_IS_CLANG`, KP: KSU+NoMount 4/4, LRU_GEN+ENABLED, MQ_IOSCHED_CPQ+CPQ_DEFAULT, kyber off, RCU_BOOST+EXPERT).
+- **Boot pertama di hardware** (build `g1951bbc122b3`, 14 Okt): uname benar, MGLRU aktif (`/sys/kernel/mm/lru_gen/enabled` = `0x0003`), CPQ registered + terbukti jadi default kernel (log `io-sched.log`: `was: mq-deadline [cpq] …`) — lalu di-flip ke mq-deadline oleh guard `io-guardd` punya user; user memilih mempertahankan mq-deadline (CPQ tetap tersedia manual).
+- CI `build.yml` hijau, artifact AK3 ter-flash — **belum** (belum push).
+- MGLRU: A/B test harian (drain/perf) sebelum boleh `verified`.
 
 ## Regression test
 

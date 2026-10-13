@@ -1570,6 +1570,7 @@ EXPORT_SYMBOL(cmdq_core_turnoff_first_dump);
 
 void cmdq_core_reset_first_dump(void)
 {
+	kfree(cmdq_first_err.cmdqString);
 	memset(&cmdq_first_err, 0, sizeof(cmdq_first_err));
 	cmdq_first_err.cmdqMaxSize = CMDQ_MAX_FIRSTERROR;
 	cmdq_ctx.errNum = 0;
@@ -1692,6 +1693,7 @@ static void cmdq_core_save_hex_first_dump(const char *prefix_str,
 	int i, linelen, remaining = len;
 	unsigned char linebuf[32 * 3 + 2 + 32 + 1];
 	int logLen;
+	int bufSize;
 	char *pBuffer;
 
 	if (cmdq_first_err.flag == false)
@@ -1700,6 +1702,26 @@ static void cmdq_core_save_hex_first_dump(const char *prefix_str,
 	if (rowsize != 16 && rowsize != 32)
 		rowsize = 16;
 
+	/*
+	 * The first-error dump buffer is never allocated: its only
+	 * allocator, cmdq_core_save_first_dump(), is disabled by "#if 0".
+	 * Allocate it lazily here; otherwise snprintf() below writes to
+	 * a NULL buffer and the kernel oopses in vsprintf number()
+	 * whenever a CMDQ timeout dump runs (e.g. camera ISP timeout).
+	 */
+	if (!cmdq_first_err.cmdqString) {
+		cmdq_first_err.cmdqString = kmalloc(CMDQ_MAX_FIRSTERROR,
+			GFP_ATOMIC);
+		if (!cmdq_first_err.cmdqString) {
+			cmdq_first_err.flag = false;
+			CMDQ_LOG(
+				"[ERR] Error0 dump buffer allocate fail\n");
+			return;
+		}
+		cmdq_first_err.cmdqCount = 0;
+		cmdq_first_err.cmdqMaxSize = CMDQ_MAX_FIRSTERROR;
+	}
+
 	for (i = 0; i < len; i += rowsize) {
 		linelen = min(remaining, rowsize);
 		remaining -= rowsize;
@@ -1707,21 +1729,29 @@ static void cmdq_core_save_hex_first_dump(const char *prefix_str,
 		cmdq_core_hex_dump_to_buffer(ptr + i, linelen, rowsize,
 			groupsize, linebuf, sizeof(linebuf));
 
+		/* Stop when full; never snprintf() with a zero/negative
+		 * size and never underflow cmdqMaxSize.
+		 */
+		if (cmdq_first_err.cmdqMaxSize <= 1) {
+			cmdq_first_err.flag = false;
+			CMDQ_LOG(
+				"[ERR] Error0 dump saving buffer is full\n");
+			return;
+		}
+
 		pBuffer = cmdq_first_err.cmdqString +
 			cmdq_first_err.cmdqCount;
-		logLen = snprintf(pBuffer, cmdq_first_err.cmdqMaxSize,
+		bufSize = cmdq_first_err.cmdqMaxSize;
+		logLen = snprintf(pBuffer, bufSize,
 			"%s%p:%s\n", prefix_str, ptr + i, linebuf);
-		if (logLen >= cmdq_first_err.cmdqMaxSize)
+		if (logLen >= bufSize)
 			pr_debug("%s:%d logLen:%d over cmdqMaxSize:%d\n",
 				__func__, __LINE__, logLen,
 				cmdq_first_err.cmdqMaxSize);
+		if (logLen >= bufSize)
+			logLen = bufSize - 1;	/* truncated by snprintf */
 		cmdq_first_err.cmdqMaxSize -= logLen;
 		cmdq_first_err.cmdqCount += logLen;
-
-		if (cmdq_first_err.cmdqMaxSize <= 0) {
-			cmdq_first_err.flag = false;
-			CMDQ_LOG("[ERR] Error0 dump saving buffer is full\n");
-		}
 	}
 }
 

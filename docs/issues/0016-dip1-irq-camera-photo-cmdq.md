@@ -6,7 +6,7 @@ severity: high
 area: driver
 opened: 2026-10-14
 updated: 2026-10-14
-fix_commit: ""
+fix_commit: "a621c84c448c"
 verified_on: ""
 tags: [camera, isp, dip, irq, cmdq, mt6768, instrumentation]
 related: [0012]

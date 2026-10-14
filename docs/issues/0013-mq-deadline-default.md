@@ -6,7 +6,7 @@ severity: low
 area: config
 opened: 2026-10-14
 updated: 2026-10-14
-fix_commit: ""
+fix_commit: "765671f13404"
 verified_on: ""
 tags: [iosched, defconfig, cpq, block]
 related: [0012]

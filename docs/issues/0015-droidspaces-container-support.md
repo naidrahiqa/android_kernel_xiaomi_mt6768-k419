@@ -6,7 +6,7 @@ severity: medium
 area: config
 opened: 2026-10-14
 updated: 2026-10-14
-fix_commit: ""
+fix_commit: "746f238a9f15"
 verified_on: ""
 tags: [droidspaces, user-ns, cgroup, defconfig, container, netfilter]
 related: []
@@ -56,13 +56,14 @@ untuk kernel non-4.19:
 
 ## Fix
 
-1. `kernel/cgroup/cgroup.c` — patch wajib 02 dari DroidSpaces: buat
-   symlink berprefiks (`ss.name.`) untuk cgroup file pada root
-   `CGRP_ROOT_NOPREFIX` (`cgroup_add_file`), supaya userland container
-   (LXC/distro) tetap menemukan `cpuacct.usage` dkk. di hierarchy
-   hybrid/v1. **Patch 01 (xt_qtaguid) no-op**: `net/netfilter/xt_qtaguid.c`
-   tidak ada di tree kita (Android baru pakai eBPF traffic stats) —
-   panic yang dicegah patch itu mustahil terjadi.
+1. `kernel/cgroup/cgroup.c` (`8fcdc00394d0`) — patch wajib 02 dari
+   DroidSpaces: buat symlink berprefiks (`ss.name.`) untuk cgroup file
+   pada root `CGRP_ROOT_NOPREFIX` (`cgroup_add_file`), supaya userland
+   container (LXC/distro) tetap menemukan `cpuacct.usage` dkk. di
+   hierarchy hybrid/v1. **Patch 01 (xt_qtaguid) no-op**:
+   `net/netfilter/xt_qtaguid.c` tidak ada di tree kita (Android baru
+   pakai eBPF traffic stats) — panic yang dicegah patch itu mustahil
+   terjadi.
 2. `arch/arm64/configs/selene_defconfig` — blok DroidSpaces v6.6.0
    penuh (~100 baris): namespace + `USER_NS`, seccomp, cgroups
    (net prio/classid, `CFS_BANDWIDTH`, freezer, cpuacct), overlay,

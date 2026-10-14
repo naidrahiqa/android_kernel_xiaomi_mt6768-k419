@@ -1,12 +1,12 @@
 ---
 id: 0014
 title: Thermal throttle CPU dinonaktifkan oleh floor XM_THERM; SoC 51-56°C saat pemakaian ringan, drain ikut naik
-status: diagnosed
+status: fixed
 severity: high
 area: kernel
 opened: 2026-10-14
 updated: 2026-10-14
-fix_commit: ""
+fix_commit: c0fb3c228528
 verified_on: ""
 tags: [thermal, battery, drain, ppm, xm_therm]
 related: [0005, 0007]
@@ -74,8 +74,8 @@ floor dipilih karena `mi_thermald` ROM meng-pin kedua cluster di
 
 ## Fix
 
-Belum diterapkan — proposal menunggu instruksi owner (tuning-guard:
-satu perubahan per siklus, butuh baseline):
+Diterapkan `c0fb3c228528` (disetujui owner 14 Okt 2026, tuning-guard:
+satu perubahan per siklus):
 
 | | Nilai |
 |---|---|

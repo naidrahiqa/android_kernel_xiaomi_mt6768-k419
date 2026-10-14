@@ -146,6 +146,7 @@ check_ptr:
 	if (unlikely(!ptr_to_check))
 		return false;
 
+	assume_dereferenceable((void *)ptr_to_check, sizeof(uintptr_t));
 	if (unlikely(!*ptr_to_check))
 		return false;
 
@@ -311,19 +312,14 @@ static __always_inline void ksu_sucompat_kernel_common(int *restrict fd, void **
 		return;
 
 	constexpr char su[16] = SU_PATH;
-
-#if 0 // defined(KSU_HAS_INT128)
-// https://godbolt.org/z/j8Yovv6bE
-	uint128_t *su128 = (uint128_t *)su;
-	uint128_t *fn128 = (uint128_t *)*(char **)filename_ptr;
-	const uint128_t mask = make128const(0x00FFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL);
-	if (likely((*fn128 & mask) != (*su128 & mask)))
-		return;
-#endif
-	// getname_flags pads this so nothing to worry about, dereference with confidence!
 	uint64_t *su_p = (uint64_t *)su;
 	uint64_t *fn_p = (uint64_t *)*(char **)filename_ptr;
 
+	// getname_flags pads this so nothing to worry about
+	assume_restricted((void *)su_p, (void *)fn_p);
+	assume_dereferenceable((void *)fn_p, 16);
+
+	// https://godbolt.org/z/j8Yovv6bE
 	if (likely((fn_p[1] & 0x00FFFFFFFFFFFFFFULL) != (su_p[1] & 0x00FFFFFFFFFFFFFFULL)))
 		return;
 

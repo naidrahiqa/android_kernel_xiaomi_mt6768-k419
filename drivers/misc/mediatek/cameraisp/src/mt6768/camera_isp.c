@@ -44,6 +44,7 @@
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/mm.h>
+#include <linux/io.h>
 #include <linux/vmalloc.h>
 #include <linux/of_platform.h>
 #include <linux/of_irq.h>
@@ -3346,6 +3347,52 @@ static signed int ISP_DumpDIPReg(void)
 				g_CmdqBaseAddrInfo.MemSizeDiff, g_pKWCmdqBuffer,
 				g_pKWTpipeBuffer);
 		}
+		/*
+		 * instrumentasi: baca descriptor CQ/tpipe langsung dari DRAM;
+		 * copy_from_user di atas selalu gagal (offset > MemSizeDiff)
+		 */
+		{
+			void __iomem *m;
+			u32 *p;
+			int i;
+
+			if ((g_cmdqaddr != 0) &&
+			    (g_cmdqaddr != 0xffffffff)) {
+				m = memremap((phys_addr_t)g_cmdqaddr,
+					0x10000, MEMREMAP_WB);
+				if (m) {
+					p = (u32 *)m;
+					for (i = 0; i < 64; i++)
+						CMDQ_ERR(
+						"DIPCQ0[%02x] %08x %08x %08x %08x\n",
+							i, p[i * 4], p[i * 4 + 1],
+							p[i * 4 + 2], p[i * 4 + 3]);
+					memunmap(m);
+				} else {
+					CMDQ_ERR(
+					"memremap CQ fail addr=0x%x\n",
+						g_cmdqaddr);
+				}
+			}
+			if ((g_tdriaddr != 0) &&
+			    (g_tdriaddr != 0xffffffff)) {
+				m = memremap((phys_addr_t)g_tdriaddr,
+					0x10000, MEMREMAP_WB);
+				if (m) {
+					p = (u32 *)m;
+					for (i = 0; i < 64; i++)
+						CMDQ_ERR(
+						"DRIPTP[%02x] %08x %08x %08x %08x\n",
+							i, p[i * 4], p[i * 4 + 1],
+							p[i * 4 + 2], p[i * 4 + 3]);
+					memunmap(m);
+				} else {
+					CMDQ_ERR(
+					"memremap TDR fail addr=0x%x\n",
+						g_tdriaddr);
+				}
+			}
+		}
 		g_bDumpPhyISPBuf = MTRUE;
 	}
 
@@ -3463,6 +3510,22 @@ static signed int ISP_DumpDIPReg(void)
 		ISP_RD32(ISP_DIP_A_BASE + 0x0014),
 		ISP_RD32(ISP_DIP_A_BASE + 0x0018),
 		ISP_RD32(ISP_DIP_A_BASE + 0x001C));
+	CMDQ_ERR(
+	"DIP INT(_030/034/038)=0x%x/0x%x/0x%x\n",
+		ISP_RD32(ISP_DIP_A_BASE + 0x030),
+		ISP_RD32(ISP_DIP_A_BASE + 0x034),
+		ISP_RD32(ISP_DIP_A_BASE + 0x038));
+	CMDQ_ERR(
+	"DIP CQ0 ctl/size(0x104/0x108/0x10C/0x110/0x114)=0x%x/0x%x/0x%x/0x%x/0x%x\n",
+		ISP_RD32(ISP_DIP_A_BASE + 0x104),
+		ISP_RD32(ISP_DIP_A_BASE + 0x108),
+		ISP_RD32(ISP_DIP_A_BASE + 0x10C),
+		ISP_RD32(ISP_DIP_A_BASE + 0x110),
+		ISP_RD32(ISP_DIP_A_BASE + 0x114));
+	CMDQ_ERR(
+	"DIP tdri(0x204)=0x%x  imgi(0x400)=0x%x\n",
+		ISP_RD32(ISP_DIP_A_BASE + 0x204),
+		ISP_RD32(ISP_DIP_A_BASE + 0x400));
 	CMDQ_ERR(
 	"isp: 15022D20(0x%x)-15022D24(0x%x)\n",
 		ISP_RD32(ISP_DIP_A_BASE + 0x0D20),
@@ -4184,6 +4247,11 @@ static void ISP_EnableClock(bool En)
 					"enable_irq cam %d, irq=%d\n",
 					module, isp_devs[module].irq);
 			}
+			if (isp_devs[ISP_DIP_A_IDX].irq > 0) {
+				enable_irq(isp_devs[ISP_DIP_A_IDX].irq);
+				LOG_INF("enable_irq dip, irq=%d\n",
+					isp_devs[ISP_DIP_A_IDX].irq);
+			}
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
 		}
@@ -4250,6 +4318,11 @@ static void ISP_EnableClock(bool En)
 				LOG_INF(
 					"disable_irq cam %d, irq=%d\n",
 					module, isp_devs[module].irq);
+			}
+			if (isp_devs[ISP_DIP_A_IDX].irq > 0) {
+				disable_irq(isp_devs[ISP_DIP_A_IDX].irq);
+				LOG_INF("disable_irq dip, irq=%d\n",
+					isp_devs[ISP_DIP_A_IDX].irq);
 			}
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
@@ -12978,6 +13051,7 @@ irqreturn_t ISP_Irq_DIP_A(signed int  Irq, void *DeviceId)
 	unsigned int IrqINTStatus = 0x0;
 	unsigned int IrqCQStatus = 0x0;
 	unsigned int IrqCQLDStatus = 0x0;
+	static unsigned long dip1_cnt;
 
 	/*pr_info("ISP_Irq_DIP_A:%d\n", Irq);*/
 
@@ -12997,6 +13071,9 @@ irqreturn_t ISP_Irq_DIP_A(signed int  Irq, void *DeviceId)
 			|= IrqINTStatus;
 
 	spin_unlock(&(IspInfo.SpinLockIrq[ISP_IRQ_TYPE_INT_DIP_A_ST]));
+
+	pr_info("dip1 irq #%lu st=%08x cq=%08x ld=%08x\n",
+		++dip1_cnt, IrqINTStatus, IrqCQStatus, IrqCQLDStatus);
 
 	/*pr_info("ISP_Irq_DIP_A:%d, reg 0x%p : 0x%x, reg 0x%p : 0x%x\n",
 	 * Irq, (ISP_DIP_A_BASE + 0x030), IrqINTStatus,

@@ -136,6 +136,38 @@ Juga: `#include <linux/io.h>` (deklarasi `memremap`/`MEMREMAP_WB`).
 - count `dip1` tetap 0 meski sudah di-enable => masalah di
   konfigurasi DTS interrupt (`arch/arm64/boot/dts/mediatek`).
 
+### Eksperimen 2 (build ke-2, commit `960e261283d2`) — sampler periodik
+
+Masalah dump sebelumnya: yang terekam hanya kondisi **saat timeout** (pass 5).
+Sisi pass yang **sehat** (1-2) tidak pernah terlihat, jadi tidak ada baseline
+yang bisa dibandingkan. Eksperimen ini menambah sampler periodik supaya satu
+capture gagal juga memperlihatkan transisi pass sukses → pass nangkit.
+
+`drivers/misc/mediatek/cameraisp/src/mt6768/camera_isp.c` (+133 baris, 0
+hapus, tanpa perubahan fungsional — hanya `pr_info`):
+
+- `DIPSMP #N start= cq0=ctl/base/size cq1base= cqint= int= tdri= imgi=` —
+  sampel tiap 10 ms selama clock ISP hidup, dicetak **hanya saat ada
+  perubahan** dari sampel sebelumnya.
+- `DIPCQSNAP #N [xx] w0 w1 w2 w3` — 16 entri pertama descriptor CQ0
+  (via `memremap(MEMREMAP_WB)`), diambil tepat saat `cq0base` diprogram ulang
+  atau status CQ berubah, sebelum buffer dipakai ulang. Maks 64 snapshot.
+- Nyalakan di `ISP_EnableClock()` saat count 0→1, matikan saat 1→0
+  **sebelum** `Disable_Unprepare_ccf_clock()` supaya sampel terakhir masih
+  punya clock hidup. Semua baca register dijaga `G_u4EnableClockCount != 0`.
+
+Cara baca:
+
+| Pola di dmesg | Arti |
+|---|---|
+| pass sukses: `cq0base` berubah + `cqint` sempat bukan-0; pass nangkit: `cq0base` tidak berubah sama sekali | **H1 terbukti** — CQ0 tidak pernah di-kick ulang |
+| `cq0base` selalu sama dan `cqint` selalu 0 sejak awal | descriptor hanya ditulis sekali per capture |
+| `DIPCQSNAP` semua `0x00000000` | descriptor tidak pernah ditulis HAL |
+| `DIPCQSNAP` valid | descriptor ada; masalahnya di eksekusi CQ |
+| `cq0ctl` **tidak pernah** berbeda dari `0x11` | `0x11` = CQ aktif → **H1 gugur**, ganti hipotesis "CQ jalan tapi tidak pernah EOF" |
+
+Hapus blok sampler (dan 2 call-nya) setelah hipotesis selesai dibedah.
+
 ## Catatan MFB MT6768 (jangan salah simpul)
 
 `mt6768-gce.h` TIDAK punya `CMDQ_EVENT_MFB_DONE` (mt6779 punya =278),

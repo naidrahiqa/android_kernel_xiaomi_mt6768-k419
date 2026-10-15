@@ -65,7 +65,7 @@ KDIR := $(KDIR)
 # in CI (shallow clone). On sync, update BAKASU_REV_COUNT and re-pin.
 # Upstream formula: KSU_VERSION = 30000 + rev-count + 700
 BAKASU_REV_COUNT := 4523
-KSU_VERSION := 35223
+KSU_VERSION := 35229
 KSU_TAG_NAME := v4.2.0-rc3
 KSU_COMMIT_SHA := 48fa4bb
 KSU_BRANCH_NAME := main

@@ -25,8 +25,8 @@ row() {
 
 ROWS=""
 ROWS+="$(row "prepare (R##)"    "${RES_PREPARE:-skipped}")"$'\n'
-ROWS+="$(row "bakasu-nomount"   "${RES_BAKASU_NM:-skipped}")"$'\n'
-ROWS+="$(row "bakasu"           "${RES_BAKASU:-skipped}")"$'\n'
+ROWS+="$(row "bakasu"                  "${RES_BAKASU:-skipped}")"$'\n'
+ROWS+="$(row "bakasu-nomount-droidspaces" "${RES_BAKASU_NMD:-skipped}")"$'\n'
 ROWS+="$(row "release"          "${RES_RELEASE:-skipped}")"
 
 SHA_SHORT="${GITHUB_SHA:-unknown}"

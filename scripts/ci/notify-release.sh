@@ -31,14 +31,14 @@ SHA_SHORT="${SHA_SHORT:0:7}"
 
 HTML="🐾 <b>PawwwNunungggg</b> · <code>${TAG}</code>
 ━━━━━━━━━━━━━━━━━━━━
-✅ <b>Multibuild Released — 4 variants</b>
+✅ <b>Multibuild Released — 2 variants</b>
 🌿 <b>Branch:</b> <code>PawwwNunungggg24.0</code>
 💬 <code>${SHA_SHORT}</code>
 
 📊 <b>Build Statistics:</b>
 <pre><code>${STATS_BLOCK%$'\n'}</code></pre>
 
-📦 4 zip assets (xxKSU / BakaSU × NoMount on/off)
+📦 2 zip assets · <b>BakaSU</b> <code>KSU_VERSION=35229</code>
 🔗 <a href='${URL}'>Download ${TAG}</a>"
 
 exec "$KCK_NOTIFY" custom "$HTML"

@@ -4,6 +4,25 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
+## 2026-10-15 — xxKSU Dihapus, BakaSU Jadi Satu-Satunya Root Driver
+
++ drivers: hapus `drivers/kernelsu/` (93 file, 17.986 baris) + `scripts/check-xxksu.sh` — xxKSU `backslashxx/KernelSU` v3.3.1 ditarik permanen, satu root driver saja
++ drivers: Kconfig choice `ROOT_SOLUTION` (KSU_XXKSU / KSU_BAKASU) dihapus; `source drivers/bakasu/Kconfig` saja
++ drivers: `drivers/Makefile` dua baris obj-conditional jadi satu — `obj-$(CONFIG_KSU) += bakasu/`
++ defconfig: `CONFIG_KSU_XXKSU=y` → `CONFIG_KSU=y` + `CONFIG_KSU_MANUAL_HOOK=y`; buang `KSU_LSM_SECURITY_HOOKS` & `KSU_HEURISTIC_IN_TREE_BUILD` (symbol xxKSU-only, `olddefconfig` buang diam-diam)
++ ci: multibuild 4 varian → **2 varian** (`bakasu` NoMount off, `bakasu-nomount-droidspaces` NoMount on); DroidSpaces = default defconfig, jadi melekat di kedua varian
++ ci: `release.sh` guard zip `4` → `2` (**bug blocker** — dengan 2 varian guard lama bikin release gagal terbit), catatan Root Drivers jadi BakaSU `KSU_VERSION=35229`
++ ci: notif Telegram (`notify-release.sh` / `notify-failure.sh`) → "2 variants", label varian + env `RES_BAKASU_NMD` disamakan dengan workflow (sebelumnya mismatch → status varian ke-2 selalu tampil `skipped`)
++ ci: `.github/legacy/build.yml` blok `ln -sf resukisu drivers/kernelsu` dihapus (BakaSU in-tree, tanpa symlink)
++ bakasu: sync upstream 4523 → **4529** (`main@d7260ca1`) — `KSU_VERSION` **35223 → 35229** (rumus `30000 + rev-count + 700`)
++ bakasu: 3 commit kernel masuk — rewrite `selinux_hide.c` (time side-channel fix, port tiann/KernelSU#3877), guard sucompat saat ksud absen (#597), `context_add_hash` sidtab (#623); 3 commit userspace (ksud cargo deps, manager translations) sengaja tidak di-sync
++ docs: skill `xxksu-*` → `bakasu-{integration,version-management,latest-check}`; AGENTS.md + README ikut; tambah gotcha **"manager nolak kernel"**
+
+> ⚠️ **Manager:** `KSU_VERSION=35229` harus ditutupi versionCode manager APK.
+> Manager lama `me.weishu.kernelsu` v3.3.0-70 (`32671`) jauh di bawah itu →
+> akan menolak dengan *"manager needs update"*. BakaSU manager sendiri hanya
+> nightly/WIP (tidak ada GitHub Release). Detail: `docs/issues/0008`.
+
 ## 2026-10-11 — Multibuild 4 Varian (xxKSU/BakaSU × NoMount) + Release Otomatis
 
 + ci: multibuild 4 varian per push (xxksu-nomount, xxksu, bakasu-nomount, bakasu) — job terpisah berurutan (prepare → 4 build → release)

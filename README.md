@@ -5,7 +5,7 @@ MediaTek MT6769Z / Helio G88) <!-- TODO: verify exact SoC variant (MT6769Z vs MT
 targeting **LineageOS 24.0 (Android 17)** and other 4.19-based AOSP ROMs
 (LineageOS 20+, Android 13+) <!-- TODO: verify tested ROM matrix -->.
 Non-GKI, single universal build for all selene variants, with an in-tree
-KernelSU-based root driver (xxKSU) and systemless modification support (NoMount).
+BakaSU root driver and systemless modification support (NoMount).
 
 ## Status & version
 
@@ -15,15 +15,16 @@ KernelSU-based root driver (xxKSU) and systemless modification support (NoMount)
 | Version | **v0.1.0** ("Kucing") — **UNSTABLE / porting** |
 | Active branch | `PawwwNunungggg24.0` |
 | `uname -r` | `4.19.325-PawwwNunungggg-cip136-st20` |
-| Root driver | xxKSU (backslashxx/KernelSU) **v3.3.0-70**, in-tree |
+| Root driver | **BakaSU** (`Baka-SU/BakaSU`), `KSU_VERSION=35229`, in-tree |
 | License | GPL-2.0 only (see `COPYING`) |
 
 ## Features
 
 ### Root & systemless
 
-- **xxKSU root driver** in-tree at `drivers/kernelsu/` (`CONFIG_KSU=y`) —
-  backslashxx/KernelSU `v3.3.0-70`, manual hook mode.
+- **BakaSU root driver** in-tree at `drivers/bakasu/` (`CONFIG_KSU=y`) —
+  `Baka-SU/BakaSU` @ `main`, `KSU_VERSION=35229`, manual hook mode.
+  xxKSU dihapus permanen 15 Okt 2026 (satu root driver saja).
 - **Hosts redirect** (`CONFIG_KSU_HOSTSREDIRECT=y`) — in-kernel systemless
   `/system/etc/hosts` → `/data/adb/hosts` redirection (bindhosts mode 3 / AdAway).
 - **NoMount** (`CONFIG_NOMOUNT=y`) — systemless path redirection and virtual
@@ -144,9 +145,10 @@ runs are available via `workflow_dispatch`.
   caused a bootloop (logo → reboot); manual hook mode is used instead.
 - **Camera image quality regression** vs. pre-bringup builds — open,
   see [`docs/issues/0002-kamera-burik.md`](docs/issues/0002-kamera-burik.md).
-- **Root driver migration** to backslashxx/KernelSU is build-verified but not
-  yet verified on hardware, see
-  [`docs/issues/0009-xxksu-driver-migration.md`](docs/issues/0009-xxksu-driver-migration.md).
+- **Root driver = BakaSU** (migrasi dari xxKSU, build-verified). Manager APK
+  harus versionCode **≥ 35229**, kalau tidak root mati dengan "manager needs
+  update" — lihat [`docs/issues/0008-manager-version-mismatch.md`](docs/issues/0008-manager-version-mismatch.md).
+  Riwayat migrasi: [`docs/issues/0009-xxksu-driver-migration.md`](docs/issues/0009-xxksu-driver-migration.md).
 
 Issue history with evidence and fixes: [`docs/issues/`](docs/issues/README.md).
 
@@ -154,8 +156,8 @@ Issue history with evidence and fixes: [`docs/issues/`](docs/issues/README.md).
 
 - **Linux kernel** & **Linux CIP** project — base 4.19.325 LTS tree
 - **mt6768-S** — upstream Xiaomi MT6768 kernel tree
-- **backslashxx/KernelSU (xxKSU)** — root driver; earlier iterations:
-  **ReSukiSU**, **LyraVoid/FolkSU**
+- **BakaSU (`Baka-SU/BakaSU`)** — root driver; earlier iterations:
+  **backslashxx/KernelSU (xxKSU)**, **ReSukiSU**, **LyraVoid/FolkSU**
 - **NoMount** — systemless path redirection
 - **ADIOS** — adaptive deadline I/O scheduler (ported from Linux 6.12)
 - **Boeffla** — generic wakelock blocker

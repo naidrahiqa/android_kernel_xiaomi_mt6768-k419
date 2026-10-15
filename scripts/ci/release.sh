@@ -7,7 +7,7 @@
 # Env:
 #   RELEASE_TAG      required — e.g. R01
 #   STATS_DIR        stats directory with per-variant .env files (default: stats)
-#   ARTIFACTS_DIR    directory with the 4 kernel zips (default: artifacts)
+#   ARTIFACTS_DIR    directory with the 2 kernel zips (default: artifacts)
 #   RELEASE_REPO     target repo (default: naidrahiqa/selene-releases)
 #   GH_TOKEN         required — PAT with repo scope
 #
@@ -25,11 +25,11 @@ SHA_SHORT="${SHA:0:7}"
 DATE_UTC="$(date -u '+%Y-%m-%d %H:%M UTC')"
 VARIANT_ORDER="bakasu bakasu-nomount-droidspaces"
 
-# ---- guard: all 4 zips must be present (any variant failed => no release) ----
+# ---- guard: both zips must be present (any variant failed => no release) ----
 shopt -s nullglob
 zips=("$ART_DIR"/*.zip)
-if [ "${#zips[@]}" -ne 4 ]; then
-  echo "ERROR: expected 4 zips in $ART_DIR, found ${#zips[@]}" >&2
+if [ "${#zips[@]}" -ne 2 ]; then
+  echo "ERROR: expected 2 zips in $ART_DIR, found ${#zips[@]}" >&2
   ls -la "$ART_DIR" >&2 || true
   exit 1
 fi
@@ -70,11 +70,12 @@ fi
   echo "**Date:** ${DATE_UTC}  "
   echo "**Toolchain:** Greenforce Clang 24.0.0"
   echo
-  echo "### Root Drivers"
-  echo "- **xxKSU** \`v3.3.0-70\` · \`KSU_VERSION=32670\` · UAPI v5"
-  echo "- **BakaSU** \`v4.2.0-rc3\` · \`KSU_VERSION=35223\` · manual hook"
+  echo "### Root Driver"
+  echo "- **BakaSU** \`main@d7260ca1\` · rev-count \`4529\` · \`KSU_VERSION=35229\` · UAPI v5 · manual hook"
+  echo ""
+  echo "  > xxKSU dihapus permanen 15 Okt 2026 — BakaSU satu-satunya root driver."
   echo
-  echo "### Variants (4 assets)"
+  echo "### Variants (2 assets)"
   echo "| Variant | Build | Size | md5 |"
   echo "|---|---|---|---|"
   printf '%s' "$TABLE_ROWS"

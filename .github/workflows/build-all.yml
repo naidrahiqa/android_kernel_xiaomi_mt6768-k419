@@ -173,6 +173,7 @@ jobs:
         env:
           RES_PREPARE: ${{ needs.prepare.result }}
           RES_BAKASU: ${{ needs.build-bakasu.result }}
+          RES_BAKASU_NMD: ${{ needs.build-bakasu-nomount-droidspaces.result }}
           RES_RELEASE: ${{ needs.release.result }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID || '-1004414006944' }}

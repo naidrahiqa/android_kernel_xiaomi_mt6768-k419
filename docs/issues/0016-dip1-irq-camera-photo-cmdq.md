@@ -231,11 +231,74 @@ enable/disable saat clock), tapi itu **bukan** penyebab timeout foto.
 Titik kegagalan ada satu level lebih bawah: CQ DIP ter-arm dan berisi
 descriptor, tetapi tidak pernah mengeksekusi sampai EOF.
 
-**Langkah berikutnya (usulan):** baca sweep register DIP `0x020`–`0x050`
-di sampler (murni reads, tanpa write) untuk memetakan mana yang
-`INT_ENA` dan mana `INT_STATUS/CQ_INT_STATUS` — sekarang baru kita
-tahu apakah HW-side interrupt benar-benar dinonaktifkan, atau CQ memang
-terlalu bergantung pada sesuatu (mis. CQ1 / MFB / pass-by signal).
+### Timeline detail satu capture gagal (15 Okt 2026, run ke-2)
+
+```
+599.90 - 600.19  > Preview normal. Frame CAMA/CAMSV1 247->248->...->255->0->1
+                 (rollover 8-bit). cq0base naik tiap ~16 ms (60 fps),
+                 cqint = 0x20000001 (bit0 = CQ0 selesai, bit29 = status lain)
+600.198          > CAMSV1 P1_DON_0 dan CAMA P1_DON_0 - counter reset ke 0.
+                 INI titik transisi HAL dari preview ke pipeline capture.
+600.19 - 601.87  > *** DIP MEMBEKU 1.685 detik ***
+                 cqint tidak naik, cq0base tidak bergerak, cq1base beku
+                 di 0x4a508000. Nol perubahan register.
+601.829          > "CAMA Lost p1 done_50 (0x32)" - done signal hilang
+601.845-601.86   > CMDQ dump ~40 instruksi GCE membaris di 0x1502A0800000
+                 (semua write pointer DRAM) - GCE sehat, tinggal nunggu
+601.864          > flush handler err:-110 - wait flush result cost:1.708 s
+                 reset HW engine 0x5
+601.878          > DIP hidup lagi (cq0base = 0x4a4ba000), tapi cqint = 0
+```
+
+Register tepat sebelum beku (`DIPSMP #973`):
+```
+start = 0x00000000   cq0 = 0x11 / 0x4a4b4000 / 0x2d8   (armed)
+cq1base = 0x4a508000 cqint = 0x00000000                 (CQ0 & CQ1 belum selesai)
+tdri = 0x4a620000     imgi = 0x75b00000
+```
+
+**Cara baca `cqint` (0x044 = CQ_INT_STATUS):**
+`bit0` = CQ0 selesai, `bit1` = CQ1 selesai, `bit29` = status lain.
+Di preview hanya `bit0` yang nyala; di capture `bit1` ikut nyala
+(`0x20000002` -> `0x20000003`) karena CQ1 dipakai. Preview **tidak** memakai
+CQ1 sama sekali (`cq1base = 0`), jadi transisi ke capture terdeteksi dari
+`cq1base` 0 -> non-0.
+
+**Koreksi rantai sebelumnya:** `ISP_WaitIrq` yang timeout ber-Type(0),
+yaitu `ISP_IRQ_TYPE_INT_CAM_A_ST` — **bukan** `INT_DIP_A_ST`
+(`camera_isp.h:98-110`). Jadi pesan
+`Status(0x40001802) WaitStatus(0x00000001) Timeout(256)` adalah HAL
+menunggu bit0 status CAM_A, bukan status DIP.
+
+### INSTRUMEN 4 — re-arm sampler saat capture dimulai
+
+Sampler build pertama gagal berguna: kuota `DIP_SMP_MAX_SAMPLES = 1200`
+(1200 x 10 ms = 12 detik) habis dimakan preview sebelum shutter ditekan.
+Semua 63 snapshot `DIPCQSNAP` yang terkumpul jatuh di 606.36-608.52,
+yaitu **setelah** error (601.86) — nol snapshot pada momen yang diamati.
+
+Perbaikan (`drivers/misc/mediatek/cameraisp/src/mt6768/camera_isp.c`):
+
+1. `DIP_SMP_MAX_SAMPLES` 1200 -> **6000** (60 detik).
+2. `dip_smp_capture_seen` — saat `cq1base` transisi 0 -> non-0 (tanda HAL
+   masuk pipeline capture), counter `dip_smp_n`, `dip_smp_snap_n`, dan
+   state pembanding di-reset, lalu `DIPSMP CAPTURE-START` dicetak.
+3. `dip_smp_pass` — `cq0base` yang kembali ke anchor pass pertama dianggap
+   pass baru; dicetak `DIPSMP PASS#N START`.
+4. `DIPSMP #N PASS=P DONE=x` — ringkasan tiap saat bit `cqint & 0x3` nyala,
+   supaya terlihat thread mana (CQ0/CQ1) yang selesai di pass berapa.
+5. `dip_smp_capture_seen` di-reset lagi di `dip_smp_start()` agar siklus
+   kamera berikutnya mendeteksi ulang.
+
+Yang harus dicari di dmesg setelah flash:
+
+| Pola | Kesimpulan |
+|---|---|
+| `PASS#1..4` punya `DONE=3` (CQ0+CQ1), `PASS#5` tidak pernah DONE | pass 5 tidak jalan - cari why (MFB? signal?) |
+| `PASS#5 START` tidak pernah muncul | GCE tidak pernah me-program CQ untuk pass 5 |
+| `cqint` di pass 1-4 = `0x3`, di pass 5 = `0` | CQ pass 5 ter-arm tapi tidak dieksekusi |
+| `DIPCQSNAP` pass 5 = `0x00000000` | descriptor pass 5 tidak ditulis HAL |
+| `cq1base` beku di anchor selama pass 5 | CQ1 tidak di-reuse - indikasi deadlock 2 thread |
 
 ## Catatan MFB MT6768 (jangan salah simpul)
 

@@ -744,12 +744,20 @@ static unsigned int G_u4EnableClockCount;
 
 /* ==== INSTRUMEN: sampler CQ DIP (hapus setelah selesai) ==== */
 #define DIP_SMP_INTERVAL_MS 10
-#define DIP_SMP_MAX_SAMPLES 1200
+#define DIP_SMP_MAX_SAMPLES 6000
 #define DIP_SMP_SNAP_MAX    64
 
 static atomic_t dip_smp_atomic = ATOMIC_INIT(0);	/* 0=idle 1=run 2=stop */
 static unsigned int dip_smp_n;
 static unsigned int dip_smp_snap_n;
+/* INSTRUMEN 4: penanda pipeline capture (cq1base 0 -> non-0). Preview
+ * hanya memakai CQ0; cq1base pertama kali non-0 = HAL sudah pindah ke
+ * pipeline capture (DpIsp multi-pass) dan counter direset agar seluruh
+ * record pass terlihat, bukan habis oleh preview.
+ */
+static unsigned int dip_smp_capture_seen;
+static unsigned int dip_smp_pass;
+static unsigned int dip_smp_pass0_cq0base, dip_smp_pass0_cq1base;
 static unsigned int dip_smp_p_start, dip_smp_p_cq0ctl, dip_smp_p_cq0base;
 static unsigned int dip_smp_p_cq0size, dip_smp_p_cq1base;
 static unsigned int dip_smp_p_cqint, dip_smp_p_intst;
@@ -805,11 +813,50 @@ static void dip_smp_sample(int force)
 	base_changed = (cq0base != dip_smp_p_cq0base);
 	int_changed  = (cqint != dip_smp_p_cqint);
 
+	/*
+	 * INSTRUMEN 4: cq1base 0 -> non-0 = HAL masuk pipeline capture
+	 * (DpIsp multi-pass). Preview cuma pakai CQ0 dan bisa memakan
+	 * seluruh kuota sampler, jadi reset counter di sini supaya semua
+	 * pass capture terekam dari nol, bukan habis oleh preview.
+	 */
+	if (!dip_smp_capture_seen && cq1base != 0) {
+		dip_smp_capture_seen = 1;
+		pr_info("DIPSMP CAPTURE-START cq0base=%08x cq1base=%08x (counter reset)\n",
+			cq0base, cq1base);
+
+		dip_smp_n = 0;
+		dip_smp_snap_n = 0;
+		dip_smp_pass = 0;
+		dip_smp_pass0_cq0base = cq0base;
+		dip_smp_pass0_cq1base = cq1base;
+		dip_smp_p_start = ~0U; dip_smp_p_cq0ctl = ~0U;
+		dip_smp_p_cq0base = ~0U; dip_smp_p_cq0size = ~0U;
+		dip_smp_p_cq1base = ~0U; dip_smp_p_cqint = ~0U;
+		dip_smp_p_intst = ~0U; dip_smp_p_tdri = ~0U;
+		dip_smp_p_imgi = ~0U;
+	}
+
+	/* Deteksi pass baru: cq0base kembali ke anchor pass pertama. */
+	if (dip_smp_capture_seen && cq0base == dip_smp_pass0_cq0base &&
+	    dip_smp_p_cq0base != dip_smp_pass0_cq0base) {
+		dip_smp_pass++;
+		pr_info("DIPSMP PASS#%u START cq0base=%08x cq1base=%08x\n",
+			dip_smp_pass, cq0base, cq1base);
+	}
+
 	if (force || base_changed || int_changed ||
 	    s_start != dip_smp_p_start || cq0ctl != dip_smp_p_cq0ctl ||
 	    cq0size != dip_smp_p_cq0size || cq1base != dip_smp_p_cq1base ||
 	    intst != dip_smp_p_intst || tdri != dip_smp_p_tdri ||
 	    imgi != dip_smp_p_imgi) {
+		unsigned int done = cqint & 0x3;
+
+		/* ringkas: bit0 = CQ0 selesai, bit1 = CQ1 selesai */
+		if (dip_smp_capture_seen && done)
+			pr_info("DIPSMP #%u PASS=%u DONE=%x cqint=%08x start=%08x cq0=%08x/%08x cq1base=%08x\n",
+				dip_smp_n, dip_smp_pass, done, cqint,
+				s_start, cq0ctl, cq0base, cq1base);
+
 		pr_info("DIPSMP #%u start=%08x cq0=%08x/%08x/%08x cq1base=%08x cqint=%08x int=%08x tdri=%08x imgi=%08x\n",
 			dip_smp_n, s_start, cq0ctl, cq0base, cq0size,
 			cq1base, cqint, intst, tdri, imgi);
@@ -852,6 +899,10 @@ static void dip_smp_start(void)
 {
 	dip_smp_n = 0;
 	dip_smp_snap_n = 0;
+	dip_smp_capture_seen = 0;	/* deteksi ulang pipeline capture */
+	dip_smp_pass = 0;
+	dip_smp_pass0_cq0base = 0;
+	dip_smp_pass0_cq1base = 0;
 	dip_smp_p_start = ~0U; dip_smp_p_cq0ctl = ~0U;
 	dip_smp_p_cq0base = ~0U; dip_smp_p_cq0size = ~0U;
 	dip_smp_p_cq1base = ~0U; dip_smp_p_cqint = ~0U;

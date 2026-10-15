@@ -39,119 +39,8 @@ jobs:
           printf "tag=R%02d\n" $((max_num + 1)) >> "$GITHUB_OUTPUT"
           echo "next tag: R$(printf '%02d' $((max_num + 1)))"
 
-  build-xxksu-nomount:
-    needs: prepare
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/checkout@v4
-        with:
-          repository: naidrahiqa/kernel-ci-kit
-          ref: main
-          path: kit
-      - name: Build xxksu-nomount
-        id: kit
-        uses: naidrahiqa/kernel-ci-kit@main
-        with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: ""
-          zip_name_template: 'PawwwNunungggg-xxksu-nomount-${{ needs.prepare.outputs.tag }}-{hash}-{date_ymd}'
-      - name: Collect build statistics
-        run: ./scripts/ci/build-stats.sh xxksu-nomount
-        env:
-          BUILD_SECONDS: ${{ steps.kit.outputs.build_seconds }}
-          ZIP_PATH: ${{ steps.kit.outputs.zip_path }}
-          CCACHE_HIT_RATE: ${{ steps.kit.outputs.ccache_hit_rate }}
-          KERNEL_VERSION: ${{ steps.kit.outputs.kernel_version }}
-      - name: Upload stats
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: stats-xxksu-nomount
-          path: stats/
-          retention-days: 7
-
-  build-xxksu:
-    needs: [prepare, build-xxksu-nomount]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/checkout@v4
-        with:
-          repository: naidrahiqa/kernel-ci-kit
-          ref: main
-          path: kit
-      - name: Build xxksu
-        id: kit
-        uses: naidrahiqa/kernel-ci-kit@main
-        with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_NOMOUNT=n"
-          zip_name_template: 'PawwwNunungggg-xxksu-${{ needs.prepare.outputs.tag }}-{hash}-{date_ymd}'
-      - name: Collect build statistics
-        run: ./scripts/ci/build-stats.sh xxksu
-        env:
-          BUILD_SECONDS: ${{ steps.kit.outputs.build_seconds }}
-          ZIP_PATH: ${{ steps.kit.outputs.zip_path }}
-          CCACHE_HIT_RATE: ${{ steps.kit.outputs.ccache_hit_rate }}
-          KERNEL_VERSION: ${{ steps.kit.outputs.kernel_version }}
-      - name: Upload stats
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: stats-xxksu
-          path: stats/
-          retention-days: 7
-
-  build-bakasu-nomount:
-    needs: [prepare, build-xxksu]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/checkout@v4
-        with:
-          repository: naidrahiqa/kernel-ci-kit
-          ref: main
-          path: kit
-      - name: Build bakasu-nomount
-        id: kit
-        uses: naidrahiqa/kernel-ci-kit@main
-        with:
-          defconfig: selene_defconfig
-          device_name: selene
-          toolchain: greenforce-clang
-          extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y"
-          zip_name_template: 'PawwwNunungggg-bakasu-nomount-${{ needs.prepare.outputs.tag }}-{hash}-{date_ymd}'
-      - name: Collect build statistics
-        run: ./scripts/ci/build-stats.sh bakasu-nomount
-        env:
-          BUILD_SECONDS: ${{ steps.kit.outputs.build_seconds }}
-          ZIP_PATH: ${{ steps.kit.outputs.zip_path }}
-          CCACHE_HIT_RATE: ${{ steps.kit.outputs.ccache_hit_rate }}
-          KERNEL_VERSION: ${{ steps.kit.outputs.kernel_version }}
-      - name: Upload stats
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: stats-bakasu-nomount
-          path: stats/
-          retention-days: 7
-
   build-bakasu:
-    needs: [prepare, build-bakasu-nomount]
+    needs: [prepare]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -171,7 +60,7 @@ jobs:
           device_name: selene
           toolchain: greenforce-clang
           extra_make_args: "LLVM=1 LLVM_IAS=1"
-          config_overrides: "CONFIG_KSU_XXKSU=n CONFIG_KSU_BAKASU=y CONFIG_KSU_MANUAL_HOOK=y CONFIG_KSU_HOSTSREDIRECT=y CONFIG_NOMOUNT=n"
+          config_overrides: "CONFIG_NOMOUNT=n"
           zip_name_template: 'PawwwNunungggg-bakasu-${{ needs.prepare.outputs.tag }}-{hash}-{date_ymd}'
       - name: Collect build statistics
         run: ./scripts/ci/build-stats.sh bakasu
@@ -187,8 +76,46 @@ jobs:
           path: stats/
           retention-days: 7
 
+  build-bakasu-nomount-droidspaces:
+    needs: [prepare, build-bakasu]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: naidrahiqa/kernel-ci-kit
+          ref: main
+          path: kit
+      - name: Build bakasu-nomount-droidspaces
+        id: kit
+        uses: naidrahiqa/kernel-ci-kit@main
+        with:
+          defconfig: selene_defconfig
+          device_name: selene
+          toolchain: greenforce-clang
+          extra_make_args: "LLVM=1 LLVM_IAS=1"
+          config_overrides: "CONFIG_NOMOUNT=y"
+          zip_name_template: 'PawwwNunungggg-bakasu-nomount-droidspaces-${{ needs.prepare.outputs.tag }}-{hash}-{date_ymd}'
+      - name: Collect build statistics
+        run: ./scripts/ci/build-stats.sh bakasu-nomount-droidspaces
+        env:
+          BUILD_SECONDS: ${{ steps.kit.outputs.build_seconds }}
+          ZIP_PATH: ${{ steps.kit.outputs.zip_path }}
+          CCACHE_HIT_RATE: ${{ steps.kit.outputs.ccache_hit_rate }}
+          KERNEL_VERSION: ${{ steps.kit.outputs.kernel_version }}
+      - name: Upload stats
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stats-bakasu-nomount-droidspaces
+          path: stats/
+          retention-days: 7
+
+
   release:
-    needs: [prepare, build-xxksu-nomount, build-xxksu, build-bakasu-nomount, build-bakasu]
+    needs: [prepare, build-bakasu, build-bakasu-nomount-droidspaces]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -232,7 +159,7 @@ jobs:
         run: ./scripts/ci/notify-release.sh
 
   notify-failure:
-    needs: [prepare, build-xxksu-nomount, build-xxksu, build-bakasu-nomount, build-bakasu, release]
+    needs: [prepare, build-bakasu, build-bakasu-nomount-droidspaces, release]
     if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -245,9 +172,6 @@ jobs:
       - name: Notify failure
         env:
           RES_PREPARE: ${{ needs.prepare.result }}
-          RES_XXKSU_NM: ${{ needs.build-xxksu-nomount.result }}
-          RES_XXKSU: ${{ needs.build-xxksu.result }}
-          RES_BAKASU_NM: ${{ needs.build-bakasu-nomount.result }}
           RES_BAKASU: ${{ needs.build-bakasu.result }}
           RES_RELEASE: ${{ needs.release.result }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

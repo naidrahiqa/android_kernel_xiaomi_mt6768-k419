@@ -23,7 +23,7 @@ BRANCH="${KCK_SOURCE_BRANCH:-PawwwNunungggg24.0}"
 SHA="${GITHUB_SHA:-$(git rev-parse HEAD)}"
 SHA_SHORT="${SHA:0:7}"
 DATE_UTC="$(date -u '+%Y-%m-%d %H:%M UTC')"
-VARIANT_ORDER="xxksu-nomount xxksu bakasu-nomount bakasu"
+VARIANT_ORDER="bakasu bakasu-nomount-droidspaces"
 
 # ---- guard: all 4 zips must be present (any variant failed => no release) ----
 shopt -s nullglob

@@ -472,11 +472,11 @@ CONFIG_WIREGUARD=y
 # CONFIG_SLAB_FREELIST_HARDENED is not set
 
 # Critical features
+# Root driver: BakaSU (Baka-SU/BakaSU). xxKSU dihapus permanen 15 Okt
+# 2026 - CONFIG_KSU sekarang memicu drivers/bakasu/ langsung.
 CONFIG_KSU=y
-CONFIG_KSU_XXKSU=y
+CONFIG_KSU_MANUAL_HOOK=y
 CONFIG_KSU_HOSTSREDIRECT=y
-CONFIG_KSU_LSM_SECURITY_HOOKS=y
-CONFIG_KSU_HEURISTIC_IN_TREE_BUILD=y
 # Hook method = manual hook (SUSFS inline mode dibuang permanen: bootloop logo->reboot)
 CONFIG_NOMOUNT=y
 CONFIG_DYNAMIC_FSYNC=y

@@ -15,7 +15,7 @@ URL="${RELEASE_URL:?RELEASE_URL is required}"
 export KCK_CUSTOM_ALL=1
 STATS_DIR="${STATS_DIR:-stats}"
 KCK_NOTIFY="${KCK_NOTIFY:-kit/scripts/notify-telegram.sh}"
-VARIANT_ORDER="xxksu-nomount xxksu bakasu-nomount bakasu"
+VARIANT_ORDER="bakasu bakasu-nomount-droidspaces"
 
 STATS_BLOCK=""
 for v in $VARIANT_ORDER; do

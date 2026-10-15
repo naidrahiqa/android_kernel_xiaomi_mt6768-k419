@@ -3,7 +3,7 @@
 # variant broke.
 #
 # Env (job results from the workflow `needs` context):
-#   RES_PREPARE RES_XXKSU_NM RES_XXKSU RES_BAKASU_NM RES_BAKASU RES_RELEASE
+#   RES_PREPARE RES_BAKASU RES_BAKASU_NMD RES_RELEASE
 #   KCK_NOTIFY  path to kit notify script (default: kit/scripts/notify-telegram.sh)
 set -euo pipefail
 
@@ -25,8 +25,6 @@ row() {
 
 ROWS=""
 ROWS+="$(row "prepare (R##)"    "${RES_PREPARE:-skipped}")"$'\n'
-ROWS+="$(row "xxksu-nomount"    "${RES_XXKSU_NM:-skipped}")"$'\n'
-ROWS+="$(row "xxksu"            "${RES_XXKSU:-skipped}")"$'\n'
 ROWS+="$(row "bakasu-nomount"   "${RES_BAKASU_NM:-skipped}")"$'\n'
 ROWS+="$(row "bakasu"           "${RES_BAKASU:-skipped}")"$'\n'
 ROWS+="$(row "release"          "${RES_RELEASE:-skipped}")"

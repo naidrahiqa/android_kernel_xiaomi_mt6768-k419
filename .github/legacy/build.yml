@@ -158,10 +158,8 @@ jobs:
           fi
           echo "$(pwd)/greenforce-clang/bin" >> $GITHUB_PATH
 
-      - name: Setup ReSukiSU (KernelSU)
-        run: |
-          ln -sf "$(realpath resukisu)" drivers/kernelsu
-          test -e drivers/kernelsu && echo "KernelSU symlink OK" || { echo "::error::KernelSU symlink failed (dangling or missing)"; exit 1; }
+      # BakaSU sekarang in-tree di drivers/bakasu/ (xxKSU dihapus 15 Okt
+      # 2026) - tidak ada lagi langkah symlink driver root.
 
       - name: Build kernel (selene_defconfig)
         id: build

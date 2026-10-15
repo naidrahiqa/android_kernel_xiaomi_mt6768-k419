@@ -13,6 +13,13 @@ CONFIG_LOCALVERSION="-PawwwNunungggg🐾"
 
 # CONFIG_KALLSYMS_BASE_RELATIVE is not set
 # CONFIG_RSEQ is not set
+# ThinLTO: toolchain Greenforce Clang (PGO+ThinLTO+O3+Polly) + arch
+# support sudah y (CONFIG_ARCH_SUPPORTS_LTO_CLANG / _THINLTO), tapi
+# CONFIG_LTO_NONE masih default sehingga LTO mati total. Nyalakan agar
+# sesuai toolchain & hemat ukuran/inline lintas-TU. Tidak ada prebuilt
+# vendor .o (semua source) dan KSU tidak mensyaratkan anti-LTO.
+CONFIG_LTO_CLANG=y
+CONFIG_THINLTO=y
 CONFIG_MTK_SCHED_EXTENSION=y
 CONFIG_MTK_SCHED_INTEROP=y
 CONFIG_MTK_SCHED_LB_ENHANCEMENT=y

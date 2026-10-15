@@ -116,7 +116,12 @@ obj-y += cmdq_virtual.o
 obj-y += cmdq_device.o
 obj-y += cmdq_driver.o
 obj-y += cmdq_mdp_common.o
-obj-y += cmdq_test.o
+# cmdq_test.o dihapus: harness ENG 8k baris / ~102 KB Image, tanpa gate
+# Kconfig, 85 CMDQ_TEST_FAIL() pr_notice. Semua 59 simbol globalnya punya
+# definisi di file v3 lain (verified via llvm-nm), jadi aman dihapus dari
+# build. File sumber tetap ada di tree._cmdq_test_init hanya bikin
+# /proc/cmdq_test/test yang tidak dipakai driver/HAL.
+#obj-y += cmdq_test.o
 #obj-y += cmdq_prof.o
 obj-y += cmdq_event_common.o
 obj-y += cmdq_subsys_common.o

@@ -55,7 +55,13 @@ Pertanyaan tersisa: MENGAPA CQ thread0 pass ke-5 tidak pernah EOF.
   - `/proc/driver/isp_reg` stub ("Not implement"), tidak ada `/dev/mem`,
     tidak ada debugfs kamera
 
-## Root cause
+## Root cause (REVISI 15 Okt 2026 — klaim awal TERBATAS BUKTI)
+
+> ** Koreksi:** data hardware di bawah **membantah** bahwa IRQ yang mati
+> adalah penyebab timeout. Fix `enable_irq dip1` tetap benar dan tetap
+> perlu (regresi nyata vs referensi), tetapi **bukan** penyebab bug foto.
+> Lihat "Temuan hardware" — akar masalah ada di level eksekusi CQ DIP,
+> di bawah lapisan IRQ.
 
 Regresi dari commit `b291949aa61c`: ia menambah
 `disable_irq(isp_dev->irq)` untuk **SEMUA** device setelah `request_irq`
@@ -167,6 +173,69 @@ Cara baca:
 | `cq0ctl` **tidak pernah** berbeda dari `0x11` | `0x11` = CQ aktif → **H1 gugur**, ganti hipotesis "CQ jalan tapi tidak pernah EOF" |
 
 Hapus blok sampler (dan 2 call-nya) setelah hipotesis selesai dibedah.
+
+### Temuan hardware (15 Okt 2026, setelah flash `9d0884012e69`)
+
+Diperoleh dari satu capture gagal (`Foto`, zoom 1.0X, `input tap 540 1992`):
+
+**Yang TERBUKTI benar:**
+
+| Fakta | Bukti |
+|---|---|
+| Fix IRQ terpasang | dmesg: `enable_irq dip, irq=115` |
+| IRQ dip1 tetap **tidak pernah fire** | `/proc/interrupts` = 0; `/proc/irq/115/` → `count 0`, `unhandled 0` |
+| ISR tak pernah jalan | `dmesg \| grep -c 'dip1 irq #'` = **0** |
+| IRQ lain sehat | `cam2` = 2685+ hitungan |
+| GCE sehat | `CMDQ_EVENT_DISP_RDMA0_EOF is 1` saat timeout |
+| **CQ DIP di-program & ARMED** saat gagal | `DIP CQ0 ctl/base/size = 0x11 / 0x4843c000 / 0x2d8` |
+| **CQ1 juga aktif** saat capture | `0x110 = 0x11`, `0x114 = 0x48508000` (preview tidak pakai CQ1) |
+| **Descriptor CQ0 diisi HAL** | `DIPCQ0[00..27]` = pointer valid (`02c17088`, `70a57770`, `726769f0`, …), bukan semua nol |
+| Semua status register nol saat gagal | `DIP INT(_030/034/038) = 0x0/0x0/0x0` |
+
+**Hipotesis yang gugur:**
+
+- ~~H1 "CQ0 tidak pernah di-kick ulang"~~ → **GUGUR**. `cq0ctl` naik
+  `0x10 → 0x11` dan `cq0base` berubah berulang (`48406000 → 4840c000 →
+  4841e000 → …`), baik di preview maupun capture. Descriptor ada, CQ
+  armed. Yang tidak terjadi adalah **CQ selesai (EOF)**.
+- ~~"CQ jalan tapi tidak pernah EOF"~~ → **INI YANG BENAR**. `cq0ctl=0x11`
+  = CQ aktif; CQ tidak pernah raise status → tidak ada EOF.
+
+**Rantai yang terbukti (`ISP_WaitIrq`):**
+
+```
+HAL ioctl ISP_WAIT_IRQ  ->  baca array software
+                           IspInfo.IrqInfo.Status[TYPE][ST][KEY]
+                      ^  satu-satunya penulis = ISP_Irq_DIP_A (line 13204)
+                      |  butuh IRQ hardware dip1
+                      |  tapi count = 0  ->  ISR tidak pernah jalan
+                      '-> array tetap 0  ->  Timeout(256)  ->  capture gagal
+```
+
+**Perbandingan dengan referensi 4.14 stock (`android_kernel_xiaomi_selene`):**
+
+| Aspek | Ref (stock, known-good) | Tree kita |
+|---|---|---|
+| `request_irq` lalu… | **langsung enabled**, tanpa `disable_irq` | `disable_irq` → masked (regresi `b291949aa61c`) |
+| `ISP_EnableClock()` | **tidak ada** `enable_irq`/`disable_irq` | ada loop `enable_irq`/`disable_irq` (4..9 + dip1) |
+| `ISP_Irq_DIP_A` register | `0x030`/`0x034`/`0x038` | **identik** |
+| DTS `dip1@15022000` | `GIC_SPI 270 IRQ_TYPE_LEVEL_LOW`, reg `0x3000` | **identik** |
+| Tabel ioctl | 46 ioctl | 46 ioctl (selisih nol) |
+
+Jadi porting driver tidak berubah di jalur ISR/DTS/ioctl; yang berbeda
+hanya ada di proteksi IRQ tambahan.
+
+**Kesimpulan sementara:** regresi IRQ itu **nyata dan harus diperbaiki**
+(enable permanen ala referensi lebih bersih daripada sandaran
+enable/disable saat clock), tapi itu **bukan** penyebab timeout foto.
+Titik kegagalan ada satu level lebih bawah: CQ DIP ter-arm dan berisi
+descriptor, tetapi tidak pernah mengeksekusi sampai EOF.
+
+**Langkah berikutnya (usulan):** baca sweep register DIP `0x020`–`0x050`
+di sampler (murni reads, tanpa write) untuk memetakan mana yang
+`INT_ENA` dan mana `INT_STATUS/CQ_INT_STATUS` — sekarang baru kita
+tahu apakah HW-side interrupt benar-benar dinonaktifkan, atau CQ memang
+terlalu bergantung pada sesuatu (mis. CQ1 / MFB / pass-by signal).
 
 ## Catatan MFB MT6768 (jangan salah simpul)
 

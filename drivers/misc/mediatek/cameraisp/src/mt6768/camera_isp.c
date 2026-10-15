@@ -39,13 +39,11 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/delay.h>
-#include <linux/jiffies.h>
 #include <linux/uaccess.h>
 #include <linux/atomic.h>
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/mm.h>
-#include <linux/io.h>
 #include <linux/vmalloc.h>
 #include <linux/of_platform.h>
 #include <linux/of_irq.h>
@@ -741,188 +739,6 @@ unsigned long g_Flash_SpinLock;
 
 
 static unsigned int G_u4EnableClockCount;
-
-/* ==== INSTRUMEN: sampler CQ DIP (hapus setelah selesai) ==== */
-#define DIP_SMP_INTERVAL_MS 10
-#define DIP_SMP_MAX_SAMPLES 6000
-#define DIP_SMP_SNAP_MAX    64
-
-static atomic_t dip_smp_atomic = ATOMIC_INIT(0);	/* 0=idle 1=run 2=stop */
-static unsigned int dip_smp_n;
-static unsigned int dip_smp_snap_n;
-/* INSTRUMEN 4: penanda pipeline capture (cq1base 0 -> non-0). Preview
- * hanya memakai CQ0; cq1base pertama kali non-0 = HAL sudah pindah ke
- * pipeline capture (DpIsp multi-pass) dan counter direset agar seluruh
- * record pass terlihat, bukan habis oleh preview.
- */
-static unsigned int dip_smp_capture_seen;
-static unsigned int dip_smp_pass;
-static unsigned int dip_smp_pass0_cq0base, dip_smp_pass0_cq1base;
-static unsigned int dip_smp_p_start, dip_smp_p_cq0ctl, dip_smp_p_cq0base;
-static unsigned int dip_smp_p_cq0size, dip_smp_p_cq1base;
-static unsigned int dip_smp_p_cqint, dip_smp_p_intst;
-static unsigned int dip_smp_p_tdri, dip_smp_p_imgi;
-
-static void dip_smp_work(struct work_struct *w);
-static DECLARE_DELAYED_WORK(dip_smp_dwork, dip_smp_work);
-
-static void dip_smp_snapshot(unsigned int base, unsigned int size)
-{
-	void __iomem *m;
-	u32 *p;
-	int i, lim;
-
-	if (base == 0 || base == 0xffffffff)
-		return;
-	m = memremap((phys_addr_t)base, 0x10000, MEMREMAP_WB);
-	if (!m) {
-		pr_info("DIPCQSNAP #%u memremap fail base=%08x\n",
-			dip_smp_n, base);
-		return;
-	}
-	p = (u32 *)m;
-	lim = (size && size < 0x400) ? (int)(size / 16) : 0x40;
-	if (lim > 16)			/* cukup 16 entri pertama */
-		lim = 16;
-	for (i = 0; i < lim; i++)
-		pr_info("DIPCQSNAP #%u [%02x] %08x %08x %08x %08x\n",
-			dip_smp_n, i, p[i * 4], p[i * 4 + 1],
-			p[i * 4 + 2], p[i * 4 + 3]);
-	memunmap(m);
-}
-
-static void dip_smp_sample(int force)
-{
-	unsigned int s_start, cq0ctl, cq0base, cq0size, cq1base;
-	unsigned int cqint, intst, tdri, imgi;
-	int base_changed, int_changed;
-
-	if (G_u4EnableClockCount == 0)	/* clock mati: jangan sentuh HW */
-		return;
-
-	s_start = ISP_RD32(ISP_DIP_A_BASE + 0x000);
-	cq0ctl  = ISP_RD32(ISP_DIP_A_BASE + 0x104);
-	cq0base = ISP_RD32(ISP_DIP_A_BASE + 0x108);
-	cq0size = ISP_RD32(ISP_DIP_A_BASE + 0x10C);
-	cq1base = ISP_RD32(ISP_DIP_A_BASE + 0x114);
-	cqint   = ISP_RD32(ISP_DIP_A_BASE + 0x044);
-	intst   = ISP_RD32(ISP_DIP_A_BASE + 0x030);
-	tdri    = ISP_RD32(ISP_DIP_A_BASE + 0x204);
-	imgi    = ISP_RD32(ISP_DIP_A_BASE + 0x400);
-
-	base_changed = (cq0base != dip_smp_p_cq0base);
-	int_changed  = (cqint != dip_smp_p_cqint);
-
-	/*
-	 * INSTRUMEN 4: cq1base 0 -> non-0 = HAL masuk pipeline capture
-	 * (DpIsp multi-pass). Preview cuma pakai CQ0 dan bisa memakan
-	 * seluruh kuota sampler, jadi reset counter di sini supaya semua
-	 * pass capture terekam dari nol, bukan habis oleh preview.
-	 */
-	if (!dip_smp_capture_seen && cq1base != 0) {
-		dip_smp_capture_seen = 1;
-		pr_info("DIPSMP CAPTURE-START cq0base=%08x cq1base=%08x (counter reset)\n",
-			cq0base, cq1base);
-
-		dip_smp_n = 0;
-		dip_smp_snap_n = 0;
-		dip_smp_pass = 0;
-		dip_smp_pass0_cq0base = cq0base;
-		dip_smp_pass0_cq1base = cq1base;
-		dip_smp_p_start = ~0U; dip_smp_p_cq0ctl = ~0U;
-		dip_smp_p_cq0base = ~0U; dip_smp_p_cq0size = ~0U;
-		dip_smp_p_cq1base = ~0U; dip_smp_p_cqint = ~0U;
-		dip_smp_p_intst = ~0U; dip_smp_p_tdri = ~0U;
-		dip_smp_p_imgi = ~0U;
-	}
-
-	/* Deteksi pass baru: cq0base kembali ke anchor pass pertama. */
-	if (dip_smp_capture_seen && cq0base == dip_smp_pass0_cq0base &&
-	    dip_smp_p_cq0base != dip_smp_pass0_cq0base) {
-		dip_smp_pass++;
-		pr_info("DIPSMP PASS#%u START cq0base=%08x cq1base=%08x\n",
-			dip_smp_pass, cq0base, cq1base);
-	}
-
-	if (force || base_changed || int_changed ||
-	    s_start != dip_smp_p_start || cq0ctl != dip_smp_p_cq0ctl ||
-	    cq0size != dip_smp_p_cq0size || cq1base != dip_smp_p_cq1base ||
-	    intst != dip_smp_p_intst || tdri != dip_smp_p_tdri ||
-	    imgi != dip_smp_p_imgi) {
-		unsigned int done = cqint & 0x3;
-
-		/* ringkas: bit0 = CQ0 selesai, bit1 = CQ1 selesai */
-		if (dip_smp_capture_seen && done)
-			pr_info("DIPSMP #%u PASS=%u DONE=%x cqint=%08x start=%08x cq0=%08x/%08x cq1base=%08x\n",
-				dip_smp_n, dip_smp_pass, done, cqint,
-				s_start, cq0ctl, cq0base, cq1base);
-
-		pr_info("DIPSMP #%u start=%08x cq0=%08x/%08x/%08x cq1base=%08x cqint=%08x int=%08x tdri=%08x imgi=%08x\n",
-			dip_smp_n, s_start, cq0ctl, cq0base, cq0size,
-			cq1base, cqint, intst, tdri, imgi);
-
-		dip_smp_p_start = s_start; dip_smp_p_cq0ctl = cq0ctl;
-		dip_smp_p_cq0base = cq0base; dip_smp_p_cq0size = cq0size;
-		dip_smp_p_cq1base = cq1base; dip_smp_p_cqint = cqint;
-		dip_smp_p_intst = intst; dip_smp_p_tdri = tdri;
-		dip_smp_p_imgi = imgi;
-
-		/*
-		 * base CQ0 baru diprogram ATAU status CQ berubah ->
-		 * snapshot descriptor SEKARANG, sebelum buffer di-reuse.
-		 */
-		if ((base_changed || int_changed) &&
-		    dip_smp_snap_n < DIP_SMP_SNAP_MAX) {
-			dip_smp_snap_n++;
-			dip_smp_snapshot(cq0base, cq0size);
-		}
-	}
-}
-
-static void dip_smp_work(struct work_struct *w)
-{
-	if (atomic_read(&dip_smp_atomic) != 1)
-		return;
-
-	dip_smp_sample(0);
-
-	if (++dip_smp_n >= DIP_SMP_MAX_SAMPLES ||
-	    atomic_read(&dip_smp_atomic) != 1) {
-		atomic_set(&dip_smp_atomic, 0);
-		return;
-	}
-	queue_delayed_work(system_wq, &dip_smp_dwork,
-			   msecs_to_jiffies(DIP_SMP_INTERVAL_MS));
-}
-
-static void dip_smp_start(void)
-{
-	dip_smp_n = 0;
-	dip_smp_snap_n = 0;
-	dip_smp_capture_seen = 0;	/* deteksi ulang pipeline capture */
-	dip_smp_pass = 0;
-	dip_smp_pass0_cq0base = 0;
-	dip_smp_pass0_cq1base = 0;
-	dip_smp_p_start = ~0U; dip_smp_p_cq0ctl = ~0U;
-	dip_smp_p_cq0base = ~0U; dip_smp_p_cq0size = ~0U;
-	dip_smp_p_cq1base = ~0U; dip_smp_p_cqint = ~0U;
-	dip_smp_p_intst = ~0U; dip_smp_p_tdri = ~0U;
-	dip_smp_p_imgi = ~0U;
-	atomic_set(&dip_smp_atomic, 1);
-	queue_delayed_work(system_wq, &dip_smp_dwork,
-			   msecs_to_jiffies(DIP_SMP_INTERVAL_MS));
-}
-
-static void dip_smp_stop(void)
-{
-	if (atomic_read(&dip_smp_atomic) == 1) {
-		atomic_set(&dip_smp_atomic, 2);
-		cancel_delayed_work_sync(&dip_smp_dwork);
-		dip_smp_sample(1);	/* sampel terakhir, clock masih hidup */
-		atomic_set(&dip_smp_atomic, 0);
-	}
-}
-
 static atomic_t G_u4DevNodeCt;
 
 int pr_detect_count;
@@ -3530,52 +3346,6 @@ static signed int ISP_DumpDIPReg(void)
 				g_CmdqBaseAddrInfo.MemSizeDiff, g_pKWCmdqBuffer,
 				g_pKWTpipeBuffer);
 		}
-		/*
-		 * instrumentasi: baca descriptor CQ/tpipe langsung dari DRAM;
-		 * copy_from_user di atas selalu gagal (offset > MemSizeDiff)
-		 */
-		{
-			void __iomem *m;
-			u32 *p;
-			int i;
-
-			if ((g_cmdqaddr != 0) &&
-			    (g_cmdqaddr != 0xffffffff)) {
-				m = memremap((phys_addr_t)g_cmdqaddr,
-					0x10000, MEMREMAP_WB);
-				if (m) {
-					p = (u32 *)m;
-					for (i = 0; i < 64; i++)
-						CMDQ_ERR(
-						"DIPCQ0[%02x] %08x %08x %08x %08x\n",
-							i, p[i * 4], p[i * 4 + 1],
-							p[i * 4 + 2], p[i * 4 + 3]);
-					memunmap(m);
-				} else {
-					CMDQ_ERR(
-					"memremap CQ fail addr=0x%x\n",
-						g_cmdqaddr);
-				}
-			}
-			if ((g_tdriaddr != 0) &&
-			    (g_tdriaddr != 0xffffffff)) {
-				m = memremap((phys_addr_t)g_tdriaddr,
-					0x10000, MEMREMAP_WB);
-				if (m) {
-					p = (u32 *)m;
-					for (i = 0; i < 64; i++)
-						CMDQ_ERR(
-						"DRIPTP[%02x] %08x %08x %08x %08x\n",
-							i, p[i * 4], p[i * 4 + 1],
-							p[i * 4 + 2], p[i * 4 + 3]);
-					memunmap(m);
-				} else {
-					CMDQ_ERR(
-					"memremap TDR fail addr=0x%x\n",
-						g_tdriaddr);
-				}
-			}
-		}
 		g_bDumpPhyISPBuf = MTRUE;
 	}
 
@@ -3693,22 +3463,6 @@ static signed int ISP_DumpDIPReg(void)
 		ISP_RD32(ISP_DIP_A_BASE + 0x0014),
 		ISP_RD32(ISP_DIP_A_BASE + 0x0018),
 		ISP_RD32(ISP_DIP_A_BASE + 0x001C));
-	CMDQ_ERR(
-	"DIP INT(_030/034/038)=0x%x/0x%x/0x%x\n",
-		ISP_RD32(ISP_DIP_A_BASE + 0x030),
-		ISP_RD32(ISP_DIP_A_BASE + 0x034),
-		ISP_RD32(ISP_DIP_A_BASE + 0x038));
-	CMDQ_ERR(
-	"DIP CQ0 ctl/size(0x104/0x108/0x10C/0x110/0x114)=0x%x/0x%x/0x%x/0x%x/0x%x\n",
-		ISP_RD32(ISP_DIP_A_BASE + 0x104),
-		ISP_RD32(ISP_DIP_A_BASE + 0x108),
-		ISP_RD32(ISP_DIP_A_BASE + 0x10C),
-		ISP_RD32(ISP_DIP_A_BASE + 0x110),
-		ISP_RD32(ISP_DIP_A_BASE + 0x114));
-	CMDQ_ERR(
-	"DIP tdri(0x204)=0x%x  imgi(0x400)=0x%x\n",
-		ISP_RD32(ISP_DIP_A_BASE + 0x204),
-		ISP_RD32(ISP_DIP_A_BASE + 0x400));
 	CMDQ_ERR(
 	"isp: 15022D20(0x%x)-15022D24(0x%x)\n",
 		ISP_RD32(ISP_DIP_A_BASE + 0x0D20),
@@ -4435,7 +4189,6 @@ static void ISP_EnableClock(bool En)
 				LOG_INF("enable_irq dip, irq=%d\n",
 					isp_devs[ISP_DIP_A_IDX].irq);
 			}
-			dip_smp_start();          /* TAMBAHAN */
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
 		}
@@ -4508,7 +4261,6 @@ static void ISP_EnableClock(bool En)
 				LOG_INF("disable_irq dip, irq=%d\n",
 					isp_devs[ISP_DIP_A_IDX].irq);
 			}
-			dip_smp_stop();           /* TAMBAHAN */
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
 		}
@@ -13236,7 +12988,6 @@ irqreturn_t ISP_Irq_DIP_A(signed int  Irq, void *DeviceId)
 	unsigned int IrqINTStatus = 0x0;
 	unsigned int IrqCQStatus = 0x0;
 	unsigned int IrqCQLDStatus = 0x0;
-	static unsigned long dip1_cnt;
 
 	/*pr_info("ISP_Irq_DIP_A:%d\n", Irq);*/
 
@@ -13256,9 +13007,6 @@ irqreturn_t ISP_Irq_DIP_A(signed int  Irq, void *DeviceId)
 			|= IrqINTStatus;
 
 	spin_unlock(&(IspInfo.SpinLockIrq[ISP_IRQ_TYPE_INT_DIP_A_ST]));
-
-	pr_info("dip1 irq #%lu st=%08x cq=%08x ld=%08x\n",
-		++dip1_cnt, IrqINTStatus, IrqCQStatus, IrqCQLDStatus);
 
 	/*pr_info("ISP_Irq_DIP_A:%d, reg 0x%p : 0x%x, reg 0x%p : 0x%x\n",
 	 * Irq, (ISP_DIP_A_BASE + 0x030), IrqINTStatus,

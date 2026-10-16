@@ -1016,6 +1016,8 @@ static struct SV_LOG_STR gSvLog[ISP_IRQ_TYPE_AMOUNT];
 	unsigned int str_leng;\
 	unsigned int i;\
 	struct SV_LOG_STR *pSrc = &gSvLog[irq];\
+	if (logT != _LOG_ERR && !(IspInfo.DebugMask & ISP_DBG_INT)) \
+		break; \
 	if (logT == _LOG_ERR) {\
 		str_leng = NORMAL_STR_LEN*ERR_PAGE; \
 	} else if (logT == _LOG_DBG) {\
@@ -9036,7 +9038,7 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		spin_lock((spinlock_t *)(&virtual_cqcnt_lock));
 		if (copy_from_user(&g_virtual_cq_cnt, (void *)Param,
 			sizeof(unsigned int)*2) == 0) {
-			LOG_NOTICE("From hw_module:%d Virtual CQ count from user land : %d\n",
+			LOG_DBG("From hw_module:%d Virtual CQ count from user land : %d\n",
 				g_virtual_cq_cnt[0], g_virtual_cq_cnt[1]);
 		} else {
 			LOG_NOTICE(
@@ -9045,10 +9047,10 @@ static long ISP_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 		}
 		if(g_virtual_cq_cnt[0] == 0){
 			g_virtual_cq_cnt_a = g_virtual_cq_cnt[1];
-			LOG_NOTICE("Update Virtual CQ cnt for hw_module:0\n");
+			LOG_DBG("Update Virtual CQ cnt for hw_module:0\n");
 		}else if(g_virtual_cq_cnt[0] == 1){
 			g_virtual_cq_cnt_b = g_virtual_cq_cnt[1];
-			LOG_NOTICE("Update Virtual CQ cnt for hw_module:1\n");
+			LOG_DBG("Update Virtual CQ cnt for hw_module:1\n");
 		}
 		spin_unlock((spinlock_t *)(&virtual_cqcnt_lock));
 		break;

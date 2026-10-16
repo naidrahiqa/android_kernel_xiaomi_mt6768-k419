@@ -15,8 +15,14 @@ extern void mt_irq_set_polarity(unsigned int irq, unsigned int polarity);
 
 /**
  * enforce kernel log enable
+ *
+ * Disabled for user builds: with KERNEL_LOG on, ISP init defaults
+ * IspInfo.DebugMask to ISP_DBG_INT (camera_isp.c), which prints P1_SOF/P1_DON
+ * every frame (~12k dmesg lines/min while the camera is in use). The runtime
+ * ISP_DEBUG_FLAG ioctl can still turn it back on for debugging.
+ * See docs/issues/0018.
  */
-#define KERNEL_LOG
+//#define KERNEL_LOG
 #define ISR_LOG_ON
 
 #define SIG_ERESTARTSYS 512

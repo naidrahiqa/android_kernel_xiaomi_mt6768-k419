@@ -4,36 +4,56 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
-## 2026-10-15 — xxKSU Dihapus, BakaSU Jadi Satu-Satunya Root Driver
+## 2026-10-16 — Issue #0017 Verified on R04 + Local-Build Toolchain Guard
 
-+ drivers: hapus `drivers/kernelsu/` (93 file, 17.986 baris) + `scripts/check-xxksu.sh` — xxKSU `backslashxx/KernelSU` v3.3.1 ditarik permanen, satu root driver saja
-+ drivers: Kconfig choice `ROOT_SOLUTION` (KSU_XXKSU / KSU_BAKASU) dihapus; `source drivers/bakasu/Kconfig` saja
-+ drivers: `drivers/Makefile` dua baris obj-conditional jadi satu — `obj-$(CONFIG_KSU) += bakasu/`
-+ defconfig: `CONFIG_KSU_XXKSU=y` → `CONFIG_KSU=y` + `CONFIG_KSU_MANUAL_HOOK=y`; buang `KSU_LSM_SECURITY_HOOKS` & `KSU_HEURISTIC_IN_TREE_BUILD` (symbol xxKSU-only, `olddefconfig` buang diam-diam)
-+ ci: multibuild 4 varian → **2 varian** (`bakasu` NoMount off, `bakasu-nomount-droidspaces` NoMount on); DroidSpaces = default defconfig, jadi melekat di kedua varian
-+ ci: `release.sh` guard zip `4` → `2` (**bug blocker** — dengan 2 varian guard lama bikin release gagal terbit), catatan Root Drivers jadi BakaSU `KSU_VERSION=35229`
-+ ci: notif Telegram (`notify-release.sh` / `notify-failure.sh`) → "2 variants", label varian + env `RES_BAKASU_NMD` disamakan dengan workflow (sebelumnya mismatch → status varian ke-2 selalu tampil `skipped`)
-+ ci: `.github/legacy/build.yml` blok `ln -sf resukisu drivers/kernelsu` dihapus (BakaSU in-tree, tanpa symlink)
-+ bakasu: sync upstream 4523 → **4529** (`main@d7260ca1`) — `KSU_VERSION` **35223 → 35229** (rumus `30000 + rev-count + 700`)
-+ bakasu: 3 commit kernel masuk — rewrite `selinux_hide.c` (time side-channel fix, port tiann/KernelSU#3877), guard sucompat saat ksud absen (#597), `context_add_hash` sidtab (#623); 3 commit userspace (ksud cargo deps, manager translations) sengaja tidak di-sync
-+ docs: skill `xxksu-*` → `bakasu-{integration,version-management,latest-check}`; AGENTS.md + README ikut; tambah gotcha **"manager nolak kernel"**
++ docs: issue `0017` (perf batch — gate `dprec_logger`, drop `cmdq_test.o`, enable ThinLTO) moved `fixed` → **`verified`** — all 6 checklist items passed on hardware, verified against the **CI R04** artifact (commit `b83b9b0b8d8a`, Greenforce Clang 24.0.0), not a local build
++ verify: `cmdq_test_init` **0 hits** in `System.map`, no real undefined symbols; `DISPMSG`/`DISPCHECK`/`dprec_logger` **0 hits** in dmesg (the `g_mobilelog` gate works); camera 0.6X/1.0X/2.0X + display scroll clean, no freeze/force-close
++ **find:** the local build had silently used **system clang 22.1.8** instead of Greenforce 24.0.0 — the `greenforce-clang/` checkout **is** on disk, but its `bin/` was not in `PATH`, so `make` picked up `CC=clang` from `/usr/bin`. No error, build was valid, but **PGO/Polly were silently lost**; the artifact ended up on the device while `uname` still printed the "Greenforce" name
++ scripts: **`check-toolchain.sh`** (new) — local-build guard: checks the `Cirrus` vendor marker in the clang banner, exits 1 when it is not Greenforce (and prints the `PATH` line to fix it). Wired into skill `build-local-test` step 1 & step 2
++ docs: new gotcha in AGENTS.md — "local build looks successful but uses the wrong toolchain"
++ **fix (issue `0018`):** camera/ISP no longer floods dmesg at **±12,000 lines/min** while the camera is in use — four changes, all keyed to the same `ISP_DBG_INT` mask:
+  + `camera_isp.h`: drop `#define KERNEL_LOG` — the vendor's "enforce kernel log enable" left `IspInfo.DebugMask = ISP_DBG_INT` as the boot default (same ENG-code-in-user-build class as `cmdq_test.o` in #0017)
+  + `camera_isp.c`: one guard at the top of `IRQ_LOG_KEEPER()` — `_LOG_INF`/`_LOG_DBG` entries are no longer buffered (hence never flushed by `ISP_BH_Workqueue`) unless `DebugMask & ISP_DBG_INT`; closes **all 56 ungated call sites** (`P1_SOF`, `CAMA/CAMB PHY cqcnt`, …) in one place. `_LOG_ERR` stays buffered for `ISP_DUMP_ISR_LOG`
+  + `camera_isp.c` `ISP_SET_VIR_CQCNT`: success-path `LOG_NOTICE` → `LOG_DBG` — that ioctl alone produced **9,896 lines / 113 s** (48% of the flood); the `copy_from_user failed` error path stays `LOG_NOTICE`
+  + `fdvt/4.0/camera_fdvt.c`: per-IRQ `[FDVT] Receive IRQ` `LOG_INF` → `LOG_DBG` (908 lines)
+  + runtime behavior is preserved: `ISP_DEBUG_FLAG` ioctl still turns every layer back on for debugging, no rebuild needed
++ docs: issue `0018` created with the exact per-message breakdown from the R04 capture (20,700 lines / 113 s)
 
-> ⚠️ **Manager:** `KSU_VERSION=35229` harus ditutupi versionCode manager APK.
-> Manager lama `me.weishu.kernelsu` v3.3.0-70 (`32671`) jauh di bawah itu →
-> akan menolak dengan *"manager needs update"*. BakaSU manager sendiri hanya
-> nightly/WIP (tidak ada GitHub Release). Detail: `docs/issues/0008`.
+> ⚠️ **Local builds:** run `scripts/check-toolchain.sh` **before** `make`.
+> An exit 1 means the build will silently fall back to system clang and the
+> result is technically valid but without Greenforce optimizations — exactly
+> what happened on Oct 15.
 
-## 2026-10-11 — Multibuild 4 Varian (xxKSU/BakaSU × NoMount) + Release Otomatis
+## 2026-10-15 — xxKSU Removed, BakaSU Becomes the Single Root Driver
 
-+ ci: multibuild 4 varian per push (xxksu-nomount, xxksu, bakasu-nomount, bakasu) — job terpisah berurutan (prepare → 4 build → release)
-+ ci: release otomatis ke `naidrahiqa/selene-releases` dengan nama `R##` (urutan via API); tag dipakai di nama zip & release, sama semua varian
-+ ci: Build Statistics per varian (durasi + md5) di step summary, release notes, dan Telegram notif; gagal 1 varian = release di-skip + notif status per job
-+ ci: kit enhancement — `config_overrides` input untuk toggle Kconfig per varian
-+ bakasu: import BakaSU v4.2.0-rc3 (KSU_VERSION 35223) ke `drivers/bakasu/`
-+ bakasu: port hostsredirect (CONFIG_KSU_HOSTSREDIRECT) dari xxKSU/FolkSU
-+ bakasu: Kconfig choice ROOT_SOLUTION (KSU_XXKSU / KSU_BAKASU) di `drivers/Kconfig`
++ drivers: drop `drivers/kernelsu/` (93 files, 17,986 lines) + `scripts/check-xxksu.sh` — xxKSU `backslashxx/KernelSU` v3.3.1 retired permanently, one root driver only
++ drivers: remove the Kconfig choice `ROOT_SOLUTION` (KSU_XXKSU / KSU_BAKASU); keep only `source drivers/bakasu/Kconfig`
++ drivers: `drivers/Makefile` two obj-conditional lines collapse to one — `obj-$(CONFIG_KSU) += bakasu/`
++ defconfig: `CONFIG_KSU_XXKSU=y` → `CONFIG_KSU=y` + `CONFIG_KSU_MANUAL_HOOK=y`; drop `KSU_LSM_SECURITY_HOOKS` & `KSU_HEURISTIC_IN_TREE_BUILD` (xxKSU-only symbols, silently discarded by `olddefconfig`)
++ ci: multibuild 4 variants → **2 variants** (`bakasu` NoMount off, `bakasu-nomount-droidspaces` NoMount on); DroidSpaces is the default defconfig, so it rides along in both variants
++ ci: `release.sh` zip guard `4` → `2` (**blocker bug** — with 2 variants the old guard would have made every release fail to publish), Root Driver note becomes BakaSU `KSU_VERSION=35229`
++ ci: Telegram notifications (`notify-release.sh` / `notify-failure.sh`) → "2 variants", variant labels + env `RES_BAKASU_NMD` aligned with the workflow (previously mismatched → the 2nd variant always showed as `skipped`)
++ ci: `.github/legacy/build.yml` `ln -sf resukisu drivers/kernelsu` block removed (BakaSU is in-tree, no symlink)
++ bakasu: sync upstream 4523 → **4529** (`main@d7260ca1`) — `KSU_VERSION` **35223 → 35229** (formula `30000 + rev-count + 700`)
++ bakasu: 3 kernel commits landed — rewrite `selinux_hide.c` (time side-channel fix, port tiann/KernelSU#3877), sucompat guard when ksud is absent (#597), `context_add_hash` sidtab (#623); 3 userspace commits (ksud cargo deps, manager translations) deliberately not synced
++ docs: skills `xxksu-*` → `bakasu-{integration,version-management,latest-check}`; AGENTS.md + README follow; add the **"manager rejects the kernel"** gotcha
+
+> ⚠️ **Manager:** `KSU_VERSION=35229` must be covered by the manager APK's
+> versionCode. The old manager `me.weishu.kernelsu` v3.3.0-70 (`32671`) sits far
+> below that → it will be rejected with *"manager needs update"*. The BakaSU
+> manager itself is nightly/WIP only (no GitHub Release). Details: `docs/issues/0008`.
+
+## 2026-10-11 — Multibuild 4 Variants (xxKSU/BakaSU × NoMount) + Automatic Releases
+
++ ci: multibuild 4 variants per push (xxksu-nomount, xxksu, bakasu-nomount, bakasu) — separate sequential jobs (prepare → 4 builds → release)
++ ci: automatic release to `naidrahiqa/selene-releases` named `R##` (sequence via API); the same tag is used in the zip names and the release, shared across all variants
++ ci: Build Statistics per variant (duration + md5) in the step summary, release notes, and Telegram notifications; 1 variant failing = release skipped + per-job status notification
++ ci: kit enhancement — `config_overrides` input to toggle Kconfig per variant
++ bakasu: import BakaSU v4.2.0-rc3 (KSU_VERSION 35223) into `drivers/bakasu/`
++ bakasu: port hostsredirect (CONFIG_KSU_HOSTSREDIRECT) from xxKSU/FolkSU
++ bakasu: Kconfig choice ROOT_SOLUTION (KSU_XXKSU / KSU_BAKASU) in `drivers/Kconfig`
 + bakasu: conditional build via `drivers/Makefile` (obj-$(CONFIG_KSU_XXKSU) / obj-$(CONFIG_KSU_BAKASU))
-+ scripts: `check-bakasu.sh` — upstream version check mirror `check-xxksu.sh`
++ scripts: `check-bakasu.sh` — upstream version check mirroring `check-xxksu.sh`
 + zip naming: `PawwwNunungggg-{variant}-{R##}-{sha7}-{YYYYMMDD}.zip`
 
 ## 2026-10-09 — FolkSU Integration & xxKSU Hosts Redirect

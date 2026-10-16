@@ -1,13 +1,13 @@
 ---
 id: 0017
 title: Optimasi kernel batch — gate dprec_logger, buang cmdq_test, nyalakan ThinLTO
-status: fixed
+status: verified
 severity: medium
 area: kernel
 opened: 2026-10-15
-updated: 2026-10-15
-fix_commit: ""
-verified_on: ""
+updated: 2026-10-16
+fix_commit: "96d50715b424"
+verified_on: "2026-10-16 (CI R04, commit b83b9b0b8d8a, Greenforce Clang 24.0.0)"
 tags: [performance, lto, thinlto, display, cmdq, size, drain]
 related: [0014, 0016]
 ---
@@ -127,9 +127,24 @@ divalidasi tanpa baseline symptom yang terukur.
 
 ## Verification
 
-- [ ] build lokal: `MAKE_EXIT=0` + `Image.gz-dtb`
-- [ ] `CONFIG_LTO_CLANG=y` + `CONFIG_THINLTO=y` bertahan di `out/.config`
-- [ ] `llvm-nm` vmlinux: `cmdq_test_init` hilang, tidak ada undefined symbol
-- [ ] flash → `dmesg` bersih, tidak ada `dprec_logger_pr` spam
-- [ ] smoke: display nyala, sentuh responsif, kamera 0.6X/1.0X/2.0X ok
-- [ ] rollback: `git revert <commit>` (3 file, terisolasi)
+- [x] build lokal: `MAKE_EXIT=0` + `Image.gz-dtb` (13.404.242 B lokal / 13.400.686 B CI)
+- [x] `CONFIG_LTO_CLANG=y` + `CONFIG_THINLTO=y` bertahan di `out/.config`
+- [x] `llvm-nm` vmlinux: `cmdq_test_init` **0 hit** di System.map, nol undefined symbol asli
+- [x] flash → `dmesg` bersih: `DISPMSG`/`DISPCHECK`/`dprec_logger` **0 hit** (gate `g_mobilelog` bekerja)
+- [x] smoke: display nyala, scroll responsif, kamera 0.6X/1.0X/2.0X ok (tanpa freeze/force-close)
+- [x] rollback: `git revert96d50715b424` (3 file, terisolasi)
+
+**Catatan verifikasi (2026-10-16):** Diverifikasi di HP pakai artifact **CI R04**
+(build `b83b9b0b8d8a`, **Greenforce Clang 24.0.0**), bukan build lokal. Awalnya
+HP sempat jalan build lokal yang tak sengaja memakai **system clang 22.1.8**
+(karena `greenforce-clang/` tidak ada di mesin dan `make` mengambil `CC=clang`
+dari `PATH`). Lihat `scripts/check-toolchain.sh` — guard yang ditambahkan agar
+kesalahan toolchain tidak terjadi diam-diam lagi.
+
+**Temuan baru saat verifikasi (di luar scope issue ini):** Subsistem **kamera/ISP**
+masih membanjiri dmesg **±12.000 baris/menit** saat kamera dipakai — ~20.700 baris
+dalam 113 detik (`[ISP][ISP_ioctl]` 9942, `[ISP][ISP_BH_Workqueue]` 5830, `CAMA`
+3914). Ini **sama persis tipe masalahnya** dengan item 1 issue ini (`dprec_logger`
+tak-gated), tapi di jalur kamera, bukan display. Log `P1_SOF`/`P1_DON` dicetak
+**per-frame** (60+/detik @30fps). Belum ditangani — jadi kandidat issue terpisah.
+Ada juga `[DDP/OVL]error: dim layer0 ahpha enable should be 1!` (79×, display).

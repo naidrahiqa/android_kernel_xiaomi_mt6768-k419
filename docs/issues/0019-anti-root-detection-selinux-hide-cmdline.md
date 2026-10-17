@@ -6,9 +6,9 @@ severity: high
 area: root
 opened: 2026-10-17
 updated: 2026-10-17
-fix_commit: "81f23b5a44d6 25400c2818d3"
+fix_commit: "81f23b5a44d6 25400c2818d3 0315935c756d"
 verified_on: ""
-tags: [root, bakasu, selinux, cmdline, anti-detection, wondr]
+tags: [root, bakasu, selinux, cmdline, anti-detection, wondr, maps, modules, version]
 related: [0008, 0009]
 ---
 
@@ -64,6 +64,12 @@ splash screen / pembukaan aplikasi.
      - `androidboot.verifiedbootstate=orange` → `androidboot.verifiedbootstate=green`
      - `androidboot.vbmeta.device_state=unlocked` → `androidboot.vbmeta.device_state=locked`
    - Implementasi zero-allocation (stream token langsung ke `seq_file`), aman dan non-intrusif.
+
+3. **In-Kernel /proc Hardening Suite (`0315935c756d`)**:
+   - `fs/proc/task_mmu.c`: Filter VMA memory mapping untuk app untrusted (`uid >= 10000`) agar modul yang di-inject (Zygisk, LSPosed, Shamiko, Magisk, Frida, atau path di `/data/adb/`, `/data/local/tmp/`) tidak tampak di `/proc/<pid>/maps` dan `/proc/<pid>/smaps`.
+   - `kernel/module.c`: Sembunyikan output `/proc/modules` untuk app untrusted sehingga kernel tampak monolitik murni tanpa third-party LKM.
+   - `fs/proc/version.c`: Bersihkan string release `/proc/version` untuk app untrusted dengan membuang byte non-ASCII (emoji) dan keyword branding custom.
+   - `net/unix/af_unix.c`: Filter socket abstract dan pathname UNIX domain terkait root/hooking (`@zygisk`, `@magisk`, `@frida`, dsb.) dari `/proc/net/unix`.
 
 ## Verification
 

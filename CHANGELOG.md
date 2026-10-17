@@ -4,9 +4,16 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
-## 2026-10-17 — Anti-Root Detection Hardening (Cmdline Spoofing & Default SELinux-Hide)
+## 2026-10-17 — Anti-Root Detection Hardening (Cmdline Spoofing, SELinux-Hide & /proc Hardening)
 
-+ **fs/proc:** sanitize security parameters in `/proc/cmdline` — stream-based zero-allocation filtering for userspace reads:
++ **fs/proc/task_mmu:** anti memory-inspection — filter sensitive VMAs from `/proc/<pid>/maps` and `/proc/<pid>/smaps` for untrusted UIDs (`uid >= 10000`):
+  + hides injected libraries and binaries matching `zygisk`, `lsposed`, `shamiko`, `magisk`, `kernelsu`, `bakasu`, `frida`, `xposed`, `libriru`
+  + hides mappings originating from `/data/adb/` and `/data/local/tmp/`
+  + leaves system services (`uid < 10000`), root (`uid 0`), and ptrace/admin debuggers with full visibility
++ **kernel/module:** sanitize `/proc/modules` for untrusted apps (`uid >= 10000`) — returns empty list so the kernel appears monolithic without LKMs
++ **fs/proc/version:** sanitize `/proc/version` for untrusted apps — strips non-ASCII bytes (e.g. emoji) and replaces custom branding (`PawwwNunungggg`) with clean standard version string
++ **net/unix:** sanitize `/proc/net/unix` for untrusted apps — hides abstract and pathname sockets containing `zygisk`, `magisk`, `frida`, or `lsposed`
++ **fs/proc/cmdline:** sanitize security parameters in `/proc/cmdline` — stream-based zero-allocation filtering for userspace reads:
   + `androidboot.selinux=permissive` → `androidboot.selinux=enforcing` (aligns cmdline string with real Enforcing state)
   + `androidboot.veritymode=disabled` → `androidboot.veritymode=enforcing`
   + `androidboot.verifiedbootstate=orange` → `androidboot.verifiedbootstate=green`

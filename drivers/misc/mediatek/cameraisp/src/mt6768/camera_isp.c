@@ -4182,14 +4182,9 @@ static void ISP_EnableClock(bool En)
 			spin_unlock(&(IspInfo.SpinLockClock));
 			for (module = ISP_CAM_A_IDX; module < ISP_CAMSV4_IDX; module++) {
 				enable_irq(isp_devs[module].irq);
-				LOG_INF(
-					"enable_irq cam %d, irq=%d\n",
-					module, isp_devs[module].irq);
 			}
 			if (isp_devs[ISP_DIP_A_IDX].irq > 0) {
 				enable_irq(isp_devs[ISP_DIP_A_IDX].irq);
-				LOG_INF("enable_irq dip, irq=%d\n",
-					isp_devs[ISP_DIP_A_IDX].irq);
 			}
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));
@@ -4254,14 +4249,9 @@ static void ISP_EnableClock(bool En)
 			spin_unlock(&(IspInfo.SpinLockClock));
 			for (module = ISP_CAM_A_IDX; module < ISP_CAMSV4_IDX; module++) {
 				disable_irq(isp_devs[module].irq);
-				LOG_INF(
-					"disable_irq cam %d, irq=%d\n",
-					module, isp_devs[module].irq);
 			}
 			if (isp_devs[ISP_DIP_A_IDX].irq > 0) {
 				disable_irq(isp_devs[ISP_DIP_A_IDX].irq);
-				LOG_INF("disable_irq dip, irq=%d\n",
-					isp_devs[ISP_DIP_A_IDX].irq);
 			}
 		} else {
 			spin_unlock(&(IspInfo.SpinLockClock));

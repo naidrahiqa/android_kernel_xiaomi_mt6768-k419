@@ -19,6 +19,8 @@
 #include <linux/shmem_fs.h>
 #include <linux/uaccess.h>
 #include <linux/pkeys.h>
+#include <linux/cred.h>
+#include <linux/capability.h>
 
 #include <asm/elf.h>
 #include <asm/tlb.h>
@@ -417,10 +419,112 @@ done:
 	seq_putc(m, '\n');
 }
 
+static bool str_contains_nocase(const char *haystack, const char *needle)
+{
+	size_t nlen, hlen, i;
+
+	if (!haystack || !needle)
+		return false;
+
+	nlen = strlen(needle);
+	hlen = strlen(haystack);
+	if (hlen < nlen)
+		return false;
+
+	for (i = 0; i <= hlen - nlen; i++) {
+		if (strncasecmp(haystack + i, needle, nlen) == 0)
+			return true;
+	}
+	return false;
+}
+
+static bool proc_maps_is_sensitive(struct vm_area_struct *vma)
+{
+	struct file *file;
+	struct dentry *dentry;
+	kuid_t uid;
+	const char *name;
+	int depth;
+
+	if (!vma)
+		return false;
+
+	uid = current_uid();
+	/* Root, system, or administrative processes see everything */
+	if (uid_eq(uid, GLOBAL_ROOT_UID) || uid.val < 10000)
+		return false;
+
+	if (capable(CAP_SYS_ADMIN) || capable(CAP_SYS_PTRACE))
+		return false;
+
+	file = vma->vm_file;
+	if (!file)
+		return false;
+
+	dentry = file->f_path.dentry;
+	if (!dentry)
+		return false;
+
+	/* Check file basename */
+	name = dentry->d_name.name;
+	if (name) {
+		if (str_contains_nocase(name, "zygisk") ||
+		    str_contains_nocase(name, "lsposed") ||
+		    str_contains_nocase(name, "shamiko") ||
+		    str_contains_nocase(name, "magisk") ||
+		    str_contains_nocase(name, "kernelsu") ||
+		    str_contains_nocase(name, "bakasu") ||
+		    str_contains_nocase(name, "frida") ||
+		    str_contains_nocase(name, "xposed") ||
+		    str_contains_nocase(name, "edxposed") ||
+		    str_contains_nocase(name, "libriru") ||
+		    str_contains_nocase(name, "riru"))
+			return true;
+	}
+
+	/* Check if file resides inside /data/adb/ or /data/local/tmp or suspicious directory */
+	for (depth = 0; dentry && !IS_ROOT(dentry) && depth < 16; depth++) {
+		struct dentry *parent = dentry->d_parent;
+		if (!parent)
+			break;
+
+		if (dentry->d_name.name) {
+			if (str_contains_nocase(dentry->d_name.name, "zygisk") ||
+			    str_contains_nocase(dentry->d_name.name, "lsposed") ||
+			    str_contains_nocase(dentry->d_name.name, "magisk") ||
+			    str_contains_nocase(dentry->d_name.name, "frida"))
+				return true;
+
+			/* Match /data/adb/ */
+			if (!strcmp(dentry->d_name.name, "adb") &&
+			    parent->d_name.name && !strcmp(parent->d_name.name, "data"))
+				return true;
+
+			/* Match /data/local/tmp */
+			if (!strcmp(dentry->d_name.name, "tmp") &&
+			    parent->d_name.name && !strcmp(parent->d_name.name, "local"))
+				return true;
+		}
+
+		if (dentry == parent)
+			break;
+		dentry = parent;
+	}
+
+	return false;
+}
+
 static int show_map(struct seq_file *m, void *v)
 {
-	show_map_vma(m, v);
-	m_cache_vma(m, v);
+	struct vm_area_struct *vma = v;
+
+	if (proc_maps_is_sensitive(vma)) {
+		m_cache_vma(m, vma);
+		return 0;
+	}
+
+	show_map_vma(m, vma);
+	m_cache_vma(m, vma);
 	return 0;
 }
 
@@ -844,6 +948,11 @@ static int show_smap(struct seq_file *m, void *v)
 {
 	struct vm_area_struct *vma = v;
 	struct mem_size_stats mss;
+
+	if (proc_maps_is_sensitive(vma)) {
+		m_cache_vma(m, vma);
+		return 0;
+	}
 
 	memset(&mss, 0, sizeof(mss));
 

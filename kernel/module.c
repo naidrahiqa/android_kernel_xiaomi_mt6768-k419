@@ -4360,6 +4360,12 @@ static int m_show(struct seq_file *m, void *p)
 	struct module *mod = list_entry(p, struct module, list);
 	char buf[MODULE_FLAGS_BUF_SIZE];
 	void *value;
+	kuid_t uid = current_uid();
+
+	/* Untrusted apps see an empty module list */
+	if (!uid_eq(uid, GLOBAL_ROOT_UID) && uid.val >= 10000 &&
+	    !capable(CAP_SYS_MODULE) && !capable(CAP_SYS_ADMIN))
+		return 0;
 
 	/* We always ignore unformed modules. */
 	if (mod->state == MODULE_STATE_UNFORMED)

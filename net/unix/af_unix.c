@@ -118,6 +118,8 @@
 #include <linux/security.h>
 #include <linux/freezer.h>
 #include <linux/file.h>
+#include <linux/cred.h>
+#include <linux/capability.h>
 
 #include "scm.h"
 
@@ -2850,6 +2852,28 @@ static int unix_seq_show(struct seq_file *seq, void *v)
 	else {
 		struct sock *s = v;
 		struct unix_sock *u = unix_sk(s);
+		kuid_t uid = current_uid();
+
+		if (!uid_eq(uid, GLOBAL_ROOT_UID) && uid.val >= 10000 &&
+		    !capable(CAP_NET_ADMIN)) {
+			if (u->addr) {
+				const char *p = u->addr->name->sun_path;
+				int alen = u->addr->len - sizeof(short);
+
+				if (UNIX_ABSTRACT(s)) {
+					p++;
+					alen--;
+				}
+				if (alen > 0) {
+					if (strnstr(p, "zygisk", alen) ||
+					    strnstr(p, "magisk", alen) ||
+					    strnstr(p, "frida", alen) ||
+					    strnstr(p, "lsposed", alen))
+						return 0;
+				}
+			}
+		}
+
 		unix_state_lock(s);
 
 		seq_printf(seq, "%pK: %08X %08X %08X %04X %02X %5lu",

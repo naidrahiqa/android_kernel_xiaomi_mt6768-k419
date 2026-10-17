@@ -106,3 +106,38 @@ Unbalanced IRQ 141 wake disable
   `uname -r` sebelum mengklaim regresi** — jangan nebak dari tanggal
   build. (Kesalahan yang pernah terjadi di issue ini 2026-10-07.)
 - Isi `verified_on` dengan `uname -r` build yang lulus test di atas.
+
+## Occurrence 2026-10-17 — crash di build PRE-FIX, bukan regresi
+
+User report reboot pas lagi voice Discord (~16:29 WIB). Pstore
+(`console-ramoops-0` + `dmesg-ramoops-0`, dibaca boot 16:30) berisi oops
+identik: `remove_request+0x38` ← `adios_dispatch_request+0x404`, kworker
+kblockd, dengan `mt6768_fe_trigger(), DL1 cmd 0` terinterleaving tepat di
+baris crash (suara voice mulai diputar = I/O burst pemicu).
+
+Kuncinya: banner crash = **`g282da32602fa`** (build Okt 3, baru fix #1),
+bukan build yang jalan sesudahnya. Forensik tanggal: path
+`/data/app/~~xzMG.../com.discord` di console = Discord terakhir update
+14 Okt → sesi crash ≥14 Okt; `sys.boot.reason=kernel_panic`; sesi pendek
+(tidak ada suspend di console). Jadi HP memang masih nyala di build lama
+sampai crash, lalu reboot masuk `g80db628a0013` (built 17 Okt) yang sudah
+memuat ketiga fix (`447d4e39bb35`, `eec34a0ddfeb`, `44b942c85cc6` — semua
+terverifikasi ancestor).
+
+→ **Bukan regresi.** Issue tetap `fixed`. Pelajaran operasional: kalau
+pstore berisi signature ini, cek **SHA di banner crash dulu** sebelum
+nuduh build baru — bisa jadi HP-nya belum sempat boot di build yang benar.
+Momentum kejadian sama dengan aslinya: I/O burst saat mulai voice call.
+
+## Resolusi lanjutan (17 Okt 2026) — ADIOS di-drop dari build
+
+Atas keputusan owner setelah occurrence 17 Okt: `CONFIG_MQ_IOSCHED_ADIOS`
+dibuang dari `selene_defconfig` (explicit `# ... is not set` — selama ini
+`=y` datang dari Kconfig default, bukan defconfig). Rationale:
+
+- Default mq scheduler device = mq-deadline (issue 0013); adios hanya
+  opsi mati di `/sys/block/*/queue/scheduler`, nol perubahan behavior.
+- Tweak app bisa menulis scheduler via sysfs — adios kompilasi = risiko
+  diaktifkan pihak ketiga tanpa kita sadari.
+- Eliminasi kelas bug, bukan cuma mitigation. Fix tetap di git history
+  kalau mau re-enable untuk eksperimen.

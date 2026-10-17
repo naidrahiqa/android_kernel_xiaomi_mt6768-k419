@@ -989,8 +989,6 @@ int elevator_init_mq(struct request_queue *q)
 		e = elevator_get(q, "bfq", false);
 	else if (IS_ENABLED(CONFIG_MQ_KYBER_DEFAULT))
 		e = elevator_get(q, "kyber", false);
-	else if (IS_ENABLED(CONFIG_MQ_ADIOS_DEFAULT))
-		e = elevator_get(q, "adios", false);
 	else
 		e = elevator_get(q, "mq-deadline", false);
 

@@ -32,7 +32,8 @@ jobs:
           max_num=0
           for tag in $releases; do
             if [[ $tag =~ ^R([0-9]+)$ ]]; then
-              num=${BASH_REMATCH[1]}
+              # 10# forces base-10: "08" as bare $(( )) would be invalid octal
+              num=$((10#${BASH_REMATCH[1]}))
               if [ "$num" -gt "$max_num" ]; then max_num=$num; fi
             fi
           done

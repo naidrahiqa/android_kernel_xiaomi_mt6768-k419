@@ -31,6 +31,7 @@ void on_post_fs_data(void)
     // sanity check, this may influence the performance
     ksu_stop_input_hook_runtime();
     ksu_selinux_hide_handle_post_fs_data();
+    ksu_selinux_hide_auto_enable();
 
     // scan manager
     pr_info("post-fs-data triggered, scanning manager...");

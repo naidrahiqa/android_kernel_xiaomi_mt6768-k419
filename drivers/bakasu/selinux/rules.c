@@ -15,6 +15,7 @@
 #include "linux/lsm_audit.h" // IWYU pragma: keep
 #include "xfrm.h"
 #include "infra/symbol_resolver.h"
+#include "feature/selinux_hide.h"
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0) || defined(KSU_COMPAT_HAS_SELINUX_POLICY_STRUCT)
 #define SELINUX_POLICY_INSTEAD_SELINUX_SS
@@ -336,6 +337,7 @@ out_free:
     kfree(oldpolicydb);
     ksu_unlock_sel_mutex_legacy();
 #endif
+    ksu_selinux_hide_auto_enable();
 }
 
 #define KSU_SEPOLICY_MAX_BATCH_SIZE (8U * 1024U * 1024U)

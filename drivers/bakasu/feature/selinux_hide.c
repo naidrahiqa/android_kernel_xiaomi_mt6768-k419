@@ -53,7 +53,7 @@
 #endif
 
 static DEFINE_MUTEX(selinux_hide_mutex);
-__maybe_static bool ksu_selinux_hide_enabled __read_mostly = false;
+__maybe_static bool ksu_selinux_hide_enabled __read_mostly = true;
 // remove static in susfs
 __maybe_static bool ksu_selinux_hide_running __read_mostly = false;
 
@@ -880,6 +880,21 @@ static const struct ksu_feature_handler selinux_hide_handler = {
     .get_handler = selinux_hide_feature_get,
     .set_handler = selinux_hide_feature_set,
 };
+
+int ksu_selinux_hide_auto_enable(void)
+{
+    int ret = 0;
+    mutex_lock(&selinux_hide_mutex);
+    if (ksu_selinux_hide_enabled && !ksu_selinux_hide_running) {
+        ret = ksu_selinux_hide_enable();
+        if (!ret) {
+            ksu_selinux_hide_running = true;
+            pr_info("selinux_hide: auto-enabled on boot\n");
+        }
+    }
+    mutex_unlock(&selinux_hide_mutex);
+    return ret;
+}
 
 void ksu_selinux_hide_handle_second_stage()
 {

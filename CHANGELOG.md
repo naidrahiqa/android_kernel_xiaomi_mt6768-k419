@@ -4,6 +4,19 @@ Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
 
+## 2026-10-17 — Anti-Root Detection Hardening (Cmdline Spoofing & Default SELinux-Hide)
+
++ **fs/proc:** sanitize security parameters in `/proc/cmdline` — stream-based zero-allocation filtering for userspace reads:
+  + `androidboot.selinux=permissive` → `androidboot.selinux=enforcing` (aligns cmdline string with real Enforcing state)
+  + `androidboot.veritymode=disabled` → `androidboot.veritymode=enforcing`
+  + `androidboot.verifiedbootstate=orange` → `androidboot.verifiedbootstate=green`
+  + `androidboot.vbmeta.device_state=unlocked` → `androidboot.vbmeta.device_state=locked`
++ **bakasu:** default `ksu_selinux_hide_enabled = true` and provide `ksu_selinux_hide_auto_enable()`:
+  + auto-engage `selinux_hide` immediately after `apply_kernelsu_rules()` creates `backup_policydb` and during `on_post_fs_data()`
+  + prevents `ksu_selinux_hide_drop_backup_if_unused()` from dropping the clean backup policydb at boot completion
+  + app UIDs (`uid >= 10000`) evaluating SELinux types (e.g. `u:object_r:ksu_file:s0` probe by Wondr by BNI, issue #0019) get clean `-EINVAL` matching a stock untampered kernel
++ docs: issue `0019` created with evidence from device capture (`logcat.txt` bounded transition rejection & cmdline flags); issue `0018` fix_commit updated to `61e5b261667c`
+
 ## 2026-10-16 — Issue #0017 Verified on R04 + Local-Build Toolchain Guard
 
 + docs: issue `0017` (perf batch — gate `dprec_logger`, drop `cmdq_test.o`, enable ThinLTO) moved `fixed` → **`verified`** — all 6 checklist items passed on hardware, verified against the **CI R04** artifact (commit `b83b9b0b8d8a`, Greenforce Clang 24.0.0), not a local build

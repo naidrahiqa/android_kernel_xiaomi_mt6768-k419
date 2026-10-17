@@ -6,7 +6,7 @@ severity: medium
 area: kernel
 opened: 2026-10-16
 updated: 2026-10-16
-fix_commit: ""
+fix_commit: "61e5b261667c"
 verified_on: ""
 tags: [performance, camera, isp, logging, dmesg]
 related: [0017, 0016]

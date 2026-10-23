@@ -1,8 +1,18 @@
-# CHANGELOG — PawwwNunungggg Edition (Xiaomi Selene / MT6768)
+# CHANGELOG — EsTehAnget Edition (Xiaomi Selene / MT6768)
 
 Kernel by [@naidrahiqa](https://github.com/naidrahiqa)
 
 ---
+
+## 2026-10-23 — EsTehAnget24.0 Baseline: Rebrand + Integrasi Inti + Pipa Rilis
+
++ **trees:** baseline fresh dari `creativchic/lineage-24.0` (`fa7077ae`) + `mt6768-S` (`6d3888fc`) + local commits; branch utama **`EsTehAnget24.0`**; branding uname pindah ke belakang — `4.19.325-cip136-st20-EsTehAnget+` via `CONFIG_LOCALVERSION="-EsTehAnget"` + `localversion-cip`/`localversion-st` (file `localversion` & `VERSION` tidak dipakai). Komit penataan awal: `978ac210` (drop CI in-tree), `1b97d049` (carry README/CHANGELOG/docs), `ce36fcc7` + `26a811ce` (gitignore local-only), `b183043` (selene_defconfig).
++ **bakasu:** import upstream `Baka-SU/BakaSU` rev `4536` (`dac2d186`) sebagai in-tree copy `drivers/bakasu/` (`23fdab39858c`), anchor manual hook ke syscalls inti (`fs/open.c`, `fs/stat.c`, `fs/exec.c`, `kernel/reboot.c` — `fba3aea6e28e`); `KSU_VERSION=35229` **ditahan** (formula 35236 di rev 4536) biar pasangan manager APK tersedia; `CONFIG_KSU_HOSTSREDIRECT=y` + file hostsredirect local-only di-restore.
++ **fs:** import NoMount **v2.2.0** (`NOMOUNT_BASE_VERSION "22"`) dengan 5 guard 4.19 di-reapply manual (`a45fb26239e3`; guard rule-init di-reapply tangan setelah blok upstream pindah ke `nm_resolve_anchor_locked()`), `CFLAGS_nomount.o += -std=gnu11 -Wno-declaration-after-statement`.
++ **defconfig:** enable BakaSU + NoMount + blok DroidSpaces v6.6.0 (`8c3cd3a558d3`) — SYSVIPC, POSIX_MQUEUE, USER_NS, CGROUP_DEVICE/PIDS/NET_PRIO/NET_CLASSID/CFS_BANDWIDTH, TMPFS_POSIX_ACL/XATTR, NF_TABLES, IP6_NF_NAT + MASQUERADE, MACVLAN, XT_MATCH_ADDRTYPE, NF_CT_NETLINK; simbol yang tidak ada di 4.19 di-skip dengan catatan (FW_LOADER_COMPRESS, NF_CONNTRACK_NETLINK→NF_CT_NETLINK, dst.).
++ **docs:** seluruh import + perencanaan config direkam di `docs/issues/0030-fresh-import-bakasu-nomount-droidspaces.md`.
++ **ci/release (kit):** build hijau ×3 (`39899882633`, `39908169846`, `39920527490`) + lint hijau; zip naming kini memuat **sha kernel** (bukan sha kit); tiap `example-build` sukses terbit sebagai release `r<N>` di [`naidrahiqa/selene-releases`](https://github.com/naidrahiqa/selene-releases) — rilis verifikasi pertama [`r15`](https://github.com/naidrahiqa/selene-releases/releases/tag/r15): zip 14.6 MB + `.sha256`, body berisi fingerprint build (uname, source commit, toolchain, defconfig). Repo kernel ini tetap nol CI.
++ **sisa:** flash-test hardware (BakaSU root, nomount, DroidSpaces *Check Requirements*) → issue `0030` naik ke *verified* setelah lolos di perangkat.
 
 ## 2026-10-23 — CI Dihapus dari Repo Kernel (Overhaul)
 

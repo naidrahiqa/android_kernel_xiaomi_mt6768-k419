@@ -131,3 +131,20 @@ all.config
 
 # Kdevelop4
 *.kdev4
+
+# --- Local-only artifacts (never published) ---
+# Dot-dirs (.opencode/, .github/, .pick-safe/) are already caught by the
+# ".*" rule above; these are the plain-name leftovers.
+AGENTS.md
+ROADMAP.md
+out/
+ak3/
+greenforce-clang/
+drain-dump/
+log-dump/
+dist/
+*.orig
+*.rej
+*.zip
+*.log
+*.sha256

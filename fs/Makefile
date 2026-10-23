@@ -134,3 +134,6 @@ obj-$(CONFIG_CEPH_FS)		+= ceph/
 obj-$(CONFIG_PSTORE)		+= pstore/
 obj-$(CONFIG_EFIVAR_FS)		+= efivarfs/
 obj-$(CONFIG_EROFS_FS)		+= erofs/
+CFLAGS_nomount.o		+= -Wno-declaration-after-statement
+obj-$(CONFIG_NOMOUNT)		+= nomount.o
+CFLAGS_nomount.o		+= -std=gnu11

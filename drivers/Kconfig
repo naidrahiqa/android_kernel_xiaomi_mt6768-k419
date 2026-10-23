@@ -231,5 +231,11 @@ source "drivers/switch/Kconfig"
 
 source "drivers/nfc/Kconfig"
 
+# Root solution: BakaSU (Baka-SU/BakaSU). xxKSU dihapus permanen 15 Okt
+# 2026 - satu root driver saja supaya tidak ada dua driver dengan simbol
+# serupa yang bisa dipilih bersamaan. Import awal BakaSU ada di docs/issues/
+# 0010-multibuild.md (v4.2.0-rc3, rev 4523, KSU_VERSION=35223).
+source "drivers/bakasu/Kconfig"
+
 source "drivers/p73-spi/Kconfig"
 endmenu
